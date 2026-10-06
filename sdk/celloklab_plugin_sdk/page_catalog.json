@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "id_rule": "relative path without final extension; slash replaced with dot",
+  "templates": [
+    {
+      "page_id": "404",
+      "template": "404.html",
+      "partial": false
+    },
+    {
+      "page_id": "accept_invitation",
+      "template": "accept_invitation.html",
+      "partial": false
+    },
+    {
+      "page_id": "accept_referral",
+      "template": "accept_referral.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.ai_credits_management",
+      "template": "admin/ai_credits_management.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.ai_credits_statistics",
+      "template": "admin/ai_credits_statistics.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.ai_providers_config",
+      "template": "admin/ai_providers_config.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.announcements",
+      "template": "admin/announcements.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.audit_logs",
+      "template": "admin/audit_logs.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.clinical_dictionaries",
+      "template": "admin/clinical_dictionaries.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.doctors",
+      "template": "admin/doctors.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.email-log",
+      "template": "admin/email-log.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.external_api",
+      "template": "admin/external_api.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.license",
+      "template": "admin/license.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.patient_data_audit",
+      "template": "admin/patient_data_audit.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.patient_referrals",
+      "template": "admin/patient_referrals.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.plugins",
+      "template": "admin/plugins.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.recommended_clinics",
+      "template": "admin/recommended_clinics.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.reporting_ai_stats",
+      "template": "admin/reporting_ai_stats.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.reporting_clinics",
+      "template": "admin/reporting_clinics.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.tenants",
+      "template": "admin/tenants.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.users",
+      "template": "admin/users.html",
+      "partial": false
+    },
+    {
+      "page_id": "admin.workers",
+      "template": "admin/workers.html",
+      "partial": false
+    },
+    {
+      "page_id": "ai_credits_utilization",
+      "template": "ai_credits_utilization.html",
+      "partial": false
+    },
+    {
+      "page_id": "audit_logs",
+      "template": "audit_logs.html",
+      "partial": false
+    },
+    {
+      "page_id": "base",
+      "template": "base.html",
+      "partial": true
+    },
+    {
+      "page_id": "care_plan",
+      "template": "care_plan.html",
+      "partial": false
+    },
+    {
+      "page_id": "care_plan.care_plan",
+      "template": "care_plan/care_plan.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard",
+      "template": "dashboard.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard_analytics",
+      "template": "dashboard_analytics.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard_clinic",
+      "template": "dashboard_clinic.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard_doctor",
+      "template": "dashboard_doctor.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard_platform_admin",
+      "template": "dashboard_platform_admin.html",
+      "partial": false
+    },
+    {
+      "page_id": "dashboard_reception",
+      "template": "dashboard_reception.html",
+      "partial": false
+    },
+    {
+      "page_id": "doctor_invitation",
+      "template": "doctor_invitation.html",
+      "partial": false
+    },
+    {
+      "page_id": "documentation_form",
+      "template": "documentation_form.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.appointment_confirmation",
+      "template": "emails/appointment_confirmation.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.clinic_creation",
+      "template": "emails/clinic_creation.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.clinic_patient_data_deleted",
+      "template": "emails/clinic_patient_data_deleted.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.doctor_clinic_assignment",
+      "template": "emails/doctor_clinic_assignment.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.doctor_invitation",
+      "template": "emails/doctor_invitation.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.external_doctor_case_access",
+      "template": "emails/external_doctor_case_access.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.external_doctor_consent",
+      "template": "emails/external_doctor_consent.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.invitation",
+      "template": "emails/invitation.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.license_restored",
+      "template": "emails/license_restored.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.license_suspension",
+      "template": "emails/license_suspension.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.license_termination",
+      "template": "emails/license_termination.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.mfa_code_resend",
+      "template": "emails/mfa_code_resend.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.notification",
+      "template": "emails/notification.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.password_reset",
+      "template": "emails/password_reset.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.patient_contact",
+      "template": "emails/patient_contact.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.patient_data_deleted",
+      "template": "emails/patient_data_deleted.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.patient_welcome",
+      "template": "emails/patient_welcome.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.plugin_notification",
+      "template": "emails/plugin_notification.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.referral_patient_notification",
+      "template": "emails/referral_patient_notification.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.referral_support_notification",
+      "template": "emails/referral_support_notification.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.resend_clinic_patient_data_deleted",
+      "template": "emails/resend_clinic_patient_data_deleted.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.resend_patient_data_deleted",
+      "template": "emails/resend_patient_data_deleted.html",
+      "partial": false
+    },
+    {
+      "page_id": "emails.visit_cancellation",
+      "template": "emails/visit_cancellation.html",
+      "partial": false
+    },
+    {
+      "page_id": "employees",
+      "template": "employees.html",
+      "partial": false
+    },
+    {
+      "page_id": "external_doctor_access",
+      "template": "external_doctor_access.html",
+      "partial": false
+    },
+    {
+      "page_id": "external_doctor_activation",
+      "template": "external_doctor_activation.html",
+      "partial": false
+    },
+    {
+      "page_id": "labs",
+      "template": "labs.html",
+      "partial": false
+    },
+    {
+      "page_id": "login",
+      "template": "login.html",
+      "partial": false
+    },
+    {
+      "page_id": "maintenance",
+      "template": "maintenance.html",
+      "partial": false
+    },
+    {
+      "page_id": "mfa_verify",
+      "template": "mfa_verify.html",
+      "partial": false
+    },
+    {
+      "page_id": "no_tenant_selected",
+      "template": "no_tenant_selected.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient-billing",
+      "template": "patient-billing.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient.edit_patient",
+      "template": "patient/edit_patient.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_consent",
+      "template": "patient_consent.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.activation",
+      "template": "patient_portal/activation.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.care_plans",
+      "template": "patient_portal/care_plans.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.contact",
+      "template": "patient_portal/contact.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.dashboard",
+      "template": "patient_portal/dashboard.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.mfa_verify",
+      "template": "patient_portal/mfa_verify.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.password_reset",
+      "template": "patient_portal/password_reset.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.patient_login",
+      "template": "patient_portal/patient_login.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.patient_portal_base",
+      "template": "patient_portal/patient_portal_base.html",
+      "partial": true
+    },
+    {
+      "page_id": "patient_portal.payments",
+      "template": "patient_portal/payments.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.photos",
+      "template": "patient_portal/photos.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.records",
+      "template": "patient_portal/records.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.settings",
+      "template": "patient_portal/settings.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.visits",
+      "template": "patient_portal/visits.html",
+      "partial": false
+    },
+    {
+      "page_id": "patients",
+      "template": "patients.html",
+      "partial": false
+    },
+    {
+      "page_id": "polecane-kliniki",
+      "template": "polecane-kliniki.html",
+      "partial": false
+    },
+    {
+      "page_id": "polecane-produkty",
+      "template": "polecane-produkty.html",
+      "partial": false
+    },
+    {
+      "page_id": "polecani-fryzjerzy",
+      "template": "polecani-fryzjerzy.html",
+      "partial": false
+    },
+    {
+      "page_id": "profile",
+      "template": "profile.html",
+      "partial": false
+    },
+    {
+      "page_id": "recommended_clinics",
+      "template": "recommended_clinics.html",
+      "partial": false
+    },
+    {
+      "page_id": "register",
+      "template": "register.html",
+      "partial": false
+    },
+    {
+      "page_id": "reset_password",
+      "template": "reset_password.html",
+      "partial": false
+    },
+    {
+      "page_id": "schedule_appointment",
+      "template": "schedule_appointment.html",
+      "partial": false
+    },
+    {
+      "page_id": "settings",
+      "template": "settings.html",
+      "partial": false
+    },
+    {
+      "page_id": "specialist_forum",
+      "template": "specialist_forum.html",
+      "partial": false
+    },
+    {
+      "page_id": "specialists",
+      "template": "specialists.html",
+      "partial": false
+    },
+    {
+      "page_id": "trichoscopy",
+      "template": "trichoscopy.html",
+      "partial": false
+    },
+    {
+      "page_id": "unauthorized",
+      "template": "unauthorized.html",
+      "partial": false
+    },
+    {
+      "page_id": "visit_detail",
+      "template": "visit_detail.html",
+      "partial": false
+    },
+    {
+      "page_id": "visits.visit_form",
+      "template": "visits/visit_form.html",
+      "partial": false
+    }
+  ]
+}

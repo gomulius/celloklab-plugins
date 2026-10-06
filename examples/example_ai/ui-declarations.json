@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "page",
+    "page_id": "completion",
+    "title": "Wtyczka AI — demo neutralnego tekstu",
+    "template": "templates/completion.html",
+    "nav_label": "Wtyczka — demo AI",
+    "roles": ["reception_staff", "medical_staff", "specialist", "trichologist", "doctor", "finance_officer", "tenant_admin"],
+    "js_assets": ["completion.js"]
+  },
+  {
+    "kind": "fragment",
+    "hook": "global.panel.right",
+    "template": "templates/panel.html",
+    "placement": "global_panel",
+    "fragment_id": "ai-completion-panel",
+    "roles": ["reception_staff", "medical_staff", "specialist", "trichologist", "doctor", "finance_officer", "tenant_admin"],
+    "js_assets": ["completion.js"]
+  }
+]

@@ -1,0 +1,146 @@
+/* ==========================================================================
+   CELLØKLAB Design System v1.0 - Core Variables & Design Tokens
+   ========================================================================== */
+
+/* Preview: external font import omitted; local fallback fonts used. */
+
+:root {
+    /* Fonts (Garuda TLWG local/CDN fallback, Google Fonts Quicksand as standard fallback) */
+    --font-heading: 'Garuda', 'Quicksand', system-ui, -apple-system, sans-serif;
+    --font-body: 'Quicksand', system-ui, -apple-system, sans-serif;
+    --font-mono: 'SF Mono', Menlo, Consolas, monospace;
+
+    /* Spacing Grid (4px multiples for micro-spacing) */
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 20px;
+    --s-6: 24px;
+    --s-7: 32px;
+    --s-8: 40px;
+    --s-9: 56px;
+
+    /* Spacing legacy fallback variables */
+    --spacing-xs: var(--s-1);
+    --spacing-sm: var(--s-2);
+    --spacing-md: var(--s-4);
+    --spacing-lg: var(--s-6);
+    --spacing-xl: var(--s-7);
+
+    /* Border Radius tokens */
+    --radius-chip: 4px;
+    --radius-pill: 6px;
+    --radius-btn: 8px;
+    --radius-input: 10px;
+    --radius-card-sm: 12px;
+    --radius-card: 14px;
+    --radius-panel: 16px;
+
+    /* Legacy radius fallback variables */
+    --radius-sm: var(--radius-pill);
+    --radius-md: var(--radius-btn);
+    --radius-lg: var(--radius-card-sm);
+    --radius-xl: var(--radius-card);
+
+    /* Permanent Core Brand Solids */
+    --color-brand-teal: #1C8C7B;           /* Primary teal */
+    --color-brand-teal-light: #0F9D8B;     /* White/Light background helper */
+    --color-mint-accent: #2DD4BE;          /* AI Indicator / Active highlights */
+    --color-mint-dim: rgba(45, 212, 190, 0.12); /* White BG text/chip border */
+    --color-navy-signature: #0A1729;       /* Sidebar background / Dark layout CTA */
+
+    /* Core Special Gradients & Accents */
+    --gradient-ai-brand: linear-gradient(135deg, #5294E3 0%, #2DD4BE 50%, #7100BF 100%);
+    --gradient-ai-brand-vertical: linear-gradient(180deg, #5294E3 0%, #7100BF 100%);
+    --gradient-banner-dark: linear-gradient(90deg, #0A2E2C 0%, #114A44 35%, #186B60 65%, #1C8C7B 90%);
+    --gradient-banner-light: linear-gradient(90deg, #0E4A44 0%, #155E55 30%, #1A7A6C 55%, #1C8C7B 80%);
+
+    /* Transitions & Standard Durations */
+    --transition-fast: 100ms ease;
+    --transition-normal: 150ms ease;
+    --transition-slow: 300ms cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* Layering Indexes */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 10050;
+
+    /* Theme-specific tokens default to LIGHT MODE */
+    --color-page-bg: #F7F9FB;
+    --color-panel-bg: #FFFFFF;
+    --color-card-bg: #FFFFFF;
+    --color-text-primary: #081522;
+    --color-text-secondary: #475569;
+    --color-text-muted: #6B7280;
+    --color-text-hint: #94A3B8;
+    --color-border-default: #E5E7EB;
+    --color-border-subtle: #F1F5F9;
+    --color-bg-elevated: #FFFFFF;
+
+    /* Traditional variables for backward compatibility with external bootstrap scripts */
+    --primary-color: var(--color-brand-teal);
+    --primary-color-dark: var(--color-brand-teal-light);
+    --secondary-color: var(--color-navy-signature);
+    --background-color: var(--color-page-bg);
+    --sidebar-color: var(--color-navy-signature);
+    --text-color: var(--color-text-primary);
+    --text-muted: var(--color-text-muted);
+    --border-color: var(--color-border-default);
+    --hover-color: var(--color-brand-teal-light);
+    --hover-bg: var(--color-border-subtle);
+
+    /* Fixed UI Sizing variables */
+    --header-height: 56px;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 56px;
+    --banner-height: 56px;
+
+    /* Functional Alert Status Earthy Colors */
+    --success-color: #10B981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --success-text: #047857;
+
+    --error-color: #EF4444;
+    --error-bg: rgba(239, 68, 68, 0.12);
+    --error-text: #B91C1C;
+
+    --warning-color: #F59E0B;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --warning-text: #B45309;
+
+    --info-color: #3B82F6;
+    --info-bg: rgba(59, 130, 246, 0.12);
+    --info-text: #1D4ED8;
+
+    --badge-neutral-bg: #F3F4F6;
+    --badge-neutral-text: #374151;
+}
+
+/* ==========================================================================
+   Theme toggle overlay override: DARK MODE ACTIVE
+   ========================================================================== */
+[data-theme="dark"] {
+    --color-page-bg: #050D18;
+    --color-panel-bg: #0A1729;
+    --color-card-bg: #102134;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: rgba(255, 255, 255, 0.78);
+    --color-text-muted: rgba(255, 255, 255, 0.55);
+    --color-text-hint: rgba(255, 255, 255, 0.38);
+    --color-border-default: rgba(255, 255, 255, 0.08);
+    --color-border-subtle: rgba(255, 255, 255, 0.04);
+    --color-bg-elevated: #14283F;
+
+    /* Legacy mapping override inside dark theme */
+    --background-color: var(--color-page-bg);
+    --text-color: var(--color-text-primary);
+    --text-muted: var(--color-text-muted);
+    --border-color: var(--color-border-default);
+    --hover-bg: var(--color-border-subtle);
+}

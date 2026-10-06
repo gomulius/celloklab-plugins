@@ -1,0 +1,11 @@
+{
+  "id": "partner.starter",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Partner Example",
+  "entrypoint": {"module": "starter:register"},
+  "capabilities": {"requested": ["emails.send_self_template", "patient.upload_attachments"]},
+  "ui": {"hooks": ["ui.page", "ui.modal", "ui.floating"]},
+  "events": {"subscribe": []},
+  "emails": {"templates": [{"alias": "notification", "subject": "Partner sample notification", "localfile": "emails/notification.html", "variables": {"title": 160, "message": 1000}, "revision": "1"}]}
+}

@@ -1,0 +1,290 @@
+/* Celloklab Plugin UI v1.0.0. Opt in with a .clk-plugin-ui wrapper.
+   Alias values follow inherited host tokens, including runtime theme changes.
+   No global reset, font import, theme override, or independent palette. */
+.clk-plugin-ui {
+    --clk-ui-font-body: var(--font-body);
+    --clk-ui-font-heading: var(--font-heading);
+    --clk-ui-surface: var(--color-panel-bg);
+    --clk-ui-surface-card: var(--color-card-bg);
+    --clk-ui-surface-muted: var(--color-border-subtle);
+    --clk-ui-text: var(--color-text-primary);
+    --clk-ui-text-secondary: var(--color-text-secondary);
+    --clk-ui-text-muted: var(--color-text-muted);
+    --clk-ui-border: var(--color-border-default);
+    --clk-ui-primary-bg: var(--color-navy-signature);
+    --clk-ui-accent: var(--color-mint-accent);
+    --clk-ui-focus: var(--color-brand-teal-light);
+    --clk-ui-success: var(--success-color);
+    --clk-ui-success-bg: var(--success-bg);
+    --clk-ui-info: var(--info-color);
+    --clk-ui-info-bg: var(--info-bg);
+    --clk-ui-warning: var(--warning-color);
+    --clk-ui-warning-bg: var(--warning-bg);
+    --clk-ui-error: var(--error-color);
+    --clk-ui-error-bg: var(--error-bg);
+    --clk-ui-radius-card: var(--radius-card);
+    --clk-ui-radius-button: var(--radius-btn);
+    --clk-ui-radius-input: var(--radius-input);
+    --clk-ui-transition: var(--transition-fast);
+    --clk-ui-space-1: var(--s-1);
+    --clk-ui-space-2: var(--s-2);
+    --clk-ui-space-3: var(--s-3);
+    --clk-ui-space-4: var(--s-4);
+    --clk-ui-space-5: var(--s-5);
+    --clk-ui-space-6: var(--s-6);
+    --clk-ui-space-7: var(--s-7);
+    --clk-ui-space-8: var(--s-8);
+    --clk-ui-space-9: var(--s-9);
+    font-family: var(--clk-ui-font-body);
+    color: var(--clk-ui-text);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    --clk-ui-window-width: calc(var(--clk-ui-space-8) * 16);
+    --clk-ui-window-min-width: calc(var(--clk-ui-space-8) * 7);
+    --clk-ui-window-height: 80vh;
+}
+.clk-plugin-ui.clk-ui-surface {
+    box-sizing: border-box;
+    background: var(--clk-ui-surface);
+    color: var(--clk-ui-text);
+    border: thin solid var(--clk-ui-border);
+    border-radius: var(--clk-ui-radius-card);
+    padding: var(--clk-ui-space-5);
+    width: min(var(--clk-ui-window-width), calc(100vw - 2 * var(--clk-ui-space-5)));
+    min-width: min(var(--clk-ui-window-min-width), calc(100vw - 2 * var(--clk-ui-space-5)));
+    max-height: min(var(--clk-ui-window-height), calc(100dvh - 2 * var(--clk-ui-space-5)));
+    overflow: auto;
+}
+/* The host universal reset removes dialog's native auto margins. Do not set
+   display here: closed native dialogs must stay closed. */
+.clk-plugin-ui.clk-ui-surface[data-surface-kind="modal"] {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+}
+.clk-plugin-ui.clk-ui-surface[data-surface-kind="modal"]::backdrop {
+    /* ::backdrop does not inherit the dialog's scoped aliases. */
+    background: var(--color-overlay, color-mix(in srgb, var(--color-navy-signature, CanvasText) 50%, transparent));
+}
+.clk-plugin-ui.clk-ui-surface[data-surface-kind="floating"] {
+    position: fixed;
+    inset: auto var(--clk-ui-space-5) var(--clk-ui-space-5) auto;
+    margin: 0;
+    z-index: var(--z-modal, 1055);
+    box-shadow: var(--shadow-md, var(--card-shadow, 0 var(--s-1) var(--s-3) color-mix(in srgb, var(--color-navy-signature) 12%, transparent)));
+}
+.clk-plugin-ui.clk-ui-surface.clk-ui-surface--expanded {
+    width: calc(100vw - 2 * var(--clk-ui-space-5));
+    height: var(--clk-ui-window-height);
+}
+.clk-plugin-ui.clk-ui-floating-launcher {
+    position: fixed;
+    right: var(--clk-ui-space-5);
+    bottom: var(--clk-ui-space-5);
+    z-index: var(--z-modal, 1055);
+}
+
+/* Inline status is independent of plugin content; loading never replaces a form. */
+.clk-plugin-ui .clk-ui-loading:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: var(--clk-ui-space-2);
+    margin-bottom: var(--clk-ui-space-4);
+    color: var(--clk-ui-text-secondary);
+}
+.clk-plugin-ui .clk-ui-loading[hidden] { display: none; }
+.clk-plugin-ui .clk-ui-loading-spinner {
+    flex-shrink: 0;
+    width: var(--clk-ui-space-4);
+    height: var(--clk-ui-space-4);
+    border: thin solid var(--clk-ui-border);
+    border-top-color: var(--clk-ui-focus);
+    border-radius: 50%;
+    animation: clk-ui-loading-spin 1s linear infinite;
+}
+@keyframes clk-ui-loading-spin {
+    to { transform: rotate(1turn); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .clk-plugin-ui .clk-ui-loading-spinner { animation: none; }
+}
+
+.clk-plugin-ui .clk-ui-card {
+    min-width: 0;
+    background: var(--clk-ui-surface);
+    border: thin solid var(--clk-ui-border);
+    border-radius: var(--clk-ui-radius-card);
+    padding: var(--clk-ui-space-6);
+}
+.clk-plugin-ui .clk-ui-card--compact { padding: var(--clk-ui-space-3); }
+.clk-plugin-ui .clk-ui-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--clk-ui-space-3);
+    padding-bottom: var(--clk-ui-space-4);
+    margin-bottom: var(--clk-ui-space-5);
+    border-bottom: thin solid var(--clk-ui-border);
+}
+.clk-plugin-ui .clk-ui-card-title {
+    font-family: var(--clk-ui-font-heading);
+    font-size: calc(var(--clk-ui-space-4) + var(--clk-ui-space-1) / 2);
+    color: var(--clk-ui-text);
+    margin: 0;
+}
+.clk-plugin-ui .clk-ui-card-body { color: var(--clk-ui-text-secondary); min-width: 0; }
+.clk-plugin-ui .clk-ui-card-footer {
+    border-top: thin solid var(--clk-ui-border);
+    margin-top: var(--clk-ui-space-5);
+    padding-top: var(--clk-ui-space-4);
+}
+
+.clk-plugin-ui .clk-ui-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--clk-ui-space-2);
+    padding: var(--clk-ui-space-3) var(--clk-ui-space-4);
+    border: thin solid var(--clk-ui-border);
+    border-radius: var(--clk-ui-radius-button);
+    font: inherit;
+    font-family: var(--clk-ui-font-heading);
+    text-decoration: none;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    background: var(--clk-ui-surface);
+    color: var(--clk-ui-text);
+    cursor: pointer;
+    transition: background-color var(--clk-ui-transition), border-color var(--clk-ui-transition);
+}
+.clk-plugin-ui .clk-ui-button--primary {
+    background: var(--clk-ui-primary-bg);
+    color: var(--clk-ui-accent);
+    border-color: var(--clk-ui-accent);
+}
+.clk-plugin-ui .clk-ui-button--secondary { border-color: var(--clk-ui-focus); }
+.clk-plugin-ui .clk-ui-button--danger { border-color: var(--clk-ui-error); }
+.clk-plugin-ui .clk-ui-button--small { padding: var(--clk-ui-space-2) var(--clk-ui-space-3); }
+.clk-plugin-ui .clk-ui-button:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--clk-ui-focus);
+    text-decoration: underline;
+}
+.clk-plugin-ui .clk-ui-button:disabled,
+.clk-plugin-ui .clk-ui-button[aria-disabled="true"] {
+    background: var(--clk-ui-surface-muted);
+    color: var(--clk-ui-text-muted);
+    border-color: var(--clk-ui-border);
+    cursor: not-allowed;
+}
+
+.clk-plugin-ui .clk-ui-form { display: grid; gap: var(--clk-ui-space-4); min-width: 0; }
+.clk-plugin-ui .clk-ui-field { display: grid; gap: var(--clk-ui-space-2); min-width: 0; }
+.clk-plugin-ui .clk-ui-label { font-family: var(--clk-ui-font-heading); color: var(--clk-ui-text); }
+.clk-plugin-ui .clk-ui-input,
+.clk-plugin-ui .clk-ui-select,
+.clk-plugin-ui .clk-ui-textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: var(--clk-ui-space-3);
+    border: thin solid var(--clk-ui-border);
+    border-radius: var(--clk-ui-radius-input);
+    font: inherit;
+    background: var(--clk-ui-surface);
+    color: var(--clk-ui-text);
+}
+.clk-plugin-ui .clk-ui-textarea { resize: vertical; min-height: calc(var(--clk-ui-space-8) * 2); }
+.clk-plugin-ui .clk-ui-input::placeholder,
+.clk-plugin-ui .clk-ui-textarea::placeholder { color: var(--clk-ui-text-muted); }
+.clk-plugin-ui .clk-ui-input:disabled,
+.clk-plugin-ui .clk-ui-select:disabled,
+.clk-plugin-ui .clk-ui-textarea:disabled {
+    background: var(--clk-ui-surface-muted);
+    color: var(--clk-ui-text-muted);
+    cursor: not-allowed;
+}
+.clk-plugin-ui .clk-ui-input[aria-invalid="true"],
+.clk-plugin-ui .clk-ui-select[aria-invalid="true"],
+.clk-plugin-ui .clk-ui-textarea[aria-invalid="true"] { border-color: var(--clk-ui-error); }
+.clk-plugin-ui .clk-ui-help { color: var(--clk-ui-text-muted); margin: 0; }
+.clk-plugin-ui .clk-ui-feedback { color: var(--clk-ui-text); border-left: medium solid var(--clk-ui-error); padding-left: var(--clk-ui-space-2); margin: 0; }
+.clk-plugin-ui .clk-ui-check { display: flex; align-items: baseline; gap: var(--clk-ui-space-2); }
+.clk-plugin-ui .clk-ui-checkbox { accent-color: var(--clk-ui-focus); flex-shrink: 0; }
+
+/* Semantic alerts keep readable theme text: host status-text tokens do not
+   switch in dark mode, so status is expressed by border and background. */
+.clk-plugin-ui .clk-ui-alert {
+    padding: var(--clk-ui-space-4);
+    border: thin solid var(--clk-ui-border);
+    border-left-width: var(--clk-ui-space-1);
+    border-radius: var(--clk-ui-radius-button);
+    color: var(--clk-ui-text);
+    background: var(--clk-ui-surface-muted);
+}
+.clk-plugin-ui .clk-ui-alert--success { border-left-color: var(--clk-ui-success); background: var(--clk-ui-success-bg); }
+.clk-plugin-ui .clk-ui-alert--info { border-left-color: var(--clk-ui-info); background: var(--clk-ui-info-bg); }
+.clk-plugin-ui .clk-ui-alert--warning { border-left-color: var(--clk-ui-warning); background: var(--clk-ui-warning-bg); }
+.clk-plugin-ui .clk-ui-alert--error { border-left-color: var(--clk-ui-error); background: var(--clk-ui-error-bg); }
+
+.clk-plugin-ui .clk-ui-table-wrap { overflow-x: auto; max-width: 100%; min-width: 0; }
+.clk-plugin-ui .clk-ui-table { width: 100%; border-collapse: collapse; color: var(--clk-ui-text); }
+.clk-plugin-ui .clk-ui-table th,
+.clk-plugin-ui .clk-ui-table td {
+    padding: var(--clk-ui-space-3);
+    border-bottom: thin solid var(--clk-ui-border);
+    text-align: start;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+.clk-plugin-ui .clk-ui-table th { font-family: var(--clk-ui-font-heading); background: var(--clk-ui-surface-muted); }
+.clk-plugin-ui .clk-ui-table caption { color: var(--clk-ui-text-muted); caption-side: top; }
+.clk-plugin-ui .clk-ui-stack { display: flex; flex-direction: column; gap: var(--clk-ui-space-4); min-width: 0; }
+.clk-plugin-ui .clk-ui-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--clk-ui-space-3); min-width: 0; }
+.clk-plugin-ui .clk-ui-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--clk-ui-space-4); min-width: 0; }
+.clk-plugin-ui .clk-ui-grid > * { min-width: 0; }
+@media (min-width: 768px) {
+    .clk-plugin-ui .clk-ui-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .clk-plugin-ui .clk-ui-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.clk-plugin-ui .clk-ui-gap-1 { gap: var(--clk-ui-space-1); }
+.clk-plugin-ui .clk-ui-gap-2 { gap: var(--clk-ui-space-2); }
+.clk-plugin-ui .clk-ui-gap-3 { gap: var(--clk-ui-space-3); }
+.clk-plugin-ui .clk-ui-gap-4 { gap: var(--clk-ui-space-4); }
+.clk-plugin-ui .clk-ui-gap-6 { gap: var(--clk-ui-space-6); }
+.clk-plugin-ui .clk-ui-p-0 { padding: 0; }
+.clk-plugin-ui .clk-ui-p-2 { padding: var(--clk-ui-space-2); }
+.clk-plugin-ui .clk-ui-p-4 { padding: var(--clk-ui-space-4); }
+.clk-plugin-ui .clk-ui-p-6 { padding: var(--clk-ui-space-6); }
+.clk-plugin-ui .clk-ui-mt-0 { margin-top: 0; }
+.clk-plugin-ui .clk-ui-mt-2 { margin-top: var(--clk-ui-space-2); }
+.clk-plugin-ui .clk-ui-mt-4 { margin-top: var(--clk-ui-space-4); }
+.clk-plugin-ui .clk-ui-mt-6 { margin-top: var(--clk-ui-space-6); }
+.clk-plugin-ui .clk-ui-text-muted { color: var(--clk-ui-text-muted); }
+/* Includes keyboard-focusable scroll regions, without altering unrelated host UI. */
+.clk-plugin-ui .clk-ui-button:focus-visible,
+.clk-plugin-ui .clk-ui-input:focus-visible,
+.clk-plugin-ui .clk-ui-select:focus-visible,
+.clk-plugin-ui .clk-ui-textarea:focus-visible,
+.clk-plugin-ui .clk-ui-checkbox:focus-visible,
+.clk-plugin-ui .clk-ui-table-wrap:focus-visible {
+    outline: medium solid var(--clk-ui-focus);
+    outline-offset: var(--clk-ui-space-1);
+}
+
+/* Standalone minimized launcher is itself the scoped wrapper. */
+.clk-plugin-ui.clk-ui-floating-launcher {
+    font-family: var(--clk-ui-font-heading);
+    padding: var(--clk-ui-space-2) var(--clk-ui-space-4);
+    border: thin solid var(--clk-ui-border);
+    border-radius: var(--clk-ui-radius-button);
+    background: var(--clk-ui-surface);
+    color: var(--clk-ui-text);
+    cursor: pointer;
+}
+.clk-plugin-ui.clk-ui-floating-launcher:focus-visible {
+    outline: medium solid var(--clk-ui-focus);
+    outline-offset: var(--clk-ui-space-1);
+}

@@ -1,0 +1,21 @@
+<section class="clk-plugin-ui" data-plugin-ai-demo data-plugin-id="example.ai" data-tenant-slug="{{ tenant_slug }}" aria-label="Demo wtyczki AI">
+  <div class="clk-ui-card clk-ui-stack">
+    <h2 class="clk-ui-card-title">AI — demo neutralnego tekstu</h2>
+    <p class="clk-ui-help">Używaj wyłącznie neutralnego tekstu bez danych wrażliwych. Nie wpisuj danych pacjentów, medycznych, osobowych ani poufnych. Wtyczka nie ma dostępu do dokumentacji pacjentów.</p>
+    <p class="clk-ui-help">Administrator platformy ustala model, instrukcję systemową i koszt w kredytach. Udane wykonanie może zużyć kredyty kliniki. Demo nie zapisuje tekstu; przetwarzanie przez dostawcę podlega polityce platformy.</p>
+    <label class="clk-ui-field"><span class="clk-ui-label">Instrukcja jako zwykły tekst (1–1000 znaków)</span>
+      <textarea class="clk-ui-textarea" maxlength="1000" rows="4" data-ai-prompt>Napisz po polsku krótkie, przyjazne powitanie na warsztaty ogrodnicze.</textarea>
+    </label>
+    <div class="clk-ui-row">
+      <button type="button" class="clk-ui-button clk-ui-button--primary" data-ai-generate>Generuj (może zużyć kredyty)</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-ai-replay hidden>Sprawdź to samo wykonanie</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-ai-new disabled>Przygotuj nowe wykonanie</button>
+    </div>
+    <div class="clk-ui-loading" role="status" data-ai-loading hidden>
+      <span class="clk-ui-loading-spinner" aria-hidden="true"></span><span>Oczekiwanie na potwierdzenie platformy…</span>
+    </div>
+    <p class="clk-ui-help" role="status" aria-live="polite" data-ai-status>Gotowe. Wymagane są uprawnienia AI, globalna aktywacja na platformie i jawne włączenie przez administratora tej kliniki.</p>
+    <pre class="clk-ui-text-muted" data-ai-output aria-label="Wygenerowany wynik jako zwykły tekst"></pre>
+    <p class="clk-ui-help">Niepewna odpowiedź zachowuje oryginalny klucz i dokładną instrukcję w pamięci tej strony. Brak automatycznych ponowień. Sprawdzenie oczekującego lub nieudanego wykonania nie odzyskuje tekstu wyniku. Odświeżenie usuwa ten tymczasowy stan: nie uruchamiaj nowego wykonania, aby rozstrzygnąć niepewny wynik; poproś administratora o sprawdzenie metadanych wykonania.</p>
+  </div>
+</section>

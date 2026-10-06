@@ -1,0 +1,10 @@
+{
+  "id": "trichology.ai-summary",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Celloklab",
+  "entrypoint": {"module": "trichology_ai_summary:register"},
+  "capabilities": {"requested": ["AI", "patient.read_trichology_record", "ai.trichology_summary"]},
+  "ui": {"hooks": ["patient.records.sections"]},
+  "events": {"subscribe": ["trichology.record.changed"]}
+}

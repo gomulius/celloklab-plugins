@@ -1,0 +1,13 @@
+[
+  {
+    "kind": "fragment",
+    "template": "templates/summary.html",
+    "hook": "patient.records.sections",
+    "fragment_id": "trichology-ai-summary",
+    "page_ids": ["documentation_form"],
+    "tab_id": "tab-wywiad",
+    "roles": ["medical_staff", "specialist", "trichologist", "doctor"],
+    "requires_doctor": false,
+    "js_assets": ["staticsummary.js"]
+  }
+]

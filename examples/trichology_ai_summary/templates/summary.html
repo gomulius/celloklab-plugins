@@ -1,0 +1,19 @@
+<section class="clk-plugin-ui" aria-label="Podsumowanie dokumentacji trychologicznej — AI">
+  <details class="clk-ui-card clk-ui-card--compact" data-trichology-ai-summary data-plugin-id="trichology.ai-summary"
+           data-patient-id="{{ patient_id|default('', true) }}" data-tenant-slug="{{ tenant_slug|default('', true) }}">
+    <summary class="clk-ui-card-title">Podsumowanie dokumentacji trychologicznej — AI <span class="clk-ui-text-muted">— pokaż / ukryj</span></summary>
+    <div class="clk-ui-card-body clk-ui-stack clk-ui-gap-1 clk-ui-mt-2">
+      <div class="clk-ui-text-muted">Aktualizowane po zmianie dokumentacji. <span style="white-space: nowrap;">AI — wymaga</span> weryfikacji specjalisty; nie jest diagnozą.</div>
+      <div data-summary-status role="status" aria-live="polite">Sprawdzanie podsumowania…</div>
+      <div data-summary-revision class="clk-ui-text-muted" hidden></div>
+      <div data-summary-obsolete class="clk-ui-alert clk-ui-alert--warning" hidden>To podsumowanie dotyczy poprzedniej wersji dokumentacji. Nie jest aktualne.</div>
+      <div data-summary-generated class="clk-ui-text-muted" hidden></div>
+      <article class="clk-ui-card clk-ui-card--compact clk-ui-mt-2" data-summary-result aria-label="Wygenerowane podsumowanie" hidden>
+        <header class="clk-ui-row clk-ui-mt-0">
+          <h3 class="clk-ui-card-title">Wygenerowane podsumowanie</h3>
+        </header>
+        <div class="clk-ui-card-body" data-summary-text style="white-space: pre-wrap; overflow-wrap: anywhere;" hidden></div>
+      </article>
+    </div>
+  </details>
+</section>

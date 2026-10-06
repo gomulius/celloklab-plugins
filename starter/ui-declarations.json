@@ -1,0 +1,5 @@
+[
+  {"kind":"page","page_id":"home","title":"Partner starter","nav_label":"Partner starter","template":"home.html","css_assets":["starter.css"],"js_assets":["starter.js"]},
+  {"kind":"fragment","hook":"ui.modal","placement":"popup_modal","surface_id":"sample-modal","title":"Partner modal","template":"surface.html","page_ids":["plugin:partner.starter:home"]},
+  {"kind":"fragment","hook":"ui.floating","placement":"floating_panel","surface_id":"sample-floating","title":"Partner floating panel","template":"surface.html","page_ids":["plugin:partner.starter:home"]}
+]

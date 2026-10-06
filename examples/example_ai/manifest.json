@@ -1,0 +1,10 @@
+{
+  "id": "example.ai",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Przykład Celloklab",
+  "entrypoint": {"module": "example_ai:register"},
+  "capabilities": {"requested": ["AI"]},
+  "ui": {"hooks": ["ui.page", "global.panel.right"]},
+  "events": {"subscribe": []}
+}

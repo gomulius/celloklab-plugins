@@ -1,0 +1,16 @@
+[build-system]
+requires = []
+build-backend = "build_backend"
+backend-path = ["."]
+
+[project]
+name = "celloklab-plugin-sdk"
+version = "1.0.0"
+description = "Standalone Celloklab partner plugin contracts and offline tooling"
+requires-python = ">=3.10"
+dependencies = []
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "LICENSES/*.txt"]
+
+[project.scripts]
+celloklab-plugin-validate = "celloklab_plugin_sdk.validation:main"

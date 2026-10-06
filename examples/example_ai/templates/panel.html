@@ -1,0 +1,19 @@
+<section class="clk-plugin-ui" data-plugin-ai-demo data-plugin-id="example.ai" data-tenant-slug="{{ tenant_slug }}" aria-label="Demo AI w panelu globalnym">
+  <div class="clk-ui-card clk-ui-stack">
+    <h2 class="clk-ui-card-title">AI — demo ogrodnicze</h2>
+    <p class="clk-ui-help">Uruchom neutralne powitanie na warsztaty ogrodnicze. Bez danych pacjentów, medycznych ani poufnych. Model, instrukcję systemową i koszt ustala administrator hosta.</p>
+    <textarea data-ai-prompt data-ai-fixed-prompt readonly hidden aria-label="Gotowa instrukcja dla AI">Napisz po polsku krótkie, przyjazne powitanie na warsztaty ogrodnicze.</textarea>
+    <div class="clk-ui-row">
+      <button type="button" class="clk-ui-button clk-ui-button--primary" data-ai-generate>Uruchom AI</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-ai-replay hidden>Sprawdź to samo wykonanie</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-ai-new disabled>Przygotuj nowe wykonanie</button>
+    </div>
+    <p class="clk-ui-help">Udane wykonanie może zużyć kredyty kliniki. Kliknięcie wysyła gotową instrukcję od razu, bez okna dialogowego.</p>
+    <div class="clk-ui-loading" role="status" data-ai-loading hidden>
+      <span class="clk-ui-loading-spinner" aria-hidden="true"></span><span>Oczekiwanie na potwierdzenie hosta…</span>
+    </div>
+    <p class="clk-ui-help" role="status" aria-live="polite" data-ai-status>Gotowe. Wymagane są uprawnienia AI, globalna aktywacja na platformie i jawne włączenie przez administratora tej kliniki.</p>
+    <pre class="clk-ui-text-muted" data-ai-output aria-label="Wynik AI jako zwykły tekst"></pre>
+    <p class="clk-ui-help">Brak automatycznych ponowień. Panel i strona demo tej samej kliniki współdzielą blokadę wykonania oraz oryginalny klucz. Przy niepewnym wyniku użyj wyłącznie sprawdzenia tego samego wykonania. Tekst nie jest zapisywany przez demo; przetwarzanie przez dostawcę podlega polityce hosta. Odświeżenie usuwa stan: poproś administratora o sprawdzenie metadanych, zamiast uruchamiać nowe płatne wykonanie.</p>
+  </div>
+</section>

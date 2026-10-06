@@ -1,5 +1,9 @@
 # Standalone SDK release — 1.0.0
 
+## Organizational booking addition (compatible SDK 1.0)
+
+Public `bookings.py` adds `BookingsProtocol` and six least-privilege capability names; `PLUGIN_BOOKING_CONTRACT.md` is public and the allowlist includes `examples/example_bookings/` (six files). Existing patient visit routes/grants are preserved; read DTOs add duration/end, clinical reads still exclude guests. The Polish reception-only demo covers anonymous busy intervals, contact reservation, explicit readback, same-visit patient attachment, date-only shift and cancellation. No AI, clinical authority, account creation, raw SQL or Case expansion. Core transaction callback integration is a release gate: without `authorization_guard` the SDK intentionally fails closed. Rebuild/verify archive after final docs using the procedure below; manifest/distribution versions remain 1.0/1.0.0. See the booking contract for exact policy and current local-vs-live verification limits.
+
 ## Mandatory Polish UI and default-off clinic AI opt-in
 
 Every new or maintained platform module/plugin must use **Polish for all user-facing UI**, including partner/admin screens: titles/navigation, labels/buttons/help/placeholders/tooltips, accessibility names, loading/status/errors/validation, confirmations/toasts/notifications and output framing. English developer prose is allowed; internal IDs/API fields/stable codes remain unchanged. Wire statuses map to Polish labels and `charged`/`replayed` display „tak”/„nie”. This release localizes the AI reference demo, not every unrelated existing platform screen.

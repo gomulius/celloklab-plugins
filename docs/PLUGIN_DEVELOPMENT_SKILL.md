@@ -1,5 +1,9 @@
 # Celloklab partner plugin development
 
+## Rezerwacje organizacyjne — rozszerzenie recepcji
+
+Przed implementacją kalendarza przeczytaj **[PLUGIN_BOOKING_CONTRACT.md](PLUGIN_BOOKING_CONTRACT.md)**. Referencja `examples/example_bookings/` używa polskiego hostowego UI Kit i publicznego SDK, bez klinicznych grantów ani AI. Wyślij kontakt albo pacjenta, nigdy oba; czas/koniec są migawką katalogu ustaloną przez hosta. Zachowuj body/klucz przy niepewnym utworzeniu i oryginalną rewizję przy przypisaniu/przełożeniu/anulowaniu. Nie dodawaj kont, dokumentacji przed przypisaniem, raw SQL, nowych ról, Case ani mutacji personelu. Widoczność strony nie oznacza autoryzacji.
+
 ## Mandatory Polish UI and explicit clinic AI approval
 
 All new or maintained platform modules/plugins, including partner and administrator screens, must use **Polish for every user-facing string**: titles/navigation, labels/buttons/help/placeholders/tooltips, accessibility names (`aria-label`, `title`), loading/status/errors/validation, confirmations/toasts/notifications and output framing. English developer prose is allowed; internal IDs/API fields/capability names/stable codes remain unchanged. Map wire states to Polish labels and flags to „tak”/„nie”; never expose raw exceptions. Fixed AI instructions should request Polish output. This mandate does not claim unrelated legacy UI was translated.
@@ -87,6 +91,8 @@ Public adapter methods: `openModal`, `closeModal`, `openFloating`, `minimizeFloa
 Toast types are `success`, `info`, `warning`, `error`; message 1–2000 Unicode code points; optional duration 1000–30000 ms. It delegates to the captured native host toast renderer; there is no production fallback renderer. Loading label is nonempty, maximum 200 Unicode code points. Use plain text, safe DOM APIs, delegated/idempotent event handlers and buttons with explicit type. Never put clinical data in console logs, URLs, local/session storage or public static assets.
 
 ## Data and email scope
+
+For trichology, `patient_clinic_records.notes` means **Notatka trychologa** (clinical note), while `additional_notes` means **Dodatkowe informacje** (separate shared reception information). Preserve existing/historical values in both; never merge or repurpose them. Both are already summary source/revision fields and use the existing pre-provider redaction path, which does not guarantee anonymity. Only `notes` is in the plugin trichology write allowlist. Notes-only edits/clears enqueue eligible summary work and invalidate old output; no-op saves do not. No new schema or capability is needed.
 
 Follow the exact route/field/revision tables in `PLUGIN_API_REFERENCE.md`. Read before editing, retain separate revisions per resource/domain and reload on conflicts rather than overwriting. A 500/network failure may have an uncertain outcome: read back before retrying. Uploads are not idempotent. Keep unsaved input until the outcome is confirmed.
 

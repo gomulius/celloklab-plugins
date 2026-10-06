@@ -27,6 +27,7 @@ Export for partner agents. Stable text IDs from core templates; partial IDs are 
 | `admin.users` | `admin/users.html` | no |
 | `admin.workers` | `admin/workers.html` | no |
 | `ai_credits_utilization` | `ai_credits_utilization.html` | no |
+| `appointment_booking_detail` | `appointment_booking_detail.html` | no |
 | `audit_logs` | `audit_logs.html` | no |
 | `base` | `base.html` | yes |
 | `care_plan.care_plan` | `care_plan/care_plan.html` | no |

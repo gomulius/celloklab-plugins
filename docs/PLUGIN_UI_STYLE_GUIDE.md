@@ -8,9 +8,9 @@ Every plugin requesting literal `AI` is hidden on all clinic-facing surfaces unt
 
 ## Status and boundaries
 
-Implemented: scoped component CSS and a JavaScript adapter to the host's existing Bootstrap toast engine. API version `1.0.0`. New demo `example.ui-kit` version `1.0.0`.
+Implemented: scoped component CSS and a JavaScript adapter to the host's existing Bootstrap toast engine. API version `1.0.0`; current host gallery `example.ui-kit` version `1.2.0`. Later sections record incremental changes, not separate current-version claims.
 
-This release does NOT implement plugin pages, modals, floating panels, notification delivery or email. Existing Case/medical features remain unchanged. Future expansion of those delicate clinical domains is outside the agreed plan.
+The UI Kit is a presentation contract, not notification/email delivery or clinical persistence. Plugin pages, modals, floating panels, bell notifications and approved local email are now implemented by separate host adapters; see [PLUGIN_DEVELOPMENT_SKILL.md](PLUGIN_DEVELOPMENT_SKILL.md) and [PLUGIN_API_REFERENCE.md](PLUGIN_API_REFERENCE.md). Existing Case reads remain implemented and frozen; no physician-document or Case expansion is implied.
 
 ## Assets and ownership
 
@@ -18,7 +18,7 @@ Host `base.html` loads `/static/css/plugins/ui-v1.css` and `/static/js/plugins/u
 
 Host sources: `static/css/core/variables.css`, `static/css/plugins/ui-v1.css`, `static/js/base-ui.js`, `static/js/plugins/ui-v1.js`.
 
-Partner code uses the stable prefixed classes and token aliases below, NOT private host template selectors. Breaking contract changes require a new major version. A standalone downloadable partner package and offline host-independent preview are planned, not delivered here. The gallery currently runs inside the host and needs no patient-data grants.
+Partner code uses stable prefixed classes and token aliases below, NOT private host template selectors. Breaking contract changes require a new major version. Public GitHub source, starter and host-independent offline preview exist; the checked-in SDK snapshot is older than the current host contract, as documented in [PLUGIN_SDK_RELEASE.md](PLUGIN_SDK_RELEASE.md). The host gallery needs no patient-data grants. No ZIP generation is part of this workflow.
 
 ## Mandatory wrapper
 
@@ -89,7 +89,7 @@ Aliases exist inside `.clk-plugin-ui`; names have `--clk-ui-` prefix:
 | transition | --transition-fast |
 | space-1 through space-9 | --s-1 through --s-9 |
 
-Fonts, spacing, colors and theme follow host tokens. Do not override `:root`, redefine host tokens, import fonts or hardcode independent colors. Use approved component classes first; scoped custom geometry may use aliases only. Mandatory partner CSS lint/package enforcement remains a planned follow-up; CSS alone is not a sandbox. Do not claim every arbitrary custom stylesheet is mechanically constrained.
+Fonts, spacing, colors and theme follow host tokens. Do not override `:root`, redefine host tokens, import fonts or hardcode independent colors. Use approved component classes first; scoped custom geometry may use aliases only. The offline validator implements conservative `.partner-*` CSS checks for globals, token overrides, remote URLs, literal colors/fonts/dimensions and fallbacks. It is not a complete CSS parser or host sandbox and cannot certify arbitrary dynamically supplied styles.
 
 ## Native toast API
 
@@ -118,12 +118,12 @@ Platform superadmin enables `example.ui-kit` in existing plugin management, with
 
 Check desktop/mobile and both themes, keyboard focus, disabled buttons, wrapped action groups, long literal messages and native close/autohide. QuickJS tests verify API/safe DOM behavior; they do not certify browser rendering, animation timing, screen-reader use or contrast. Automated browser verification is still pending.
 
-## Next stages
+## Separate implemented adapters
 
-Separate plugin pages inheriting base.html, controlled modals/floating panels, complete hook catalog/probe plugin, bell notification and Resend delivery adapters. None of those are implied by this first UI Kit release.
+Pages inheriting `base.html`, controlled modals/floating panels, the hook catalog/probe, bell notifications and approved-local-source Resend adapters are implemented separately from UI Kit styling. Their visibility/grants/current actor checks and delivery limits remain independent; see the linked development/API contracts. The sections below record successive UI changes, not pending features or a new public release announcement.
 
 
-## Declarative plugin pages, modals and floating panels — UI gallery1.1.0
+## Current declarative pages, modals and floating panels
 
 Existing clinicaldemo1.36 unchanged. New PluginPage exported through celloklab_plugin_sdk; registrar.register_page requires manifest ui.page hook. Page fields page_id,title,template,roles,requires_doctor,nav_label,css_assets,js_assets. Local page_id lowercase slug; navlabel max80,title160. Host route /app/<tenant_slug>/plugins/<plugin_id>/<page_id> inherits base.html, verifies active staff tenantmembership and declaredroles/doctor plus currentplugin state evendirectURL. Unauthorized/inactive/unknown404, anonymous401. Plugin body receives only tenant_slug/plugin_id/localpage_id/title. Includes/extends loader rejects traversal/symlinkescape. Navigation link labelsescaped, URLs hostcontrolled; no arbitraryroutes or data grants.
 
@@ -131,7 +131,7 @@ Canonical dynamic page identity plugin:<plugin_id>:<page_id>, helper plugin_page
 
 CelloklabPluginUI additions openModal/closeModal/openFloating/minimizeFloating/closeFloating return Promise<boolean>; registerCloseGuard(id,callback) gets{id,action,element}, stricttrue required dirtyclose; markClean(id) after confirmed save/reset. Independent native dialogs leave core appModal intact; focusrestoration/tabtrap/Escape; oneexpandedfloating; minimization preservesforms. Input/change marks surface dirty; withoutguard dirtyclose refused; beforeunload warning. Guards must implement save/discard/cancel explicitly—surface API doesn't prove server save or automatically share domains. Alreadyrendered UI isn't remotelyremoved on revoke; future requests revalidate server.
 
-example.ui-kit1.1.0 declares page gallery/nav 'Plugin UI — galeria', demo-modal and demo-floating limited to dashboard_clinic and ownpage, tenant_admin. Gallery has explicit openbuttons and fakefieldreset; closeguard confirmsdiscard, no clinicalwrites. Floating minimized launcher reopens retainedtext, expandbutton resizes. Approve1.1.0 then enable no datagrants, open Clinicdashboard/gallerymenu and test directURL /app/<slug>/plugins/example.ui-kit/gallery. No migration or clinicaldemo reapproval. UI Kitv1 toastcontract unchanged. Native dialog visibility/mobile/focus realbrowser acceptance outstanding; QuickJS and HTTP/Jinja tests isolated. Full UIHookProbe catalog and notifications are later slices.
+Current host gallery `example.ui-kit` **1.2.0** declares page `gallery` with navigation label „Plugin UI — galeria”, `demo-modal` and `demo-floating`, limited to `dashboard_clinic` and its own page for `tenant_admin`. Explicit open buttons and synthetic field reset demonstrate discard confirmation without clinical writes. The minimized floating launcher restores retained text; expansion resizes the panel. Use the exact deployed reviewed version and no data grants; open the clinic dashboard/gallery and test `/app/<slug>/plugins/example.ui-kit/gallery`. No new migration or unrelated plugin reapproval is implied. UI Kit toast version remains unchanged. Real browser focus/visibility/mobile acceptance is separate from synthetic HTTP/Jinja/QuickJS checks; no tests are claimed executed by this documentation pass. Complete hook/notification adapters are documented separately.
 
 
 ## Modal centering/backdrop and truthful loader — UI gallery1.2.0
@@ -145,7 +145,7 @@ Approve example.ui-kit1.2.0 then enable no datagrants; clinicaldemo1.36 unchange
 
 ## UI Hook Probe — diagnostic1.0
 
-New example.ui-hook-probe, no data grants; existing UIgallery1.2 and clinicaldemo1.36 unchanged. PLUGIN_UI_HOOK_CATALOG.md distinguishes nine actual mounts from declared-only hooks. Probe renders labelled placeholders for mounted before/after content, right panel, doctor/reception widgets, existing medical tab, page/modal/floating. Existing medical/Case functions unchanged. No patient API requests.
+The host diagnostic `example.ui-hook-probe` needs no data grants. [PLUGIN_UI_HOOK_CATALOG.md](PLUGIN_UI_HOOK_CATALOG.md) currently distinguishes 14 mounted hooks from four declared-only hooks. Probe renders labelled placeholders for mounted before/after content, right panel, doctor/reception widgets, existing medical tab, page/modal/floating. Existing medical/Case functions unchanged. No patient API requests.
 
 UIFragment/PluginPage optional enabled_hooks_setting references flat comma-separated setting (absent/all enables, empty hides). Existing actor/page/tab gates still apply. Host supplies diagnostic host_page_id/host_tab_id only, no Request/clinicalpayload/actorroles. Probe report sidebar or /app/<slug>/plugins/example.ui-hook-probe/report; modal/floating explicit clicks. Keep ui.page when selecting report surfaces. Disable probe after visual review. No migration. Actual Jinja/QuickJS tests local; browser visual role matrix pending.
 

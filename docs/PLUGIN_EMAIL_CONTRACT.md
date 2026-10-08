@@ -1,6 +1,6 @@
 # Plugin email contract — local approved source
 
-Current supported routes, payloads, limits and actor policy are documented in PLUGIN_API_REFERENCE.md (email section). Partner development uses PLUGIN_DEVELOPMENT_SKILL.md, which includes a complete XHTML example; the same source is in starter/emails/notification.html. This document replaces obsolete provider-template ENV/import instructions for plugins only.
+Current supported routes, payloads, limits and actor policy are documented in [PLUGIN_API_REFERENCE.md](PLUGIN_API_REFERENCE.md) (email section). Partner development uses [PLUGIN_DEVELOPMENT_SKILL.md](PLUGIN_DEVELOPMENT_SKILL.md), which includes a complete XHTML example; the same source is in `starter/emails/notification.html`. This document replaces obsolete provider-template ENV/import instructions for plugins only. Use pinned public GitHub source, not a generated ZIP or private host installation skill; [PLUGIN_SDK_RELEASE.md](PLUGIN_SDK_RELEASE.md) distinguishes current host contracts from the public SDK snapshot.
 
 ## Source and approval
 

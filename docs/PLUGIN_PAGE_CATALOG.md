@@ -1,6 +1,10 @@
 # Plugin page catalog
 
-Export for partner agents. Stable text IDs from core templates; partial IDs are inventory entries, not independent page render targets. A page target does not create a live hook or authorize data access. Use SDK page_ids plus host-controlled tab/role restrictions.
+Committed host inventory at `8c390880ac8f8fbddcf367b3d5d6d9218c12f785`: **97 catalog entries**, matching both host catalog copies and every committed core HTML template except the four internal shells/includes listed below. Stable text IDs derive from core templates; partial IDs are inventory entries, not independent page render targets. A page target does not create a live hook or authorize data access. Administrative/email/portal inventory entries do not imply plugin mounting. Use explicit SDK `page_ids` plus host-controlled tab/role restrictions.
+
+The public `sdk/celloklab_plugin_sdk/page_catalog.json` remains a **98-entry historical snapshot**: it still lists removed `admin.reporting_ai_stats` and `labs`, and omits `emails.plugin_notification`. This Markdown inventory describes the current committed host; it does not rewrite that JSON or upgrade the public SDK. See [PLUGIN_SDK_RELEASE.md](PLUGIN_SDK_RELEASE.md).
+
+Excluded internal templates are `plugin_before_content.html`, `plugin_page.html`, `plugin_surfaces.html` and `trichology_interview_extensions.html`. Includes retain the outer page identity; own plugin pages use `plugin:<plugin_id>:<page_id>`, not a targetable host shell ID.
 
 | Page ID | Template | Partial |
 |---|---|---|
@@ -21,7 +25,6 @@ Export for partner agents. Stable text IDs from core templates; partial IDs are 
 | `admin.patient_referrals` | `admin/patient_referrals.html` | no |
 | `admin.plugins` | `admin/plugins.html` | no |
 | `admin.recommended_clinics` | `admin/recommended_clinics.html` | no |
-| `admin.reporting_ai_stats` | `admin/reporting_ai_stats.html` | no |
 | `admin.reporting_clinics` | `admin/reporting_clinics.html` | no |
 | `admin.tenants` | `admin/tenants.html` | no |
 | `admin.users` | `admin/users.html` | no |
@@ -57,6 +60,7 @@ Export for partner agents. Stable text IDs from core templates; partial IDs are 
 | `emails.patient_contact` | `emails/patient_contact.html` | no |
 | `emails.patient_data_deleted` | `emails/patient_data_deleted.html` | no |
 | `emails.patient_welcome` | `emails/patient_welcome.html` | no |
+| `emails.plugin_notification` | `emails/plugin_notification.html` | no |
 | `emails.referral_patient_notification` | `emails/referral_patient_notification.html` | no |
 | `emails.referral_support_notification` | `emails/referral_support_notification.html` | no |
 | `emails.resend_clinic_patient_data_deleted` | `emails/resend_clinic_patient_data_deleted.html` | no |
@@ -65,7 +69,6 @@ Export for partner agents. Stable text IDs from core templates; partial IDs are 
 | `employees` | `employees.html` | no |
 | `external_doctor_access` | `external_doctor_access.html` | no |
 | `external_doctor_activation` | `external_doctor_activation.html` | no |
-| `labs` | `labs.html` | no |
 | `login` | `login.html` | no |
 | `maintenance` | `maintenance.html` | no |
 | `mfa_verify` | `mfa_verify.html` | no |

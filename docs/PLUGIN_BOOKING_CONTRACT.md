@@ -1,5 +1,7 @@
 # Organizacyjne rezerwacje wizyt — SDK 1.0
 
+This guide describes implemented committed-host behavior. Host Python SDK is 1.1.0; the checked-in public SDK source/wheel remain the 1.0.0 snapshot without `bookings.py` or `examples/example_bookings/`. Use pinned public GitHub source and [PLUGIN_SDK_RELEASE.md](PLUGIN_SDK_RELEASE.md) to distinguish current contracts from available files. No ZIP generation is required.
+
 ## Granica i parytet z modułem natywnym
 
 Rezerwacja kontaktowa jest wizytą, nie pacjentem, kontem ani dokumentacją. Kontakt `{name,surname,phone,email}` pozwala zarezerwować termin przed rejestracją. Po standardowej rejestracji recepcja przypisuje istniejącego pacjenta do **tej samej wizyty**, bez aktywacji konta. Przed przypisaniem nie ma dokumentacji pacjenta. SDK korzysta z tego samego hostowego `app.services.appointment_bookings` co operacje natywne: walidacja, rzeczywiste kolizje, czas, rewizje, idempotencja, audyt i transakcja należą do hosta.
@@ -30,8 +32,8 @@ Bazowy adres: `/api/plugins/{plugin_id}/bookings?tenant_slug={dokładny_slug}`. 
 | `GET /providers` | bez danych pacjenta |
 | `GET /catalog` | aktywne procedury bieżącej kliniki: `treatment_id`, `name`, `type`, `visit_type`, `duration_minutes`; bez pacjenta, cen i dokumentacji |
 | `GET /availability` | `doctor_id`, `start`, `end` w query |
-| `GET /` | opcjonalne `visit_id`, `unassigned_only=true` |
-| `POST /` | payload tworzenia + `Idempotency-Key` UUID |
+| `GET` (bez końcowego `/`) | opcjonalne `visit_id`, `unassigned_only=true` |
+| `POST` (bez końcowego `/`) | payload tworzenia + `Idempotency-Key` UUID |
 | `POST /{visit_id}/attach-patient` | `{patient_id}` + `If-Match` |
 | `POST /{visit_id}/reschedule` | `{visit_date}` + `If-Match` |
 | `POST /{visit_id}/cancel` | `{}` + `If-Match` |
@@ -58,10 +60,10 @@ Zamroź body i UUID przed pierwszym utworzeniem. Niepewna odpowiedź zachowuje b
 
 `plugins/example_bookings`, ID `example.bookings`, wersja 1.0.0. Strona `/app/{slug}/plugins/example.bookings/calendar`: polski UI Kit, sekcja `.clk-plugin-ui` z potomnym `.clk-ui-card`, wybór specjalisty/dnia, anonimowe zajęte przedziały, kontakt, odczyt kalendarza, przypisanie przez UUID już zarejestrowanego pacjenta, przełożenie i anulowanie. Brak zewnętrznych fontów/kalendarza/wywołań AI. Demo wybiera rzeczywistą procedurę i jej czas z `GET /catalog`, wysyła `treatment_id` oraz zgodny `visit_type`; dodatkowa opcja „Inne” pozostaje 60-minutowa. Podgląd pokazuje wyłącznie nazwę procedury i czas, bez danych kontaktowych. Wartości danych renderowane są jako tekst, przyciski blokują operacje w toku, niepewne tworzenie zachowuje oryginalne żądanie, niepewna mutacja wymaga ponownego odczytu.
 
-Pakiet standalone eksportuje `BookingsProtocol` oraz `BOOKING_CAPABILITIES`; nie dostarcza transportu HTTP, połączenia SQL ani prywatnego hosta. Dodatki są zgodne wstecznie; wersje manifestu 1.0 i dystrybucji 1.0.0 nie zostały zmienione.
+The committed host's standalone SDK exports `BookingsProtocol` and `BOOKING_CAPABILITIES`; it supplies no HTTP transport, SQL connection or private host API. Manifest compatibility remains 1.0; current host distribution is 1.1.0. The public 1.0.0 snapshot has not been synchronized and cannot supply these imports/examples yet.
 
 ## Weryfikacja i ograniczenia
 
 Kontakt rezerwacji i zamrożona odpowiedź idempotencji są szyfrowane w tabelach hosta. Przypisanie pacjenta zachowuje oryginalny kontakt; anulowanie nie jest usunięciem. Istniejąca operacja trwałego usunięcia pacjenta (RODO) usuwa kontakty i zaszyfrowane odpowiedzi przypisanych wizyt przed usunięciem tych wizyt, bez usuwania audytu i logów email. Ten zakres nie wdraża TTL, automatycznego purge ani workera retencji tych tabel i nie gwarantuje usuwania po określonym czasie. Operator musi zatwierdzić odrębną politykę retencji/usuwania; samo szyfrowanie nie zastępuje tej polityki.
 
-Testy lokalne fake-core/SQLite sprawdzają mapowanie, minimalne DTO, role/granty w transakcji, rewizje, payload i HTTP. Nie potwierdzają MariaDB blokad/deadlocków ani wizualnej geometrii przeglądarki. Zintegrowane testy SDK → prawdziwy serwis core z adapterem SQLite obejmują replay po attach, czasy katalogowe, prawdziwe przedziały, role mieszane i HTTP. Przed aktywacją produkcyjną pozostają migracja 082, weryfikacja współbieżności MariaDB i sesyjny browser E2E. Partner nigdy nie wykonuje migracji ani SQL. Pełny pakiet należy odtworzyć po finalizacji dokumentacji i zweryfikować według `PLUGIN_SDK_RELEASE.md`.
+Testy lokalne fake-core/SQLite sprawdzają mapowanie, minimalne DTO, role/granty w transakcji, rewizje, payload i HTTP. Nie potwierdzają MariaDB blokad/deadlocków ani wizualnej geometrii przeglądarki. Zintegrowane testy SDK → prawdziwy serwis core z adapterem SQLite obejmują replay po attach, czasy katalogowe, prawdziwe przedziały, role mieszane i HTTP. Przed aktywacją produkcyjną pozostają migracja 082, weryfikacja współbieżności MariaDB i sesyjny browser E2E. Partner nigdy nie wykonuje migracji ani SQL. Publikacja odbywa się z przypiętego źródła GitHub; synchronizacja brakujących modułów/przykładów jest osobnym zadaniem. Ten audyt nie odtwarza pakietu ani ZIP; granice weryfikacji opisuje [PLUGIN_SDK_RELEASE.md](PLUGIN_SDK_RELEASE.md).

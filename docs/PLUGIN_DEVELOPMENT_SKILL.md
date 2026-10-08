@@ -14,7 +14,7 @@ Manual migration **080** adds default-off `tenant_plugin_ai_activations` alongsi
 
 ## Supported boundary
 
-Develop against the standalone `celloklab_plugin_sdk` distribution, not private host modules. Manifest SDK version is `1.0`; Python distribution and UI-kit version are `1.0.0`. A partner needs the public ZIP/wheel, starter and catalogs—not access to the platform repository. See `PLUGIN_API_REFERENCE.md` for the implemented browser contract and `PLUGIN_SDK_RELEASE.md` for release limitations.
+Develop against the standalone `celloklab_plugin_sdk` distribution, not private host modules. Manifest SDK version is `1.0`; Python distribution is `1.1.0`; UI-kit version remains `1.0.0`. A partner needs the public ZIP/wheel, starter and catalogs—not access to the platform repository. See `PLUGIN_API_REFERENCE.md` for the implemented browser contract and `PLUGIN_SDK_RELEASE.md` for release limitations.
 
 Plugins are administrator-reviewed, trusted, in-process Python plus server-rendered templates and same-origin JavaScript. This is **not a sandbox**. Capability grants do not authorize an actor or replace tenant/resource checks. There is no automatic installer, marketplace, dependency resolver, general event bus or arbitrary database API. Manifest event declarations alone do not provide event delivery; the one implemented narrow exception is reviewed `register_trichology_summary()` for `trichology.record.changed`.
 
@@ -26,7 +26,7 @@ Unzip the public bundle, create a clean virtual environment, install the include
 
 ```sh
 python -m venv .venv
-.venv/bin/python -m pip install --no-index --no-deps wheels/celloklab_plugin_sdk-1.0.0-py3-none-any.whl
+.venv/bin/python -m pip install --no-index --no-deps wheels/celloklab_plugin_sdk-1.1.0-py3-none-any.whl
 .venv/bin/celloklab-plugin-validate starter
 python -m http.server 8000 --bind 127.0.0.1 --directory preview
 ```
@@ -90,6 +90,14 @@ Public adapter methods: `openModal`, `closeModal`, `openFloating`, `minimizeFloa
 
 Toast types are `success`, `info`, `warning`, `error`; message 1–2000 Unicode code points; optional duration 1000–30000 ms. It delegates to the captured native host toast renderer; there is no production fallback renderer. Loading label is nonempty, maximum 200 Unicode code points. Use plain text, safe DOM APIs, delegated/idempotent event handlers and buttons with explicit type. Never put clinical data in console logs, URLs, local/session storage or public static assets.
 
+## Typed trichology editor
+
+Read **[PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md](PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md)** before implementing an editor. GET retains display/legacy values and labels, adding all 41 typed `record.interview_values` and Polish `record.interview_options`. Edit codes/arrays/boolean-null/text-null, never captions. PATCH is a nonempty flat dirty-field object: the narrower legacy string-only write allowlist stays unchanged, with all 41 new fields added. New null/empty clears; `[]` clears multi-selects; `false` is valid; omit unchanged fields. `result.updated_values` exposes only submitted values, typed for new fields.
+
+Use host-independent `celloklab_plugin_sdk/trichology.py` constants/validation, not private models or database imports. The reference source is `plugins/example_trichology_interview`, distributed as `examples/example_trichology_interview/`; confirm finalized artifact exports/version in the release guide. It requires existing `patient.read_trichology_record` and `patient.write_trichology_record`, not `AI` or a new capability. A read-only plugin adding write must obtain explicit write grant and exact manifest-version approval; unchanged effective grants need no blanket reset. Current clinical role, active doctor profile/clinic assignment and assigned patient are required even when the UI is visible.
+
+Use Polish labels/errors and native UI Kit, no nested forms or native-save interception. Keep draft and original trichology revision in memory; strongly recommend `If-Match` (legacy optional). A 409 must preserve changes and offer explicit reload/compare, never automatically refresh the revision and overwrite. Native columns remain unencrypted; only the separate existing AI job snapshots/artifacts are encrypted. Migration 084 is already confirmed applied; this bridge needs no rerun/new migration, capability, worker or recording/RPL/Case expansion. Local validator success is not runtime authorization or production acceptance.
+
 ## Data and email scope
 
 For trichology, `patient_clinic_records.notes` means **Notatka trychologa** (clinical note), while `additional_notes` means **Dodatkowe informacje** (separate shared reception information). Preserve existing/historical values in both; never merge or repurpose them. Both are already summary source/revision fields and use the existing pre-provider redaction path, which does not guarantee anonymity. Only `notes` is in the plugin trichology write allowlist. Notes-only edits/clears enqueue eligible summary work and invalidate old output; no-op saves do not. No new schema or capability is needed.
@@ -124,7 +132,7 @@ Use a semantic `.clk-plugin-ui` section with a descendant `clk-ui-card` and the 
 
 Keep the entire Polish read-only card in `patient.records.sections`, `documentation_form`, `tab-wywiad`: no nested form, native-save changes or arbitrary clinical-prompt POST. Use host context, session cookies, `X-CSRF-Token` and `tenant_slug` on GET `/patients/{patient_id}/trichology-summary`. The `summary` fields are `status`, `source_revision`, `current_revision`, `is_current`, `text`, `generated_at`, `job_id`; statuses are `queued`, `processing`, `pending`, `failed`, `stale`, `succeeded`, `cancelled`, `absent`. Polling must be bounded (sample: 30 requests, 2-second intervals) and stopped on unload; render plain text and stale labels safely. This GET polling is not a paid AI replay.
 
-Unlike neutral AI's ephemeral text/metadata-only replay, **clinical artifacts persist encrypted**; do not copy them into browser storage, financial records or logs. Deliver synthetic tests and a retention/patient-deletion plan to the host administrator. They apply only missing reviewed manual migration 081 (never rerun confirmed 079/080), grant the exact version/capabilities, explicitly activate an active model/provider and independent plugin feature, confirm clinic license/credits and local tenant-admin consent, and operate the dedicated host worker. For a pilot they manually disable old native `patient_summary_generation` in that clinic: the plugin never auto-disables native AI. No Case/physician-document expansion or generic event/job platform is part of this flow.
+Unlike neutral AI's ephemeral text/metadata-only replay, **clinical artifacts persist encrypted**; do not copy them into browser storage, financial records or logs. Deliver synthetic tests and a retention/patient-deletion plan to the host administrator. They apply only missing reviewed manual migration 081 (never rerun confirmed 079/080), grant the exact version/capabilities, explicitly activate an active model/provider and independent plugin feature, confirm clinic license/credits and local tenant-admin consent, and operate the dedicated host worker. Dedicated native AI is removed, not pilot-disabled. Host administrators review/apply only missing manual `migrations/083_remove_legacy_native_ai_configuration.sql` after removal of native callers; no per-clinic native-disable step remains. It removes exact legacy assignments/settings and dispatch configuration, retaining inert history-referenced feature rows and all clinical tables/columns/results, financial history and plugin reserves. Partners must not apply private SQL or assume historical results are automatically converted into plugin artifacts. No Case/physician-document expansion or generic event/job platform is part of this flow.
 
 ## When the SDK is insufficient
 

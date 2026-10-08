@@ -5,7 +5,7 @@ Public developer guidelines, standalone SDK contracts and reference examples for
 
 ## Documentation-only publication: read this first
 
-The documentation describes the inspected current **Python SDK 1.1.0** and host contracts. This `celloklab-plugin` branch intentionally retains **older public SDK/code/catalog/demo snapshots at distribution 1.0.0**. Updating Markdown does not update these files or the bundled wheel. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**, and plugin versions are independent.
+The documentation describes the inspected current **Python SDK 1.1.0** and host contracts. The default `main` branch retains **older public SDK/code/catalog/demo snapshots at distribution 1.0.0**. Updating Markdown does not update these files or the bundled wheel. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**, and plugin versions are independent.
 
 **Installing or rebuilding this checkout gives SDK 1.0.0, not 1.1.0.** In particular, it does not supply the current `trichology.py` or `bookings.py` modules, typed interview editor or booking demo. References to those additions in technical guides describe current contracts, not files available here. Confirm deployed-host support with the platform administrator before integration. No public 1.1.0 artifact or GitHub release is asserted by this documentation update; do not seek private host access as an installation workaround.
 

@@ -15,7 +15,7 @@ GitHub is the documentation delivery surface: browse this branch and pin its rev
 
 | Directory | Purpose |
 |---|---|
-| `docs/` | All 13 technical guides indexed below |
+| `docs/` | All 14 technical guides indexed below |
 | `sdk/` | Older standalone Python SDK 1.0.0, catalogs and offline build backend |
 | `wheels/` | Existing SDK 1.0.0 wheel; not a current-contract upgrade |
 | `starter/` | Existing page, modal, floating panel and declaration examples |
@@ -24,7 +24,7 @@ GitHub is the documentation delivery surface: browse this branch and pin its rev
 | `preview/` | Older offline UI preview with mock feedback, no real API |
 | `LICENSES/` | Full standard license texts |
 
-## Complete documentation index (13 guides)
+## Complete documentation index (14 guides)
 
 | Guide | Purpose |
 |---|---|
@@ -39,6 +39,7 @@ GitHub is the documentation delivery surface: browse this branch and pin its rev
 | [Booking Contract](docs/PLUGIN_BOOKING_CONTRACT.md) | Organizational reservations and reception scope |
 | [Typed Trichology Interview Contract](docs/PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md) | All 41 new fields, codes, types, read/write and concurrency |
 | [Extended Trichology Interview](docs/TRICHOLOGY_INTERVIEW_EXTENSION.md) | Native fields, storage, migration and integration boundaries |
+| [Official RPL Catalog Operations](docs/RPL_CATALOG_OPERATIONS.md) | Administrator import, local medicine search and immutable medication snapshots |
 | [Administrator Installation Guide](docs/PLATFORM_ADMIN_PLUGIN_INSTALLATION_SKILL.md) | Administrator-only review, manual prerequisites and activation |
 | [System Maintenance Guide](docs/PLUGIN_SYSTEM_MAINTENANCE.md) | Host maintenance, workers, diagnostics and reconciliation |
 

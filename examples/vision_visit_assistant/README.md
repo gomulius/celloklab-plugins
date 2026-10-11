@@ -10,6 +10,8 @@ Kontrakt: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](../../PLUGIN_LIVE_INTERVIEW_CONTRA
 
 ## Panel i bezpieczna ocena
 
+Vision nie korzysta z `example.live-interview`: to osobne syntetyczne demo SDK. Ruchomy wskaźnik pokazuje rzeczywisty sygnał RMS/szczyt z AudioWorklet, nie atrapę nagrywania. Licznik potwierdzonych fragmentów oznacza odbiór przez hosta, nie dowód poprawnej transkrypcji. Panel pokazuje osobno ostatnie cztery segmenty transkrypcji i brak propozycji. Wskaźnik resetuje się po wyłączeniu mikrofonu; tekst usuwa się przy cofnięciu dostępu.
+
 Osobna rozwijana karta „Asystent wywiadu z AI”, domyślnie zwinięta, używa wrappera `.clk-plugin-ui` i deklarowanego `assistant.css`. Tło, obramowanie, cień i padding odpowiadają przewodnikowi kliniki. Rozwijanie i zwijanie nie uruchamiają mikrofonu, nie zatrzymują sesji i nie usuwają propozycji.
 
 Panel `global.panel.right` / `global_panel`, `documentation_form`, `tab-wywiad`, role kliniczne i `requires_doctor=False` (wywiad trychologiczny nie wymaga roli lekarza). Przed startem UI odczytuje kartę przez publiczny bridge. Widoczność nie daje dostępu: host ponownie sprawdza aktywny profil i clinic assignment, assigned patient, plugin/version/grants, feature/model/provider, dostępność/licencję i clinic opt-in. No-AI, pozostałe moduły, native fields/save i frozen Case/staff nie zmieniają się.

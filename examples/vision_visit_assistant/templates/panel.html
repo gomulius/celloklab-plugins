@@ -9,13 +9,25 @@
     </div>
     <p data-status role="status" aria-live="polite">Gotowy do wywiadu.</p>
     <p data-budget class="clk-ui-help"></p>
+    <div class="va-audio clk-ui-stack" aria-label="Stan audio i transkrypcji">
+      <strong class="va-label">Sygnał z mikrofonu</strong>
+      <svg class="va-wave" viewBox="0 0 240 48" preserveAspectRatio="none" aria-label="Fala poziomu sygnału mikrofonu" role="img"><path data-audio-wave d="M0 24 L240 24"></path></svg>
+      <meter class="va-meter" data-audio-meter min="0" max="1" value="0" aria-label="Poziom rzeczywistego sygnału mikrofonu"></meter>
+      <p class="clk-ui-help" data-audio-signal>Mikrofon wyłączony.</p>
+      <p class="va-accepted" data-audio-accepted>Fragmenty audio potwierdzone przez serwer: 0.</p>
+      <p class="clk-ui-help">Ruch wskaźnika oznacza sygnał wejściowy, nie potwierdzenie transkrypcji. Audio jest przesyłane w fragmentach, zwykle co 2 sekundy.</p>
+    </div>
     <div class="clk-ui-row">
       <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="pause" disabled>Wstrzymaj</button>
       <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="resume" disabled>Wznów mikrofon</button>
       <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="stop" disabled>Zakończ wywiad</button>
       <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="retry" hidden>Ponów oczekujący fragment</button>
     </div>
+    <h3 class="clk-ui-card-title">Ostatnia transkrypcja</h3>
+    <p class="clk-ui-help" data-transcript-empty>Brak transkrypcji — oczekiwanie na wynik dostawcy AI.</p>
+    <ol class="va-transcript" data-transcript aria-label="Ostatnie cztery fragmenty transkrypcji"></ol>
     <h3 class="clk-ui-card-title">Propozycje do sprawdzenia</h3>
+    <p class="clk-ui-help" data-proposals-empty>Brak propozycji do sprawdzenia. Sam odbiór audio nie oznacza powstania propozycji.</p>
     <div data-proposals></div>
     <h3 class="clk-ui-card-title">Wskazówki</h3>
     <ul data-tips></ul>

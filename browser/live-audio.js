@@ -19,6 +19,7 @@
             this.stream = null;
             this.audio = null;
             this.node = null;
+            this.levelAt = -Infinity;
             this.generation = 0;
             this.pollTimer = null;
             this.limitTimer = null;
@@ -44,6 +45,19 @@
         }
         _set(state) { this._state = state; this.options.onSession?.(this.session, state); }
         _error(code) { this.options.onError?.({code}); }
+        _resetLevel() {
+            this.levelAt = -Infinity;
+            this.options.onAudioLevel?.({rms: 0, peak: 0, active: false});
+        }
+        _audioLevel(data, node, generation) {
+            if (node !== this.node || generation !== this.generation || !this.stream || this.stopRequested) return;
+            if (!Number.isFinite(data.rms) || !Number.isFinite(data.peak) || data.rms < 0 || data.rms > 1 || data.peak < 0 || data.peak > 1) return;
+            const now = Date.now();
+            if (now - this.levelAt < 80) return;
+            this.levelAt = now;
+            // Only bounded aggregates cross the SDK callback, not raw PCM.
+            this.options.onAudioLevel?.({rms: data.rms, peak: data.peak, active: true});
+        }
         _clearTimers() { clearTimeout(this.pollTimer); clearTimeout(this.limitTimer); this.pollTimer = this.limitTimer = null; }
         _base() {
             if (!this.context) throw new Error('context_required');
@@ -159,8 +173,10 @@
                 await this.audio.audioWorklet.addModule('/static/js/plugins/live-pcm-worklet.js');
                 if (generation !== this.generation || this.stopRequested) { await this._release(false); return; }
                 this.node = new AudioWorkletNode(this.audio, 'celloklab-live-pcm');
+                const node = this.node;
                 this.node.port.onmessage = event => {
                     if (event.data?.type === 'flushed') { this.flushResolve?.(); return; }
+                    if (event.data?.type === 'level') { this._audioLevel(event.data, node, generation); return; }
                     if (event.data?.type === 'pcm') this._enqueue(event.data.bytes, event.data.final === true);
                 };
                 this.node.onprocessorerror = () => this._fail(new Error('audio_processor_failed'));
@@ -211,6 +227,7 @@
             return this.sending;
         }
         async _release(flush, final = false) {
+            this._resetLevel();
             // Stop physical tracks synchronously, even while requests are pending.
             this.stream?.getTracks().forEach(track => track.stop());
             this.stream = null;

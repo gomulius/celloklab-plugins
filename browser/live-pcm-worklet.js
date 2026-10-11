@@ -11,9 +11,15 @@ class CelloklabPCMProcessor extends AudioWorkletProcessor {
         this.view = new DataView(this.bytes);
         this.count = 0;
         this.capturing = true;
+        // Aggregate real mono input, never send samples to the visual UI.
+        this.meterWindow = Math.max(1, Math.round(sampleRate / 12));
+        this.meterCount = 0;
+        this.meterSquares = 0;
+        this.meterPeak = 0;
         this.port.onmessage = event => {
             if (event.data?.type === 'flush') {
                 this.capturing = false;
+                this.meterCount = this.meterSquares = this.meterPeak = 0;
                 this.emit(event.data.final === true);
                 this.port.postMessage({type: 'flushed'});
             }
@@ -39,6 +45,13 @@ class CelloklabPCMProcessor extends AudioWorkletProcessor {
         for (let i = 0; i < channels[0].length; i++) {
             let current = 0;
             for (const channel of channels) current += channel[i] / channels.length;
+            const level = Number.isFinite(current) ? Math.max(-1, Math.min(1, current)) : 0;
+            this.meterSquares += level * level;
+            this.meterPeak = Math.max(this.meterPeak, Math.abs(level));
+            if (++this.meterCount === this.meterWindow) {
+                this.port.postMessage({type: 'level', rms: Math.sqrt(this.meterSquares / this.meterCount), peak: this.meterPeak});
+                this.meterCount = this.meterSquares = this.meterPeak = 0;
+            }
             this.inputIndex++;
             // Absolute output positions avoid block-boundary rounding/drift at
             // 44.1 kHz and preserve the previous sample for interpolation.

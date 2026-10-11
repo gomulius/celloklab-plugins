@@ -9,7 +9,7 @@ Opisy wykorzystują całą szerokość wnętrza karty i zawijają się naturalni
 
 ## Wywiad na żywo — odbiór etapu 2 / Python SDK 1.2.1
 
-Kontrakt: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. Host ma REST PCM/STT/analizę, autoryzację i jedną rezerwację kosztu ograniczonej sesji; niezależna wtyczka `plugins/vision_visit_assistant/`, ID **`vision.visit-assistant`**, ma własne callbacki domenowe i polski panel. Przejrzyj finalny manifest/źródło, zatwierdź dokładną wdrażaną wersję i enable wyłącznie z **`AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`**. Manifest SDK pozostaje `1.0`; Python SDK docelowo `1.2.1` — wheel/wersje finalizuje release owner, nie ten dokument. Discovery nie aktywuje niczego. `example.live-interview` nadal jest osobnym syntetycznym demo z wyłączonym startem, bez zapisu; nie przyznawaj mu write.
+Kontrakt: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. Host ma REST PCM/STT/analizę, autoryzację i jedną rezerwację kosztu ograniczonej sesji; niezależna wtyczka `plugins/vision_visit_assistant/`, ID **`vision.visit-assistant`**, ma własne callbacki domenowe i polski panel. Przejrzyj finalny manifest/źródło, zatwierdź dokładną wdrażaną wersję i enable wyłącznie z **`AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`**. Manifest SDK pozostaje `1.0`; Python SDK docelowo `1.2.1` — wheel/wersje finalizuje release owner, nie ten dokument. Discovery nie aktywuje niczego. `example.live-interview` jest syntetycznym demo SDK poza katalogiem wtyczek aplikacji; nie instaluj go razem z Vision. Vision samodzielnie obsługuje nagrywanie, transkrypcję i analizę.
 
 ### Konfiguracja i zgody — osobne kroki
 

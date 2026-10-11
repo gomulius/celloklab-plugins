@@ -1,5 +1,7 @@
 # Przykład SDK — bez nagrywania i zapisu
 
+Wyłącznie syntetyczny przykład SDK, poza katalogiem wtyczek aplikacji. `vision.visit-assistant` go nie wykorzystuje i nie wymaga jego aktywacji. Demo nie przechwytuje mikrofonu, nie transkrybuje rozmowy i nie uruchamia modelu.
+
 Referencja `example.live-interview` 1.0.0 demonstruje wyłącznie **SDK 1.2 FOUNDATION**: publiczną deklarację `LiveInterviewRegistration`, czysty `prompt_builder` i lokalny podgląd zwalidowanych syntetycznych zdarzeń. Pełny kontrakt: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](../../PLUGIN_LIVE_INTERVIEW_CONTRACT.md).
 
 ## Co zobaczysz

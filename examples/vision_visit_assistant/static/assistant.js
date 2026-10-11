@@ -35,6 +35,7 @@
             this.access = true;
             this.scope = 0;
             this.status = root.querySelector('[data-status]');
+            this.resetAudioView();
             this.buttons = Object.fromEntries(['start', 'pause', 'resume', 'stop', 'retry'].map(action => [action, root.querySelector('[data-action="' + action + '"]')]));
             if (!this.bridge || !window.CelloklabLiveAudio) {
                 this.status.textContent = 'Host nie udostępnia obsługi wywiadu na żywo.';
@@ -55,6 +56,7 @@
                 if (this.client.restartable) {
                     this.client.dispose();
                     this.sessionId = null; this.latest = null;
+                    this.resetAudioView();
                     this.makeClient();
                 }
                 const scope = this.scope;
@@ -69,6 +71,7 @@
         makeClient() {
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
                 onUpdate: session => this.update(session), onSession: (session, state) => this.sessionState(session, state),
+                onAudioLevel: level => this.audioLevel(level),
                 onError: error => {
                     if (error.code === 'access_revoked') this.clearAccess();
                     this.status.textContent = errors[error.code] || 'Nie udało się zakończyć operacji. Mikrofon jest wyłączony; sprawdź stan sesji i ponów oczekujące żądanie.';
@@ -85,6 +88,9 @@
             this.proposals.clear(); this.record = this.latest = null;
             this.root.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
+            this.resetAudioView();
+            this.root.querySelector('[data-budget]').textContent = '';
+            this.root.querySelector('[data-proposals-empty]').hidden = false;
             for (const button of Object.values(this.buttons)) button.disabled = true;
             this.root.querySelector('[data-consent]').disabled = true;
         }
@@ -92,10 +98,51 @@
             try { await action(); }
             catch (_) { if (!['retry', 'stopped'].includes(this.client.state)) this.status.textContent = 'Nie udało się wykonać operacji. Karta pozostaje bez zmian.'; }
         }
+        resetAudioView() {
+            this.audioLevel({rms: 0, peak: 0, active: false});
+            this.root.querySelector('[data-audio-accepted]').textContent = 'Fragmenty audio potwierdzone przez serwer: 0.';
+            this.root.querySelector('[data-transcript]').replaceChildren();
+            this.root.querySelector('[data-transcript-empty]').hidden = false;
+            this.root.querySelector('[data-transcript-empty]').textContent = 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
+        }
+        audioLevel(level) {
+            const active = this.access && level?.active === true;
+            const rms = active && Number.isFinite(level.rms) ? Math.max(0, Math.min(1, level.rms)) : 0;
+            // Bounded history of derived levels only, never PCM or persisted audio.
+            if (!active) this.levelHistory = Array(32).fill(0);
+            else { this.levelHistory = (this.levelHistory || Array(32).fill(0)).slice(1); this.levelHistory.push(Math.min(1, Math.sqrt(rms) * 3)); }
+            const wave = this.root.querySelector('[data-audio-wave]');
+            if (wave) wave.setAttribute('d', this.levelHistory.map((value, i) => (i ? 'L' : 'M') + (i * 240 / 31).toFixed(1) + ' ' + (24 + (i % 2 ? -1 : 1) * value * 21).toFixed(1)).join(' '));
+            // Logarithmic meter aids quiet speech.
+            this.root.querySelector('[data-audio-meter]').value = rms > 0 ? Math.max(0, Math.min(1, (20 * Math.log10(rms) + 60) / 60)) : 0;
+            this.root.querySelector('[data-audio-signal]').textContent = !active ? 'Mikrofon wyłączony.' :
+                rms > 0.001 ? 'Mikrofon odbiera sygnał.' : 'Mikrofon włączony — cisza lub bardzo słaby sygnał.';
+        }
+        transcript(session) {
+            const list = this.root.querySelector('[data-transcript]');
+            list.replaceChildren();
+            const segments = (Array.isArray(session.segments) ? session.segments : []).filter(s => typeof s?.text === 'string' && s.text.trim()).slice(-4);
+            for (const segment of segments) {
+                const row = element('li', undefined, 'va-transcript-segment');
+                const timing = Number.isFinite(segment.start) && Number.isFinite(segment.end) ? segment.start.toFixed(1) + '–' + segment.end.toFixed(1) + ' s' : 'Fragment';
+                row.appendChild(element('span', timing + (typeof segment.speaker === 'string' ? ' · ' + segment.speaker.slice(0, 80) : ''), 'va-label'));
+                row.appendChild(element('p', segment.text.slice(0, 2000)));
+                list.appendChild(row);
+            }
+            const empty = this.root.querySelector('[data-transcript-empty]');
+            empty.hidden = segments.length > 0;
+            empty.textContent = session.next_sequence > 0 ? 'Serwer potwierdził audio, ale nie zwrócił jeszcze transkrypcji. To nie jest potwierdzenie rozpoznania mowy.' : 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
+            const count = Number.isSafeInteger(session.next_sequence) && session.next_sequence >= 0 ? session.next_sequence : 0;
+            this.root.querySelector('[data-audio-accepted]').textContent = 'Fragmenty audio potwierdzone przez serwer: ' + count + '.';
+        }
+        proposalState() {
+            this.root.querySelector('[data-proposals-empty]').hidden = Array.from(this.proposals.values()).some(item => ['pending', 'saving'].includes(item.status));
+        }
         sessionState(session, state) {
             if (session?.status === 'revoked') this.clearAccess();
             if (!this.access) return;
             this.status.textContent = states[state] || 'Sprawdzanie sesji…';
+            if (state !== 'recording') this.audioLevel({active: false});
             const canStart = state === 'idle' || this.client.restartable;
             this.buttons.start.disabled = !canStart;
             this.buttons.pause.disabled = state !== 'recording';
@@ -112,10 +159,12 @@
             if (this.sessionId && this.sessionId !== session.session_id) return;
             this.sessionId = session.session_id;
             this.latest = session;
+            this.transcript(session);
             const tips = this.root.querySelector('[data-tips]');
             tips.replaceChildren();
             for (const tip of (session.tips || []).slice(0, 4)) if (typeof tip === 'string') tips.appendChild(element('li', tip));
             for (const proposal of session.suggestions || []) this.addProposal(proposal, session);
+            this.proposalState();
         }
         addProposal(proposal, session) {
             // Preferred host shape is one field per suggestion. Also accept the
@@ -181,6 +230,7 @@
             reject.addEventListener('click', () => {
                 if (!this.access || item.status !== 'pending') return;
                 item.status = 'rejected'; card.hidden = true;
+                this.proposalState();
                 // Tombstone retained for this proposal only: later independent
                 // proposals for the same field remain reviewable.
             });
@@ -205,6 +255,7 @@
                         return;
                     }
                     item.status = 'accepted';
+                    this.proposalState();
                     note.textContent = result.preserved?.length ? 'Zapisano. Zachowano nowszą ręczną edycję formularza.' : 'Zapisano zatwierdzoną zmianę.';
                     // Bridge returns application status, not the full new record.
                     // Refresh only after confirmed success. Existing proposals

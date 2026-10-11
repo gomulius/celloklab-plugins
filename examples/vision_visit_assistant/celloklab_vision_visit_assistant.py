@@ -82,7 +82,7 @@ def build_interview_prompt(context):
 
 _UNCERTAIN = re.compile(r"\?|\b(?:chyba|może|możliwe|ewentualnie|gdyby|jeśli|prawdopodobnie|podejrzewam|nie wiem|być może|czy|czyżby)\b", re.I)
 _NEGATION = re.compile(r"\b(?:nie|bez|nigdy|brak|zaprzeczam)\b", re.I)
-_SELF_REPORT = re.compile(r"\b(?:mam|miałem|miałam|choruję|cierpię|przyjmuję|biorę|stosuję|odczuwam|zauważyłem|zauważyłam|wypadają mi|swędzi mnie|boli mnie|moje|u mnie|jestem)\b", re.I)
+_SELF_REPORT = re.compile(r"\b(?:mam|miałem|miałam|choruję|cierpię|cierpie|przyjmuję|biorę|biore|stosuję|odczuwam|zauważyłem|zauwazylem|zauważyłam|zauwazylam|przeszedłem|przeszedlem|przeszłam|przeszlam|jestem uczulony|jestem uczulona|wypadają mi|wypadaja mi|swędzi mnie|swedzi mnie|boli mnie|moje|u mnie|jestem)\b", re.I)
 _FAMILY = re.compile(r"\b(?:mama|matka|ojciec|tata|siostra|brat|babcia|dziadek|żona|mąż|syn|córka|rodzin\w*)\b", re.I)
 _BARE_CONDITION = re.compile(r"(?:cukrzyc[aeę]|cukrzyca typu [12]|nadciśnienie|niedoczynność tarczycy|astma|łuszczyca)[.!]?", re.I)
 _REPORTED = re.compile(r"\b(?:powiedział\w*|mówi\w*|cytuję|pacjent\w*|hipotetycznie|przykładowo)\b", re.I)
@@ -129,6 +129,10 @@ def _statement(context, segment):
     return SimpleNamespace(speaker=segment.speaker, text=" ".join(s.text for s in parts)), parts
 
 
+class VisionResult(dict):
+    rejection_code = None
+
+
 class VisionResultError(ValueError):
     def __init__(self, code):
         self.code = code
@@ -156,6 +160,7 @@ def process_interview_result(context, raw):
     # Validate tips even when an invalid field would otherwise hide the error.
     empty = _process_interview_result(context, {"updates": {}, "sources": {}, "tips": raw.get("tips", [])})
     suggestions, confirmations, errors = [], [], []
+    safety_rejections = []
     for field, value in updates.items():
         try:
             result = _process_interview_result(context, {
@@ -164,11 +169,16 @@ def process_interview_result(context, raw):
             errors.append(error)
             continue
         suggestions.extend(result["suggestions"])
+        if not result["suggestions"]:
+            safety_rejections.append(result.get("_rejection", "analysis_safety_filtered"))
         confirmations.extend(t for t in result["tips"] if t.startswith("Potwierdź, czy wzmianka"))
     if errors and not suggestions:
         raise errors[0]
+
     notice = ["Pominięto nieprawidłowe propozycje AI: wartość lub pełne źródło nie przeszły walidacji."] if errors else []
-    result = {"suggestions": suggestions, "tips": list(dict.fromkeys(notice + confirmations + empty["tips"]))[:4]}
+    result = VisionResult({"suggestions": suggestions, "tips": list(dict.fromkeys(notice + confirmations + empty["tips"]))[:4]})
+    if updates and not suggestions and safety_rejections:
+        result.rejection_code = safety_rejections[0]
     validate_task_result(result)
     return result
 
@@ -200,6 +210,7 @@ def _process_interview_result(context, raw):
             raise VisionResultError("analysis_value_invalid")
         normalized[field] = value
     accepted, verified, confirmations = {}, {}, []
+    rejection = "analysis_safety_filtered"
     for field, value in normalized.items():
         refs = sources[field]
         if not isinstance(refs, list) or not 1 <= len(refs) <= 8:
@@ -246,6 +257,7 @@ def _process_interview_result(context, raw):
             elif role != "patient" and not (field == "post_transplant" and value is False
                     and re.fullmatch(r"\s*(?:brak|bez) przeszczep(?:u|ów|ow)(?: włosów| wlosow)?[.!]?\s*", text, re.I)):
                 safe = False
+                rejection = "analysis_speaker_unconfirmed"
             # Medication use alone does not substantiate a disease proposal.
             if field == "other_conditions" and re.search(r"\b(?:przyjmuję|biorę|stosuję)\b", text, re.I) and not re.search(r"\b(?:mam|choruję|rozpoznano|zdiagnozowano)\b", text, re.I):
                 safe = False
@@ -286,6 +298,8 @@ def _process_interview_result(context, raw):
         for field, value in accepted.items()
     ], "tips": tips}
     validate_task_result(result)
+    if not result["suggestions"] and updates:
+        result["_rejection"] = rejection
     return result
 
 

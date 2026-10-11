@@ -7,7 +7,7 @@
         'analysis_provider_rejected', 'analysis_pending', 'stt_provider_rejected', 'stt_invalid_output',
         'stt_pending', 'usage_pending', 'context_limit', 'runtime_failure', 'stt_language_rejected',
         'analysis_result_schema', 'analysis_sources_mismatch', 'analysis_field_unknown', 'analysis_value_invalid',
-        'analysis_source_schema', 'analysis_source_unbound', 'analysis_tips_invalid']);
+        'analysis_source_schema', 'analysis_source_unbound', 'analysis_tips_invalid', 'analysis_safety_filtered', 'analysis_speaker_unconfirmed']);
     class LiveAudioClient {
         constructor(options) {
             if (!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(options.pluginId || '')) throw new Error('invalid_plugin');

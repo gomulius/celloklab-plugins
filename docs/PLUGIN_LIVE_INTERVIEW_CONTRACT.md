@@ -1,5 +1,10 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Odfiltrowane wypowiedzi i formy pierwszoosobowe
+
+Callback dopuszcza pełne własne wypowiedzi z „przeszedłem/przeszłam” oraz jednoznaczne warianty bez znaków diakrytycznych. Nie nadaje roli pacjenta na podstawie numeru mówcy ani samej deklaracji modelu. Całkowicie odfiltrowany wynik zachowuje pytania, lecz host publikuje `analysis_speaker_unconfirmed` albo `analysis_safety_filtered` w diagnostyce. Kod nie jest treścią pacjenta; brak propozycji nie pozostaje pozornym brakiem błędu.
+
+
 ## Liczniki ekstrakcji bez danych klinicznych
 
 `extraction_counts` i log `extraction_A_B_C_D` oznaczają: A — zmiany zwrócone przez model, B — propozycje po walidacji, C — pominięte jako identyczne z kartą, D — opublikowane. Brak error_code nie oznacza braku odrzucenia przez reguły bezpieczeństwa. Liczniki nie zawierają nazw pól, wartości, źródeł ani identyfikatorów.

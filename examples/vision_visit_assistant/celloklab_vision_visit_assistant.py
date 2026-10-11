@@ -185,5 +185,5 @@ def register(registrar):
     registrar.register_fragment("global.panel.right", UIFragment(
         template="templates/panel.html", hook="global.panel.right", placement="global_panel",
         fragment_id="vision-visit-assistant", page_ids=("documentation_form",), tab_id="tab-wywiad",
-        roles=CLINICAL_ROLES, requires_doctor=False, js_assets=("assistant.js",),
+        roles=CLINICAL_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("assistant.js",),
     ))

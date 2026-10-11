@@ -1,0 +1,50 @@
+/* Same section treatment as the setup guide; scoped to Vision only. */
+.vision-assistant { min-width: 0; }
+.vision-assistant [hidden] { display: none !important; }
+.vision-assistant .va-card {
+    padding: 20px;
+    margin-top: 14px;
+    border-radius: 14px;
+    background: var(--clk-ui-surface-card);
+    border: 1px solid var(--clk-ui-border);
+    box-shadow: 0 2px 12px rgba(10,23,41,.08);
+}
+.vision-assistant .va-summary {
+    cursor: pointer;
+    font-family: var(--clk-ui-font-heading);
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--clk-ui-text);
+    min-height: 32px;
+    overflow-wrap: anywhere;
+}
+.vision-assistant .va-summary:focus-visible {
+    outline: 2px solid var(--clk-ui-focus);
+    outline-offset: 3px;
+}
+.vision-assistant .va-body {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--clk-ui-border);
+}
+.vision-assistant p { max-width: none; white-space: normal; }
+.vision-assistant .clk-ui-check { font-weight: normal; line-height: 1.6; }
+.vision-assistant .clk-ui-button {
+    min-height: 32px;
+    height: auto;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    flex: 0 1 auto;
+}
+.vision-assistant .clk-ui-button--secondary {
+    border-color: var(--clk-ui-border);
+    background: var(--clk-ui-surface-card);
+    color: var(--clk-ui-text);
+}
+@media (max-width: 1199.98px), (pointer: coarse) {
+    .vision-assistant .clk-ui-button, .vision-assistant .va-summary { min-height: 44px; }
+}

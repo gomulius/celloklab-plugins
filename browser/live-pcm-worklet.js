@@ -7,9 +7,17 @@ class CelloklabPCMProcessor extends AudioWorkletProcessor {
         this.inputIndex = -1;
         this.outputIndex = 0;
         this.previous = 0;
-        this.bytes = new ArrayBuffer(48000 * 2); // Two seconds, never overlapping.
+        // Pause-aware utterances, not fixed two-second cuts through words.
+        // 1.5 s minimum + 400 ms near-digital silence; hard cap matches host 5 s.
+        this.maxSamples = 120000;
+        this.minSamples = 36000;
+        this.pauseSamples = 9600;
+        this.prefixSamples = 4800; // Keep 200 ms before onset, never overlap packets.
+        this.bytes = new ArrayBuffer(this.maxSamples * 2);
         this.view = new DataView(this.bytes);
         this.count = 0;
+        this.hasSignal = false;
+        this.silentSamples = 0;
         this.capturing = true;
         // Aggregate real mono input, never send samples to the visual UI.
         this.meterWindow = Math.max(1, Math.round(sampleRate / 12));
@@ -26,15 +34,32 @@ class CelloklabPCMProcessor extends AudioWorkletProcessor {
         };
     }
     emit(final = false) {
-        if (!this.count) return;
-        const packet = this.bytes.slice(0, this.count * 2);
-        this.port.postMessage({type: 'pcm', bytes: packet, final}, [packet]);
+        // Only exact/near-digital silence is omitted. Quiet speech is retained;
+        // this is deliberately not an amplitude-based speech/noise classifier.
+        if (this.count && this.hasSignal) {
+            const packet = this.bytes.slice(0, this.count * 2);
+            this.port.postMessage({type: 'pcm', bytes: packet, final}, [packet]);
+        }
         this.count = 0;
+        this.hasSignal = false;
+        this.silentSamples = 0;
     }
     append(value) {
-        const bounded = Math.max(-1, Math.min(1, value));
-        this.view.setInt16(this.count * 2, Math.round(bounded * (bounded < 0 ? 32768 : 32767)), true);
-        if (++this.count === 48000) this.emit();
+        const bounded = Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
+        const sample = Math.round(bounded * (bounded < 0 ? 32768 : 32767));
+        this.view.setInt16(this.count * 2, sample, true);
+        this.count++;
+        if (Math.abs(sample) > 8) {
+            this.hasSignal = true;
+            this.silentSamples = 0;
+        } else this.silentSamples++;
+        if (!this.hasSignal && this.count >= this.prefixSamples * 2) {
+            // Bound idle memory while retaining the most recent onset padding.
+            new Uint8Array(this.bytes).copyWithin(0, (this.count - this.prefixSamples) * 2, this.count * 2);
+            this.count = this.prefixSamples;
+        }
+        if (this.count === this.maxSamples ||
+            (this.hasSignal && this.count >= this.minSamples && this.silentSamples >= this.pauseSamples)) this.emit();
     }
     process(inputs, outputs) {
         // Explicitly mute all output; microphone must never play through speakers.

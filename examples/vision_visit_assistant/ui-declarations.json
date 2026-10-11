@@ -1,3 +1,50 @@
 [
-  {"kind":"fragment","hook":"global.panel.right","template":"templates/panel.html","placement":"global_panel","fragment_id":"vision-visit-assistant","page_ids":["documentation_form"],"tab_id":"tab-wywiad","roles":["doctor","medical_staff","specialist","trichologist"],"requires_doctor":false,"css_assets":["assistant.css"],"js_assets":["assistant.js"]}
+  {
+    "kind": "fragment",
+    "hook": "global.panel.right",
+    "template": "templates/panel.html",
+    "placement": "global_panel",
+    "fragment_id": "vision-visit-assistant",
+    "page_ids": [
+      "documentation_form"
+    ],
+    "tab_id": "tab-wywiad",
+    "roles": [
+      "doctor",
+      "medical_staff",
+      "specialist",
+      "trichologist"
+    ],
+    "requires_doctor": false,
+    "css_assets": [
+      "assistant.css"
+    ],
+    "js_assets": [
+      "assistant.js"
+    ]
+  },
+  {
+    "kind": "fragment",
+    "hook": "patient.records.sections",
+    "template": "templates/proposals.html",
+    "fragment_id": "vision-proposals",
+    "page_ids": [
+      "documentation_form"
+    ],
+    "tab_id": "tab-wywiad",
+    "roles": [
+      "doctor",
+      "medical_staff",
+      "specialist",
+      "trichologist"
+    ],
+    "requires_doctor": false,
+    "priority": 10,
+    "css_assets": [
+      "assistant.css"
+    ],
+    "js_assets": [
+      "assistant.js"
+    ]
+  }
 ]

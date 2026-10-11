@@ -1,5 +1,13 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Polski wywiad i układ roboczy
+
+- Sterowanie nagrywaniem, pauzą/wznowieniem i zakończeniem jest ikonowe z polskimi etykietami dostępności; nagrywanie czerwone, pauza ostrzegawcza. Sidebar pokazuje falę i pytania, nie karty propozycji.
+- Propozycje są w wąskich paskach w `patient.records.sections`, na górze `tab-wywiad`, z polskimi nazwami pól/opcji. Ikony akceptuj/odrzuć zamykają pasek; akceptuj zapisuje przez publiczny bridge z oryginalnym If-Match/baseline. Konflikt lub niezapisana ręczna zmiana pozostawia pasek i komunikat.
+- STT zawsze wysyła `language=pl`; tylko bezpośredni OpenAI ma dodatkowy polski prompt (OpenRouter nie deklaruje tego parametru). Fragmenty kończą się przy pauzie ≥400 ms po minimum 1,5 s lub po maksymalnie 5 s. Pomijana jest wyłącznie cisza cyfrowa ±8 PCM16, z krótkim pre-roll. To ogranicza cięcie słów, ale nie gwarantuje poprawności dostawcy ani reakcji w 2 s.
+- Przycisk pytania wywołuje jawny `POST .../{session_id}/questions` z `{}` i UUID. Klient najpierw pauzuje i potwierdza audio; pytania korzystają z istniejącej stałej opłaty sesji. Limit 20 wywołań i odstęp 10 s, brak automatycznych płatnych ponowień; niepewny dispatch pozostaje pending. Wznowienie mikrofonu jest jawne.
+
+
 Start z poprawnym JSON nie może maskować konfiguracji audio jako błędu payloadu. Preflight zwraca HTTP 424 z allowlistą `live_speech_model_required`, `live_speech_model_unavailable`, `live_duration_invalid`. UI pokazuje polski komunikat administracyjny; nie wyświetla dowolnego tekstu odpowiedzi. Brak konfiguracji nie uruchamia mikrofonu, dostawcy ani rezerwacji kredytów. Model transkrypcji ustawia się oddzielnie od modelu analizy w „Audio wywiadu na żywo”.
 
 ## Status: implementacja w źródłach, nie odbiór produkcyjny

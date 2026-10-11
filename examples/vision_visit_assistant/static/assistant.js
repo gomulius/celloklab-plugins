@@ -27,6 +27,10 @@
     class Assistant {
         constructor(root) {
             this.root = root;
+            // Both roots are plugin-owned registered fragments. Never move or
+            // inject content into private host sections or initialize a second client.
+            this.proposalRoot = Array.from(document.querySelectorAll('[data-vision-proposals]')).find(slot =>
+                slot.dataset.visionContext === root.dataset.visionContext);
             this.bridge = window.CelloklabTrichologyFormBridge;
             this.proposals = new Map();
             this.record = null;
@@ -36,7 +40,7 @@
             this.scope = 0;
             this.status = root.querySelector('[data-status]');
             this.resetAudioView();
-            this.buttons = Object.fromEntries(['start', 'pause', 'resume', 'stop', 'retry'].map(action => [action, root.querySelector('[data-action="' + action + '"]')]));
+            this.buttons = Object.fromEntries(['start', 'pause', 'resume', 'stop', 'retry', 'questions'].map(action => [action, root.querySelector('[data-action="' + action + '"]')]));
             if (!this.bridge || !window.CelloklabLiveAudio) {
                 this.status.textContent = 'Host nie udostępnia obsługi wywiadu na żywo.';
                 this.buttons.start.disabled = true;
@@ -67,6 +71,15 @@
                 await this.client.start({recordingConsent: true});
             }));
             for (const action of ['pause', 'resume', 'stop', 'retry']) this.buttons[action].addEventListener('click', () => this.run(() => this.client[action === 'retry' ? 'retryPending' : action]()));
+            this.buttons.questions.addEventListener('click', () => this.run(async () => {
+                if (!this.access || this.questionsPending || !['recording', 'paused'].includes(this.client.state)) return;
+                this.questionsPending = true; this.buttons.questions.disabled = true;
+                try { await this.client.requestQuestions(); }
+                finally {
+                    this.questionsPending = false;
+                    this.buttons.questions.disabled = !this.access || !['recording', 'paused'].includes(this.client.state);
+                }
+            }));
         }
         makeClient() {
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
@@ -86,11 +99,11 @@
                 for (const control of item.controls || []) control.disabled = true;
             }
             this.proposals.clear(); this.record = this.latest = null;
-            this.root.querySelector('[data-proposals]').replaceChildren();
+            this.proposalRoot?.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.resetAudioView();
             this.root.querySelector('[data-budget]').textContent = '';
-            this.root.querySelector('[data-proposals-empty]').hidden = false;
+            if (this.proposalRoot) this.proposalRoot.querySelector('[data-proposals-empty]').hidden = false;
             for (const button of Object.values(this.buttons)) button.disabled = true;
             this.root.querySelector('[data-consent]').disabled = true;
         }
@@ -136,7 +149,7 @@
             this.root.querySelector('[data-audio-accepted]').textContent = 'Fragmenty audio potwierdzone przez serwer: ' + count + '.';
         }
         proposalState() {
-            this.root.querySelector('[data-proposals-empty]').hidden = Array.from(this.proposals.values()).some(item => ['pending', 'saving'].includes(item.status));
+            if (this.proposalRoot) this.proposalRoot.querySelector('[data-proposals-empty]').hidden = Array.from(this.proposals.values()).some(item => ['pending', 'saving'].includes(item.status));
         }
         sessionState(session, state) {
             if (session?.status === 'revoked') this.clearAccess();
@@ -147,6 +160,7 @@
             this.buttons.start.disabled = !canStart;
             this.buttons.pause.disabled = state !== 'recording';
             this.buttons.resume.disabled = state !== 'paused';
+            this.buttons.questions.disabled = this.questionsPending || !['recording', 'paused'].includes(state);
             this.buttons.stop.disabled = !session || state === 'stopped' || state === 'stopping';
             this.buttons.retry.hidden = state !== 'retry';
             this.root.querySelector('[data-consent]').disabled = !canStart;
@@ -167,9 +181,10 @@
             this.proposalState();
         }
         addProposal(proposal, session) {
+            if (!this.proposalRoot) return;
             // Preferred host shape is one field per suggestion. Also accept the
             // public updates/sources DTO with host-attached base_values/revision.
-            const fields = typeof proposal?.field === 'string' ? {[proposal.field]: proposal.value ?? proposal.proposed_value} : proposal?.updates;
+            const fields = typeof proposal?.field === 'string' ? {[proposal.field]: own(proposal, 'value') ? proposal.value : proposal.proposed_value} : proposal?.updates;
             const id = proposal?.proposal_id || proposal?.id;
             if (!id || !fields || typeof fields !== 'object') return;
             const schema = this.bridge.getSchema();
@@ -205,28 +220,24 @@
             return typeof value === 'string' && value.length <= 20000 && (!schema.choices || schema.choices.includes(value));
         }
         render(item) {
-            const card = element('article', undefined, 'clk-ui-card clk-ui-card--compact clk-ui-mt-2');
-            const body = element('div', undefined, 'clk-ui-card-body');
+            const card = element('article', undefined, 'clk-ui-card clk-ui-card--compact va-proposal');
+            const body = element('div', undefined, 'clk-ui-card-body va-proposal-content');
             card.appendChild(body);
-            body.appendChild(element('strong', this.record?.field_labels?.[item.field] || item.field));
-            body.appendChild(element('p', 'Było: ' + display(item.current)));
-            const next = element('p', 'Propozycja: ' + display(item.value));
+            body.appendChild(element('strong', this.record?.field_labels?.[item.field] || item.descriptor.label || 'Pole wywiadu'));
+            body.appendChild(element('p', 'Było: ' + this.fieldDisplay(item, item.current), 'va-baseline clk-ui-help'));
+            const next = element('p', 'Propozycja: ' + this.fieldDisplay(item, item.value), 'va-proposed');
             body.appendChild(next);
-            for (const ref of item.refs) body.appendChild(element('blockquote', 'Źródło (' + display(ref.start) + '–' + display(ref.end) + ' s): „' + ref.quote + '”'));
-            const editor = this.editor(item);
-            editor.hidden = true;
-            body.appendChild(editor);
+            for (const ref of item.refs) body.appendChild(element('blockquote', 'Źródło' +
+                (Number.isFinite(ref.start) && Number.isFinite(ref.end) ? ' (' + ref.start + '–' + ref.end + ' s)' : '') + ': „' + ref.quote + '”', 'va-source clk-ui-help'));
             const note = element('p', '', 'clk-ui-help');
             note.setAttribute('role', 'status');
             body.appendChild(note);
-            const actions = element('div', undefined, 'clk-ui-row');
+            const actions = element('div', undefined, 'clk-ui-row va-proposal-actions');
             body.appendChild(actions);
-            const accept = element('button', 'Akceptuj', 'clk-ui-button clk-ui-button--primary');
-            const edit = element('button', 'Edytuj', 'clk-ui-button clk-ui-button--secondary');
-            const reject = element('button', 'Odrzuć', 'clk-ui-button clk-ui-button--secondary');
-            item.controls = [accept, edit, reject, editor];
-            for (const button of [accept, edit, reject]) { button.type = 'button'; actions.appendChild(button); }
-            edit.addEventListener('click', () => { if (!this.access || item.status !== 'pending') return; editor.hidden = false; editor.focus(); accept.textContent = 'Zapisz zatwierdzoną zmianę'; });
+            const accept = this.iconButton('Akceptuj propozycję', 'fa-check', 'va-accept');
+            const reject = this.iconButton('Odrzuć propozycję', 'fa-xmark', 'va-reject');
+            item.controls = [accept, reject];
+            for (const button of item.controls) actions.appendChild(button);
             reject.addEventListener('click', () => {
                 if (!this.access || item.status !== 'pending') return;
                 item.status = 'rejected'; card.hidden = true;
@@ -237,10 +248,10 @@
             accept.addEventListener('click', async () => {
                 if (!this.access || item.status !== 'pending') return;
                 const scope = this.scope;
-                const value = editor.hidden ? item.value : this.editorValue(editor, item);
+                const value = item.value;
                 if (!this.valid(item.descriptor, value)) { note.textContent = 'Wybierz poprawną wartość pola.'; return; }
                 item.status = 'saving';
-                accept.disabled = edit.disabled = reject.disabled = true;
+                accept.disabled = reject.disabled = true;
                 try {
                     const result = await this.bridge.savePatch(pluginId, {[item.field]: value},
                         {revision: item.revision, expected_values: {[item.field]: item.current}});
@@ -251,49 +262,42 @@
                         note.textContent = ['revision_conflict', 'baseline_conflict'].includes(result.code) ?
                             'Karta zmieniła się od powstania propozycji. Sprawdź aktualną kartę i poczekaj na nową propozycję; niczego nie zapisano.' :
                             'Nie zapisano zmiany. Sprawdź niezapisane edycje karty lub dostęp.';
-                        accept.disabled = edit.disabled = reject.disabled = false;
+                        accept.disabled = reject.disabled = false;
                         return;
                     }
                     item.status = 'accepted';
+                    card.hidden = true;
                     this.proposalState();
                     note.textContent = result.preserved?.length ? 'Zapisano. Zachowano nowszą ręczną edycję formularza.' : 'Zapisano zatwierdzoną zmianę.';
                     // Bridge returns application status, not the full new record.
                     // Refresh only after confirmed success. Existing proposals
                     // keep their original revision and are never silently rebased.
-                    const read = await this.bridge.readRecord(pluginId);
-                    if (!read.ok && denied(read.code)) { this.clearAccess(); return; }
-                    if (scope === this.scope && this.access && read.ok) this.record = read.record;
+                    // A failed refresh must not turn a confirmed save back into
+                    // a retryable proposal (and risk a duplicate PATCH).
+                    const read = await this.bridge.readRecord(pluginId).catch(() => null);
+                    if (read && !read.ok && denied(read.code)) { this.clearAccess(); return; }
+                    if (scope === this.scope && this.access && read?.ok) this.record = read.record;
                 } catch (_) {
                     if (scope !== this.scope || !this.access) return;
-                    item.status = 'pending'; accept.disabled = edit.disabled = reject.disabled = false;
+                    item.status = 'pending'; accept.disabled = reject.disabled = false;
                     note.textContent = 'Nie potwierdzono zapisu. Sprawdź kartę przed ponowieniem.';
                 }
             });
-            this.root.querySelector('[data-proposals]').appendChild(card);
+            this.proposalRoot.querySelector('[data-proposals]').appendChild(card);
         }
-        editor(item) {
-            const descriptor = item.descriptor;
-            let node;
-            if (descriptor.choices || descriptor.type === 'boolean') {
-                node = element('select');
-                node.multiple = descriptor.type === 'string[]';
-                const choices = descriptor.type === 'boolean' ? ['true', 'false'] : descriptor.choices;
-                for (const choice of choices) {
-                    const option = element('option', descriptor.type === 'boolean' ? choice === 'true' ? 'Tak' : 'Nie' :
-                        this.record?.interview_options?.[item.field]?.[choice] || choice);
-                    option.value = choice;
-                    option.selected = Array.isArray(item.value) ? item.value.includes(choice) : String(item.value) === choice;
-                    node.appendChild(option);
-                }
-            } else { node = element('textarea'); node.value = item.value ?? ''; node.maxLength = 20000; }
-            node.className = node.tagName === 'SELECT' ? 'clk-ui-select' : 'clk-ui-textarea';
-            node.setAttribute('aria-label', 'Edytuj propozycję');
-            return node;
+        fieldDisplay(item, value) {
+            const labels = this.record?.interview_options?.[item.field] || item.descriptor.choice_labels || {};
+            const label = choice => labels[choice] || (item.descriptor.choices ? 'Wartość bez etykiety' : display(choice));
+            if (value == null || value === '' || typeof value === 'boolean') return display(value);
+            return Array.isArray(value) ? value.map(label).join(', ') || '(brak)' : label(value);
         }
-        editorValue(node, item) {
-            if (item.descriptor.type === 'string[]') return Array.from(node.selectedOptions).map(option => option.value);
-            if (item.descriptor.type === 'boolean') return node.value === 'true';
-            return node.value;
+        iconButton(label, icon, className) {
+            const button = element('button', undefined, 'clk-ui-button va-icon ' + className);
+            button.type = 'button';
+            button.setAttribute('aria-label', label); button.setAttribute('title', label);
+            const glyph = element('i', undefined, 'fa-solid ' + icon);
+            glyph.setAttribute('aria-hidden', 'true'); button.appendChild(glyph);
+            return button;
         }
     }
     function init() {

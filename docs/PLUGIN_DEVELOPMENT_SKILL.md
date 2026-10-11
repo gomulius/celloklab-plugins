@@ -1,5 +1,13 @@
 # Celloklab partner plugin development
 
+## Polski wywiad i układ roboczy
+
+- Sterowanie nagrywaniem, pauzą/wznowieniem i zakończeniem jest ikonowe z polskimi etykietami dostępności; nagrywanie czerwone, pauza ostrzegawcza. Sidebar pokazuje falę i pytania, nie karty propozycji.
+- Propozycje są w wąskich paskach w `patient.records.sections`, na górze `tab-wywiad`, z polskimi nazwami pól/opcji. Ikony akceptuj/odrzuć zamykają pasek; akceptuj zapisuje przez publiczny bridge z oryginalnym If-Match/baseline. Konflikt lub niezapisana ręczna zmiana pozostawia pasek i komunikat.
+- STT zawsze wysyła `language=pl`; tylko bezpośredni OpenAI ma dodatkowy polski prompt (OpenRouter nie deklaruje tego parametru). Fragmenty kończą się przy pauzie ≥400 ms po minimum 1,5 s lub po maksymalnie 5 s. Pomijana jest wyłącznie cisza cyfrowa ±8 PCM16, z krótkim pre-roll. To ogranicza cięcie słów, ale nie gwarantuje poprawności dostawcy ani reakcji w 2 s.
+- Przycisk pytania wywołuje jawny `POST .../{session_id}/questions` z `{}` i UUID. Klient najpierw pauzuje i potwierdza audio; pytania korzystają z istniejącej stałej opłaty sesji. Limit 20 wywołań i odstęp 10 s, brak automatycznych płatnych ponowień; niepewny dispatch pozostaje pending. Wznowienie mikrofonu jest jawne.
+
+
 ## Opis i zwijane karty pluginów
 
 Manifest może zawierać opcjonalne `description`: zwykły tekst po polsku do 2000 znaków, opisujący rzeczywiste działanie wtyczki. Host wyświetla go jako escaped tekst po rozwinięciu karty w `/admin/plugins`. Karty startują zwinięte; nagłówek zawiera ID, wydawcę, wersję pluginu/SDK i polski status. Zwijanie nie aktywuje pluginu, nie wysyła żądań i nie usuwa wpisanych ustawień. Brak opisu zachowuje zgodność starszego manifestu. Dodanie opisu nie zmienia grantów ani wersji wykonywalnego kontraktu.

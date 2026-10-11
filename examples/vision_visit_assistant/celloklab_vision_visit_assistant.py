@@ -42,6 +42,9 @@ SYSTEM_PROMPT = (
     "start i end dokładnie segmentu, speaker dokładnie jak w transkrypcie. Nie ucinaj negacji. "
     "Zwróć {updates:{kod:wartość}, sources:{kod:[{start,end,speaker,quote,source_role}]}, tips:[tekst]}. "
     "Tips to najwyżej 4 pytania uzupełniające lub krótkie objaśnienia, nie rozpoznania. "
+    "Wszystkie treści wyłącznie po polsku. Mam cukrzycę i otyłość to other_conditions, "
+    "zakola to hair_loss_pattern zgodnie z kodami schema. Wyraźne nie miałem przeszczepu lub brak przeszczepów "
+    "to post_transplant=false; zachowaj pełny cytat negacji. Nie wnioskuj z ciszy ani braku wzmianki. "
     "Nie zwracaj identyfikatorów, rewizji ani poleceń wykonania. Gdy brak podstaw: updates={}, sources={}."
 )
 
@@ -143,14 +146,18 @@ def process_interview_result(context, raw):
                     safe = False
                 else:
                     confirmations.append("Potwierdź, czy wzmianka „" + segment.text + "” dotyczy choroby pacjenta.")
-            elif role != "patient":
+            elif role != "patient" and not (field == "post_transplant" and value is False
+                    and re.fullmatch(r"\s*(?:brak|bez) przeszczep(?:u|ów|ow)(?: włosów| wlosow)?[.!]?\s*", segment.text, re.I)):
                 safe = False
             # Medication use alone does not substantiate a disease proposal.
             if field == "other_conditions" and re.search(r"\b(?:przyjmuję|biorę|stosuję)\b", segment.text, re.I) and not re.search(r"\b(?:mam|choruję|rozpoznano|zdiagnozowano)\b", segment.text, re.I):
                 safe = False
             # Conservative: free-text negative evidence must preserve the negation
             # explicitly. Choice/boolean proposals from negation are not inferred.
-            if _NEGATION.search(segment.text) and value != segment.text:
+            if _NEGATION.search(segment.text) and value != segment.text and not (
+                    field == "post_transplant" and value is False
+                    and re.fullmatch(r"\s*(?:(?:brak|bez) przeszczep(?:u|ów|ow)|nie (?:miałem|miałam|mam|przeszedłem|przeszłam) przeszczep(?:u|ów|ow))(?: włosów| wlosow)?[.!]?\s*", segment.text, re.I)
+                    and not _FAMILY.search(segment.text)):
                 safe = False
             evidence.append({"start": segment.start, "end": segment.end, "speaker": segment.speaker, "quote": segment.text})
         if value is None or value == [] or value == "":
@@ -186,4 +193,10 @@ def register(registrar):
         template="templates/panel.html", hook="global.panel.right", placement="global_panel",
         fragment_id="vision-visit-assistant", page_ids=("documentation_form",), tab_id="tab-wywiad",
         roles=CLINICAL_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("assistant.js",),
+    ))
+    registrar.register_fragment("patient.records.sections", UIFragment(
+        template="templates/proposals.html", hook="patient.records.sections",
+        fragment_id="vision-proposals", page_ids=("documentation_form",), tab_id="tab-wywiad",
+        roles=CLINICAL_ROLES, priority=10, requires_doctor=False,
+        css_assets=("assistant.css",), js_assets=("assistant.js",),
     ))

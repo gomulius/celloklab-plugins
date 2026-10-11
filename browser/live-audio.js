@@ -16,6 +16,8 @@
             this.stopRequested = false;
             this.startKey = null;
             this.startPending = false;
+            this.questionsKey = null;
+            this.questionsSending = null;
             this.stream = null;
             this.audio = null;
             this.node = null;
@@ -36,10 +38,10 @@
         get state() { return this._state; }
         get active() { return Boolean(this._session && !terminal.has(this._session.status) && this._state !== 'stopped'); }
         get capturing() { return Boolean(this.stream || this._state === 'starting'); }
-        get restartable() { return this._state === 'stopped' && !this.startPending && !this.sending && !this.uncertain; }
+        get restartable() { return this._state === 'stopped' && !this.startPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
         revoke() { this.stopRequested = true; const error = new Error('access_revoked'); error.status = 403; return this._fail(error); }
         dispose() {
-            if (this.active || this.startPending || this.sending) throw new Error('session_unresolved');
+            if (this.active || this.startPending || this.sending || this.questionsSending || this.questionsKey) throw new Error('session_unresolved');
             this._clearTimers();
             window.removeEventListener('pagehide', this.leave);
         }
@@ -99,7 +101,7 @@
             this.options.onSession?.(this.session, this._state);
             // Pending is the normal dispatch fence while our own packet is
             // in flight. Only an idle/recovered pending state implies uncertainty.
-            if (session.status === 'pending' && (!this.sending || this.uncertain)) {
+            if (session.status === 'pending' && ((!this.sending && !this.questionsSending) || this.uncertain)) {
                 this.generation++;
                 this.uncertain = true;
                 this._release(false);
@@ -112,6 +114,7 @@
                 this._clearTimers();
                 this.queue = [];
                 this.uncertain = false;
+                this.questionsKey = null;
                 this._set('stopped');
             }
         }
@@ -177,7 +180,9 @@
                 this.node.port.onmessage = event => {
                     if (event.data?.type === 'flushed') { this.flushResolve?.(); return; }
                     if (event.data?.type === 'level') { this._audioLevel(event.data, node, generation); return; }
-                    if (event.data?.type === 'pcm') this._enqueue(event.data.bytes, event.data.final === true);
+                    // A disconnected worklet must not append stale audio after
+                    // pause/resume. The explicit release flush is still accepted.
+                    if (event.data?.type === 'pcm' && (node === this.node || node === this.flushingNode)) this._enqueue(event.data.bytes, event.data.final === true);
                 };
                 this.node.onprocessorerror = () => this._fail(new Error('audio_processor_failed'));
                 this.source = this.audio.createMediaStreamSource(stream);
@@ -235,6 +240,7 @@
             this.node = this.audio = this.source = null;
             if (flush && node) {
                 let timeout;
+                this.flushingNode = node;
 
                 try {
                     await new Promise((resolve, reject) => {
@@ -243,7 +249,7 @@
                         node.port.postMessage({type: 'flush', final});
                     });
                 } finally {
-                    clearTimeout(timeout); this.flushResolve = null;
+                    clearTimeout(timeout); this.flushResolve = null; this.flushingNode = null;
                     node.port.onmessage = null; source?.disconnect(); node.disconnect();
                     await audio?.close();
                 }
@@ -262,6 +268,7 @@
             if (forbidden.has(error.status)) {
                 this.stopRequested = true;
                 this.queue = []; this.uncertain = false;
+                this.questionsKey = null;
                 if (this._session) this._session = {...this._session, status: 'revoked', suggestions: [], tips: [], segments: []};
                 this._clearTimers(); this._set('stopped');
             }
@@ -277,11 +284,13 @@
             catch (error) { await this._fail(error); throw error; }
         }
         async resume() {
-            if (this._state !== 'paused' || this.uncertain || this.stopRequested) throw new Error('resume_unavailable');
+            if (this._state !== 'paused' || this.uncertain || this.stopRequested || this.questionsSending) throw new Error('resume_unavailable');
             try { await this._capture(); }
             catch (error) { await this._fail(error); throw error; }
         }
         async stop() {
+            if (this.questionsSending) throw new Error('questions_inflight');
+            if (this.questionsKey) throw new Error('pending_questions_requires_retry');
             if (!this._session || this._state === 'stopped') return;
             this.stopRequested = true;
             this.generation++;
@@ -301,6 +310,8 @@
             }
         }
         async retryPending() {
+            if (this.questionsSending) return;
+            if (this.questionsKey) return this.requestQuestions(); // Explicit replay only, same UUID.
             if (this.startPending) return this._startRequest(); // Same idempotency key.
             if (!this.active || this.sending) return;
             this.uncertain = false;
@@ -314,6 +325,41 @@
             if (this.uncertain) return;
             if (this.stopRequested) return this.stop();
             this._set('paused'); // Retry never implicitly reopens a microphone.
+        }
+        requestQuestions() {
+            if (this.questionsSending) return this.questionsSending;
+            if (!this.active || this.stopRequested || this.startPending || (this.uncertain && !this.questionsKey)) return Promise.reject(new Error('questions_unavailable'));
+            // Flush/ACK PCM before questions and leave capture paused. No automatic
+            // retry or microphone reopening; uncertain replay uses the same UUID.
+            this.questionsSending = (async () => {
+                if (this._state === 'recording') await this.pause();
+                await this._drain();
+                if (!this.active || this.queue.length || (this.uncertain && !this.questionsKey)) throw new Error('questions_unavailable');
+                this.questionsKey = this.questionsKey || crypto.randomUUID();
+                try {
+                    const session = await this._request('/' + this._session.session_id + '/questions', 'POST', {}, {'Idempotency-Key': this.questionsKey});
+                    if (terminal.has(this._session.status)) return this.session;
+                    if (session.status === 'pending') this.uncertain = true;
+                    else {
+                        this.questionsKey = null;
+                        this.uncertain = false;
+                        this._set('paused');
+                    }
+                    this._update(session);
+                    return this.session;
+                } catch (error) {
+                    if (terminal.has(this._session.status)) throw error;
+                    if (error.status >= 400 && error.status < 500 && ![408, 409, 429].includes(error.status)) this.questionsKey = null;
+                    if (forbidden.has(error.status)) await this._fail(error);
+                    else if (this.questionsKey) {
+                        this.uncertain = true;
+                        this._set('retry');
+                        this._error('questions_uncertain');
+                    } else this._error('questions_rejected');
+                    throw error;
+                }
+            })().finally(() => { this.questionsSending = null; });
+            return this.questionsSending;
         }
         _poll() {
             this.pollTimer = setTimeout(async () => {

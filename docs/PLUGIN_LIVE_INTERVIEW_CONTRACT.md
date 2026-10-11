@@ -1,5 +1,10 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Relacja specjalisty o pacjencie
+
+Jednoznaczne zdania oznajmujące „Pacjent informuje…”, „Pacjent używa…” mogą stanowić źródło propozycji do jawnej akceptacji; nie zmieniają tożsamości rozmówcy na pacjenta. Pytania, hipotezy, cytowana historia osób trzecich i rodzina nadal nie są promowane. Pełna treść mieszanej pozytywnej/negatywnej pielęgnacji pozostaje w `care_details`, z pełnym evidence. Urwane „ostatni…” nie uzasadnia dopisywania czasu. Testy używają dokładnych zgłoszonych fraz z syntetycznym wynikiem modelu, nie dowodzą jakości STT/modelu produkcyjnego.
+
+
 ## Odfiltrowane wypowiedzi i formy pierwszoosobowe
 
 Callback dopuszcza pełne własne wypowiedzi z „przeszedłem/przeszłam” oraz jednoznaczne warianty bez znaków diakrytycznych. Nie nadaje roli pacjenta na podstawie numeru mówcy ani samej deklaracji modelu. Całkowicie odfiltrowany wynik zachowuje pytania, lecz host publikuje `analysis_speaker_unconfirmed` albo `analysis_safety_filtered` w diagnostyce. Kod nie jest treścią pacjenta; brak propozycji nie pozostaje pozornym brakiem błędu.

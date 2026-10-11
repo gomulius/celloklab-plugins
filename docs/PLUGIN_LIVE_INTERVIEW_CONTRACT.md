@@ -1,5 +1,12 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Stabilna geometria i prywatna diagnostyka
+
+Przejściowe kody STT/analizy/transportu trafiają do konsoli przeglądarki jako `[Vision] diagnostyka: <kod>`, deduplikowane bez transcriptu, wartości pól, IDs ani surowych odpowiedzi. Nie zmieniają treści statusu nad falą. Status/sygnał mają stałą linię, blok zgody zachowuje geometrię po ukryciu. Istotne błędy zgody, dostępu, mikrofonu i niepotwierdzonego zapisu pozostają komunikowane użytkownikowi.
+
+`result_<liczba propozycji>_<liczba segmentów>_<kod>` odróżnia pusty wynik serwera od `proposal_slot_missing`, `proposal_field_unavailable`, `proposal_value_invalid`, `proposal_baseline_invalid`, `proposal_evidence_invalid` w rendererze. Natywne strukturalne wiersze suplementów nie mają prostego kontrolera `supplements_list` w bridge: bez adaptera ta propozycja nie jest zapisywalna. Nie zastępować tego ukrytym polem ani omijać kontroli zapisu.
+
+
 ## Stabilne pytania i niezależne propozycje
 
 Nowe pytania dopisują się na dole bez zastępowania istniejących pills; tekst identyczny nie jest duplikowany. Tylko operator usuwa pytanie ikoną X w aktywnej sesji. Wyjątki ochronne: cofnięcie dostępu usuwa dane, nowa sesja rozpoczyna nową listę.

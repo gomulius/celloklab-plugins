@@ -32,6 +32,10 @@
         recording_activation_uncertain: 'Nie potwierdzono zgody serwera na nagrywanie. Mikrofon pozostaje wyłączony; ponów oczekujące żądanie.',
         recording_activation_rejected: 'Nie można rozpocząć nagrywania w tej sesji. Mikrofon pozostaje wyłączony.',
         audio_flush_failed: 'Nie udało się odczytać ostatniego fragmentu mikrofonu. Nagrywanie zatrzymano.'};
+    const technicalErrors = new Set(['analysis_invalid_json', 'analysis_callback_failed', 'analysis_evidence_invalid',
+        'analysis_provider_rejected', 'stt_provider_rejected', 'stt_invalid_output', 'analysis_pending',
+        'stt_pending', 'usage_pending', 'runtime_failure', 'session_failed', 'audio_uncertain',
+        'stt_language_rejected', 'questions_uncertain']);
     const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
     const denied = code => ['access_revoked', 'forbidden', 'plugin_disabled', 'access_denied', 'authentication_required', 'not_found'].includes(code);
     function element(tag, text, className) {
@@ -52,6 +56,7 @@
             this.proposals = new Map();
             this.dismissedTips = new Set();
             this.shownTips = new Set();
+            this.diagnosticKeys = new Set();
             this.record = null;
             this.sessionId = null;
             this.latest = null;
@@ -154,16 +159,23 @@
                     const details = this.root.querySelector('[data-audio-accepted]');
                     details.textContent = 'Audio w buforze: ' + transport.bufferedSeconds.toFixed(1) + ' s. Stan przetwarzania: ' +
                         ({ready: 'gotowe', sending: 'wysyłanie', pending: 'oczekiwanie na potwierdzenie', recovering: 'sprawdzanie potwierdzenia', failed: 'przetwarzanie niedostępne'}[transport.status] || 'oczekiwanie');
-                    if (this.client?.capturing) {
-                        this.status.textContent = transport.status === 'ready' ? 'Nagrywanie.' : 'Nagrywanie trwa — przetwarzanie oczekuje.';
-                    }
+                    this.diagnose('transport_' + transport.status);
+                    if (this.client?.capturing && !this.errorMessage) this.status.textContent = 'Nagrywanie.';
                 },
                 onError: error => {
+                    this.diagnose(error.code);
+                    if (technicalErrors.has(error.code)) return;
                     if (denied(error.code)) this.clearAccess();
                     this.errorMessage = errors[error.code] || 'Nie udało się zakończyć operacji. Sprawdź stan sesji i ponów oczekujące żądanie.';
                     this.status.textContent = this.errorMessage;
                     this.refreshControls();
                 }});
+        }
+        diagnose(code) {
+            // Codes/counts only; never log session IDs, field values, quotes or raw responses.
+            if (typeof code !== 'string' || !/^[a-z0-9_]{1,80}$/.test(code) || this.diagnosticKeys.has(code)) return;
+            this.diagnosticKeys.add(code);
+            console.warn('[Vision] diagnostyka:', code);
         }
         clearAccess() {
             if (!this.access) return;
@@ -277,11 +289,17 @@
                     tips.appendChild(pill);
                 }
             }
-            for (const proposal of session.suggestions || []) this.addProposal(proposal, session);
+            const suggestions = Array.isArray(session.suggestions) ? session.suggestions : [];
+            const diagnostic = [suggestions.length, (session.segments || []).length, session.error_code || 'none'].join('_');
+            this.diagnose('result_' + diagnostic);
+            for (const proposal of suggestions) this.addProposal(proposal, session);
             this.proposalState();
         }
         addProposal(proposal, session) {
-            if (!this.proposalRoot) return;
+            if (!this.proposalRoot) {
+                this.proposalRoot = Array.from(document.querySelectorAll('[data-vision-proposals]')).find(slot => slot.dataset.visionContext === this.root.dataset.visionContext);
+                if (!this.proposalRoot) { this.diagnose('proposal_slot_missing'); return; }
+            }
             // Preferred host shape is one field per suggestion. Also accept the
             // public updates/sources DTO with host-attached base_values/revision.
             const fields = typeof proposal?.field === 'string' ? {[proposal.field]: own(proposal, 'value') ? proposal.value : proposal.proposed_value} : proposal?.updates;
@@ -290,16 +308,17 @@
             const schema = this.bridge.getSchema();
             for (const [field, value] of Object.entries(fields)) {
                 const key = session.session_id + ':' + id + ':' + field;
-                if (this.proposals.has(key) || !own(schema, field)) continue;
+                if (this.proposals.has(key)) continue;
+                if (!own(schema, field)) { this.diagnose('proposal_field_unavailable'); continue; }
                 const descriptor = schema[field];
-                if (!this.valid(descriptor, value)) continue;
+                if (!this.valid(descriptor, value)) { this.diagnose('proposal_value_invalid'); continue; }
                 // Revision MUST be captured at the proposal's source. Never
                 // substitute the latest record revision just to make PATCH work.
                 const revision = proposal.revision ?? proposal.source_revision ?? proposal.context?.revision;
                 const baselines = proposal.base_values || proposal.current_values;
                 const hasBaseline = own(proposal, 'current_value') || (baselines && own(baselines, field)) || (proposal.context && own(proposal.context, 'baseline'));
                 const current = own(proposal, 'current_value') ? proposal.current_value : baselines && own(baselines, field) ? baselines[field] : proposal.context?.baseline;
-                if (typeof revision !== 'string' || !hasBaseline || (current !== null && !this.valid(descriptor, current))) continue;
+                if (typeof revision !== 'string' || !hasBaseline || (current !== null && !this.valid(descriptor, current))) { this.diagnose('proposal_baseline_invalid'); continue; }
                 let refs = proposal.sources?.[field] || proposal.evidence || proposal.sources;
                 if (Array.isArray(refs) && refs.every(ref => typeof ref === 'string')) {
                     refs = refs.map(quote => {
@@ -307,7 +326,7 @@
                         return segment ? {quote, start: segment.start, end: segment.end, speaker: segment.speaker} : null;
                     });
                 }
-                if (!Array.isArray(refs) || !refs.length || !refs.every(ref => ref && typeof ref.quote === 'string' && ref.quote.trim())) continue;
+                if (!Array.isArray(refs) || !refs.length || !refs.every(ref => ref && typeof ref.quote === 'string' && ref.quote.trim())) { this.diagnose('proposal_evidence_invalid'); continue; }
                 const item = {key, proposal, field, value, current, revision, status: 'pending', refs, descriptor};
                 this.proposals.set(key, item);
                 this.render(item);

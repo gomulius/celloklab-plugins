@@ -5,7 +5,11 @@
     const states = {idle: 'Gotowy do wywiadu.', starting: 'Uruchamianie sesji…', recording: 'Mikrofon włączony — trwa wywiad.',
         paused: 'Wstrzymano — mikrofon wyłączony.', stopping: 'Kończenie i oczekiwanie na ostatnie wyniki…',
         stopped: 'Wywiad zakończony — mikrofon wyłączony.', retry: 'Mikrofon wyłączony. Ponów oczekujące żądanie bez rozpoczynania nowej sesji.'};
-    const errors = {microphone_unavailable: 'Nie można włączyć mikrofonu. Sesja została bezpiecznie zatrzymana.',
+    const errors = {
+        live_speech_model_required: 'Brak modelu transkrypcji. Administrator platformy musi go wybrać w Pluginy → vision.visit-assistant → Audio wywiadu na żywo.',
+        live_speech_model_unavailable: 'Model transkrypcji lub jego dostawca jest niedostępny. Administrator platformy musi sprawdzić konfigurację audio wtyczki.',
+        live_duration_invalid: 'Nieprawidłowy limit czasu wywiadu. Administrator platformy musi ustawić od 60 do 7200 sekund.',
+        microphone_unavailable: 'Nie można włączyć mikrofonu. Sesja została bezpiecznie zatrzymana.',
         start_rejected: 'Nie uruchomiono sesji. Sprawdź kredyty i konfigurację dostępu przed ponownym rozpoczęciem.',
         access_revoked: 'Dostęp cofnięty. Mikrofon wyłączony.', audio_backpressure: 'Przesyłanie jest zbyt wolne. Nagrywanie przerwano — część audio nie została przesłana. Ponów oczekujące fragmenty, a potem zakończ sesję.',
         audio_uncertain: 'Nie potwierdzono odbioru audio. Mikrofon wyłączony. Ponów ten sam fragment.',

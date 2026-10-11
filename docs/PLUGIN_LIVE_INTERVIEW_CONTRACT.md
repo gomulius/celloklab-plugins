@@ -1,5 +1,7 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+Start z poprawnym JSON nie może maskować konfiguracji audio jako błędu payloadu. Preflight zwraca HTTP 424 z allowlistą `live_speech_model_required`, `live_speech_model_unavailable`, `live_duration_invalid`. UI pokazuje polski komunikat administracyjny; nie wyświetla dowolnego tekstu odpowiedzi. Brak konfiguracji nie uruchamia mikrofonu, dostawcy ani rezerwacji kredytów. Model transkrypcji ustawia się oddzielnie od modelu analizy w „Audio wywiadu na żywo”.
+
 ## Status: implementacja w źródłach, nie odbiór produkcyjny
 
 Host ma implementację REST sesji, przechwytywania mikrofonu, inkrementalnej transkrypcji i analizy tekstowej, autoryzacji, idempotencji, rezerwacji jednej opłaty oraz panelu administratora audio. Niezależna wtyczka **`vision.visit-assistant`** dostarcza callbacki i polski panel propozycji. `plugins/example_live_interview/` pozostaje osobną **syntetyczną** referencją FOUNDATION: wyłączony start, bez mikrofonu, dostawcy i zapisu. Nie utożsamiaj jej z rzeczywistą wtyczką Vision.

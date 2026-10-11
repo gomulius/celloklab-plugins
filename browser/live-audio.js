@@ -61,6 +61,10 @@
             if (!response.ok) {
                 const error = new Error(forbidden.has(response.status) ? 'access_revoked' : 'request_failed');
                 error.status = response.status;
+                try {
+                    const code = (await response.json())?.detail?.code;
+                    if (response.status === 424 && ['live_speech_model_required', 'live_speech_model_unavailable', 'live_duration_invalid'].includes(code)) error.code = code;
+                } catch (_) { /* Never expose arbitrary response text. */ }
                 throw error;
             }
             const envelope = await response.json();
@@ -139,7 +143,7 @@
                     }
                     this._clearTimers();
                 }
-                this._error(error.message === 'access_revoked' ? error.message : this.startPending ? 'start_uncertain' : !this._session ? 'start_rejected' : 'microphone_unavailable');
+                this._error(error.code || (error.message === 'access_revoked' ? error.message : this.startPending ? 'start_uncertain' : !this._session ? 'start_rejected' : 'microphone_unavailable'));
                 throw error;
             }
         }

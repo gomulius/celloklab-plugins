@@ -1,5 +1,14 @@
 # Celloklab partner plugin development
 
+## Aktualny kontrakt: interpretacja semantyczna przez AI
+
+Ten kontrakt zastępuje wcześniejsze reguły regex/source_role/patient_report opisane historycznie poniżej. Vision nie klasyfikuje znaczenia zdań przez listę fraz, słów pierwszoosobowych, nazw chorób, negacji ani wzorców rozmówcy. Model otrzymuje cały ograniczony kontekst transkryptu i karty oraz kody opcji z etykietami. To model rozpoznaje pytania, relacje specjalisty, hipotezy, negacje, odpowiedzi kontekstowe i historię rodzinną. Nie wymaga się z góry określonego sposobu mówienia.
+
+Callback sprawdza wyłącznie strukturę, dozwolone pola, dokładne typy/kody, rozmiary i pełne źródła związane z rzeczywistymi segmentami (tekst, czas, mówca). Nie wymyśla danych ani identyfikatorów, nie normalizuje etykiet do kodów w ciemno i nie pozwala czyścić pól. Źródło istniejące w transkrypcji nie dowodzi poprawności interpretacji modelu. Wszystkie propozycje wymagają świadomej akceptacji specjalisty; host utrzymuje autoryzację, audyt, baseline i If-Match. Semantyczna jakość AI wymaga oceny rzeczywistych odpowiedzi; testy z mockiem modelu tego nie potwierdzają.
+
+Usunięto historyczne testy deterministycznych heurystyk. Zastępują je testy swobodnych parafraz z syntetycznym wynikiem modelu, poprawnych i błędnych typów/źródeł oraz zachowania odmowy przez model. Nie jest to dowód, że dowolny model nigdy nie popełni błędu klinicznego.
+
+
 ## Sekwencyjna akceptacja i pytania pills
 
 Pytania są większymi pills z ikoną X „Usuń zadane pytanie”. Usunięcie jest lokalne dla sesji, nie zapisuje karty i nie wraca przy kolejnych odczytach tej samej odpowiedzi. Nowa sesja czyści listę usuniętych pytań.

@@ -1,10 +1,34 @@
 # Plugin system host maintenance
 
-## SDK 1.2 FOUNDATION — zachowaj core i granicę wykonania
+## Opis i zwijane karty pluginów
 
-**[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)** opisuje deklaracje zadań/live, DTO i walidację, nie działający proces audio/LLM. Nie zmieniaj istniejącego lifecycle, natywnych zapisów, zakresu pacjenta, Case/personelu ani finansów na podstawie nazw capabilities. Rejestracja oraz syntetyczna referencja nie oznaczają zainstalowanej integracji badawczej. Routing, provider/STT, retencja/zgoda i rozliczenia live są nadal zadaniami integracji hosta.
+Manifest może zawierać opcjonalne `description`: zwykły tekst po polsku do 2000 znaków, opisujący rzeczywiste działanie wtyczki. Host wyświetla go jako escaped tekst po rozwinięciu karty w `/admin/plugins`. Karty startują zwinięte; nagłówek zawiera ID, wydawcę, wersję pluginu/SDK i polski status. Zwijanie nie aktywuje pluginu, nie wysyła żądań i nie usuwa wpisanych ustawień. Brak opisu zachowuje zgodność starszego manifestu. Dodanie opisu nie zmienia grantów ani wersji wykonywalnego kontraktu.
 
-Panel filtruje `documentation_form`/`tab-wywiad`; host ukrywa żywe fragmenty bez klonowania/usuwania DOM. Most zapisuje wyłącznie z oryginalną rewizją otrzymaną przez `readRecord`, bez odświeżenia rewizji/rebase przed PATCH; wymaga CSRF/grantu zapisu, zachowuje szkice i stosuje tylko potwierdzenia własnego udanego PATCH. Referencja nie używa zapisu ani nie pobiera karty. Weryfikuj aktualne testy kontraktów, panelu i mostu wskazane w kontrakcie, nie historyczne liczniki poniżej. Produkcyjna baza/dostawca/przegląd przeglądarki pozostają oddzielnymi bramkami.
+
+## Wywiad na żywo — własność i utrzymanie etapu 2
+
+**[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)** opisuje rzeczywisty runtime w źródłach, nie potwierdzenie wdrożenia. Core jest generycznym transportem/wejściem/autoryzacją/provider routing/redakcją/finansami; instrukcje chorobowe, czyste SDK callbacki i polski UI należą do niezależnego `vision.visit-assistant`. Dokładne granty Vision: `AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`. Nie rozszerzaj Case/personelu, no-AI ani native save. `example.live-interview` pozostaje syntetyczne, bez mikrofonu i zapisu.
+
+| Własność etapu 2 | Źródła |
+| --- | --- |
+| Publiczna rejestracja/callback | `celloklab_plugin_sdk/live_interview.py`, `registrar.py`; `LiveInterviewRegistration.result_processor(context, raw)` jest opcjonalny, czysty, callable |
+| Generyczny runtime i REST | `app/plugins/live_interview_runtime.py`, `app/routers/plugin_live_interviews.py`, router inclusion w `main.py` |
+| STT i typed admin settings | `app/core/plugin_live_audio.py`, `app/routers/plugin_live_audio_admin.py`, `templates/admin/plugins.html`, `static/js/admin/plugins.js`, istniejący admin katalog/model repository |
+| Encrypted state/fences | `app/repositories/plugin_live_interview_repository.py`, ręczna `migrations/088_plugin_live_interviews.sql`; istniejący ledger 079 i opt-in 080 |
+| Mikrofon/bridge/zgoda | `static/js/plugins/live-audio.js`, `live-pcm-worklet.js`, `trichology-form-bridge.js`, `templates/base.html`, exact-scope Permissions-Policy oraz CSRF no-form-preparse |
+| Domenowy plugin / hard-delete | `plugins/vision_visit_assistant/`, `app/services/patient_gdpr_deletion_service.py`; prywatny admin metadata-only closure w lifecycle disable |
+
+Start wymaga profile_id/recording_consent true, kanonicznego UUID Idempotency-Key, CSRF i aktualnego klinicznego assigned-patient scope. GET/audio/stop również sprawdzają session/clinic/plugin/grants/AI opt-in; auth przed body/decrypt i ponownie przed provider/publication. Audio: s16le mono 24 kHz, zwykle 2 s, regularne minimum 0,5 s/max 5 s, finalny `X-Audio-Final: true` od 2 bajtów. HTTP cap 240 KiB, runtime 240000 bajtów. REST STT+analiza zwraca aktualizację JSON, nie bidirectional provider WS; żadnego automatycznego retry dostawcy.
+
+Typed audio settings są niezależne od tekstowej funkcji AI: `speech_model_id` i integer `max_duration_seconds`, default1800, 60–7200. Lista istniejącego admin-katalogu używa `speech_input_supported`, z rewalidacją aktywnego modelu/dostawcy/endpointu. Jeśli standardowy import OpenRouter pomija STT, administrator jawnie dodaje/importuje `openai/gpt-4o-mini-transcribe` (katalog `output_modalities=transcription` i endpoint modelu), a `openai/gpt-4.1-mini` ustawia osobno w konsoli funkcji. Sekrety tylko w hostowym credential domain, nie plugin settings. Model discovery/save nie daje klinicznej zgody/licencji ani activation.
+
+Jedna stała rezerwacja kosztu istniejącej funkcji pluginu obejmuje ograniczoną sesję; nie debit za fragment. Limit czasu nie gwarantuje 2 godzin: `min(1000,max_duration_seconds)` fragmentów/40000 znaków oraz SDK/prompt/state bounds mogą zakończyć pracę wcześniej. Dostawca nadal może naliczyć wiele STT+text calls; administrator musi uwzględnić realny koszt. Pewnie zamknięta cisza bez dispatchu refunduje, potwierdzone użycie zużywa opłatę, niepewne dispatch/COMMIT/pending zachowuje rezerwację i fence do manual reconciliation. `charged=false` nie jest dowodem refundu; nie resetować fence ani fresh-key replay.
+
+Redaguj kartę/transkrypt przed callbackiem/text provider. STT otrzymuje audio — brak anonymity guarantee. Host wiąże pełne cytaty/czas/mówcę ze swoimi finalnymi segmentami i przywraca wyłącznie oryginalny dowód do panelu, nie placeholdery w model values. Panel `documentation_form`/`tab-wywiad` zachowuje DOM przy ukryciu. Tylko explicit accept/edit-save przez bridge używa oryginalnej rewizji/If-Match i baseline; brak rewizji/dirty native form/409 zachowuje szkic, bez rebase. Potwierdzony własny PATCH stosuje wartości, zachowując nowsze ręczne i niepowiązane edycje. Checkbox operatora nie zastępuje clinic opt-in, legal basis ani retention policy.
+
+Permissions-Policy mikrofonu ogranicz do rzeczywistego `/app/{clinic}/patients/{patient_uuid}`, nie pozostałych stron. CSRF/origin musi być sprawdzone przed jakimkolwiek audio body/form parsing. Klient planuje GET co 5 s (opóźnienie odpowiedzi może wydłużyć wykrycie), denial/pause/stop zatrzymuje fizyczne tracki, jawny retry tego samego klucza/bajtów nie włącza automatycznie mikrofonu i odzyskuje również niepewny stop. Pagehide zamyka tracki, keepalive stop pozostaje best-effort. Disable blokuje nowe żądania/publikację, ale nie cofa wysłanych danych; prywatne financial metadata closure kończy/rozlicza pewne stany bez PHI, pending/uncertain pozostawia.
+
+Nie zapisuj PCM ani PHI w ledger/audit/logs/browser storage. Encrypted source/transcript/proposals/chunk results są **trwałymi danymi klinicznymi**. Uzgodnij retencję i holds; nie dodano TTL ani workera retencji, duration limit nie usuwa danych. Core hard-delete usuwa session/chunk payloads przed kartą, ledger/rezerwacje finansowe zachowuje. Tylko brakująca ręczna 088 po review/backupie; nie rerun potwierdzonych 079/080/084 ani startup SQL. Rollback zachowuje schema, audit i pending finance. Właściciel wydania finalizuje Python SDK **1.2.1** sources/wheel, manifest SDK `1.0`, UI Kit `1.0.0`; ten docs-only etap nie buduje ZIP ani nie publikuje/synchronizuje publicznego repo. Testy z kontraktu i actual sources raportuj bez historycznych counts: realprovider/mic/MariaDB/deletion/2-second latency pozostają osobnymi, niepotwierdzonymi bramkami.
 
 ## Clinic guided setup — host-owned reading state
 
@@ -80,7 +104,7 @@ Native clinician-only `GET /api/rpl/products` is **not a supported SDK endpoint*
 
 UI ownership remains `documentation_form.html`, imported interview macros and existing documentation CSS/JS. Preserve plugin mounts above native sections 1–10, then family, recommendations and separate note. Only section 1 starts open; details/summary, expand/collapse-all and the note button remain keyboard-accessible, with existing cards/buttons/tokens and native save. Test safe autocomplete rendering, stale response cancellation, selected metadata, old-name preservation, errors retaining drafts and unchanged supplements. Relevant suites: `tests/test_rpl_catalog.py`, `tests/test_rpl_admin_integration.py`, `tests/test_rpl_medication_persistence.py`, `tests/test_trichology_interview_layout.py` plus existing interview/UI tests. Report actual results only; local checks do not establish production MariaDB/browser acceptance.
 
-Migration **084 is confirmed applied; never repeat it**. Only the separate missing **086_rpl_catalog.sql** is a new catalog prerequisite; no automated migration/backfill/refresh job is authorized. This documentation-only rollout does not apply production SQL, build ZIPs, publish code, commit or push. Existing public `main` documentation copies are updated without branching or cloning; private host code/credentials are not copied.
+Migration **084 is confirmed applied; never repeat it**. Only the separate missing **086_rpl_catalog.sql** is a new catalog prerequisite; no automated migration/backfill/refresh job is authorized. This documentation-only rollout does not apply production SQL, build ZIPs, publish code, commit or push. Public documentation synchronization is separately authorized and is not performed here; private host code/credentials are not copied.
 
 ## Architecture and ownership
 
@@ -101,7 +125,7 @@ Reviewed source deployment → manifest discovery → persisted lifecycle/versio
 | Plugin AI | Public `celloklab_plugin_sdk/ai.py`, neutral `plugins/example_ai`, `app/plugins/ai.py`, `app/routers/plugin_ai.py`, `app/repositories/plugin_ai_repository.py` and existing AI repository/administrator console |
 | Manual schemas | Existing migrations 074–078, plugin AI execution ledger 079, default-off explicit clinic activation 080, clinical trichology queue/artifacts 081, bookings 082 and native configuration cleanup 083; no automatic plugin migration runner |
 
-`PLUGIN_API_REFERENCE.md` is the route/field/header reference; update it from decorators/schemas/authorization, not capability names. Keep public catalogs in parity with the host, but do not represent declared-only hooks as mounted. Preserve legacy SDK shims as the same classes rather than duplicate divergent dataclasses. Package manifests use SDK `1.0`; Python distribution uses `1.1.0`; UI Kit stays `1.0.0`.
+`PLUGIN_API_REFERENCE.md` is the route/field/header reference; update it from decorators/schemas/authorization, not capability names. Keep public catalogs in parity with the host, but do not represent declared-only hooks as mounted. Preserve legacy SDK shims as the same classes rather than duplicate divergent dataclasses. Package manifests use SDK `1.0`; target Python distribution is `1.2.1` (release owner verifies final sources/wheel); UI Kit stays `1.0.0`.
 
 ## Frozen scope decisions
 

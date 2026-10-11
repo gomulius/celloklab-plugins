@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "sdk_version": "1.0",
   "publisher": "Celloklab",
+  "description": "Syntetyczny przykład kontraktu wywiadu AI. Pokazuje przykładową propozycję i jej źródło; nie uruchamia mikrofonu ani modelu AI i nie zapisuje dokumentacji.",
   "entrypoint": {"module": "example_live_interview:register"},
   "capabilities": {"requested": ["AI", "ai.live_interview", "patient.read_trichology_record"]},
   "ui": {"hooks": ["global.panel.right"]},

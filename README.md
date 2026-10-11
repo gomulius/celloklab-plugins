@@ -3,13 +3,15 @@
 
 Public developer guidelines, standalone SDK contracts and reference examples for administrator-reviewed Celloklab plugins. Partners need no private application repository, database credentials or patient data. This is **not** the Celloklab application, a marketplace, an upload installer or a public patient-data API.
 
-## SDK 1.2 FOUNDATION publication: read this first
+## SDK 1.2.1 — stage 2 publication
 
-This checkout publishes standalone **Python SDK 1.2.0 FOUNDATION** source, catalogs and synchronized reference demos, including `trichology.py`, `bookings.py`, `clinical_tasks.py` and `live_interview.py`. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**, and plugin versions are independent.
+This checkout publishes standalone **Python SDK 1.2.1** source, catalogs and reference examples, including `trichology.py`, `bookings.py`, `clinical_tasks.py` and `live_interview.py`. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**; the independent **`vision.visit-assistant` plugin is 2.0.0**, not SDK 2.0.0.
 
-Building `sdk/` now produces **1.2.0**, not the older 1.0.0 snapshot. The release owner builds and verifies the 1.2.0 wheel separately; the historical 1.0.0 wheel may remain, but installing it does not install FOUNDATION. Source publication is not evidence of a GitHub release, deployment or installed-host support. Confirm host compatibility with the platform administrator; private host modules are not published here.
+Building `sdk/` now produces **1.2.1**. The release owner builds and verifies the current wheel separately; retained **1.2.0 FOUNDATION** and 1.0.0 wheels are historical and do not install the current 1.2.1 contracts. Source publication is not evidence of a GitHub release, deployment or installed-host support. Confirm host compatibility with the platform administrator; private host modules are not published here.
 
-FOUNDATION implements contracts, host registration/registry integration, tab-targeted panel behavior and the existing-form browser bridge, **not a live audio runtime**. It supplies no live execution/session router, microphone capture, audio transport, STT, streaming or provider adapter. `example_live_interview` is a synthetic preview with its start CTA disabled and no actual provider calls or clinical writes. See the live contract below for the exact implementation boundary.
+Stage 2 implements host REST sessions, microphone capture, incremental PCM packets, STT followed by text analysis, authorization and one fixed credit fee per bounded session. The independent Vision example supplies callbacks and a Polish proposal panel; the host owns transport, providers, billing and enable/disable. **`example_live_interview` remains a separate synthetic preview**, with start disabled, no audio/provider calls and no clinical writes. The standalone Python SDK is a contract package, not the private host runtime. See the authoritative live contract below.
+
+Audio packets normally cover about **2 seconds**; near-two-second feedback is a goal, **not measured latency or an SLA**. Regular PCM packets require at least **0.5 seconds**; a final tail may contain just **2 bytes**. The host stores no raw audio in the database, but does persist encrypted session snapshots, transcripts, proposals and chunk results. Only explicit clinician acceptance through the existing guarded bridge can write the card. Real HTTPS microphone/browser, provider and production MariaDB acceptance remains unverified.
 
 GitHub is the source/documentation delivery surface: browse this branch and pin its reviewed commit. **No ZIP is required or generated.** This README update does not build or replace wheels, configure providers or publish private application code.
 
@@ -18,15 +20,16 @@ GitHub is the source/documentation delivery surface: browse this branch and pin 
 | Directory | Purpose |
 |---|---|
 | `docs/` | Technical guides indexed below |
-| `sdk/` | Standalone Python SDK 1.2.0 FOUNDATION, catalogs and offline build backend |
-| `wheels/` | Release-owner-built wheels; any retained 1.0.0 wheel is historical |
+| `sdk/` | Standalone Python SDK 1.2.1, catalogs and offline build backend |
+| `wheels/` | Release-owner-built wheels; retained 1.2.0/1.0.0 wheels are historical |
 | `starter/` | Existing page, modal, floating panel and declaration examples |
 | `examples/example_ai/` | Existing neutral-text AI page and right-panel example |
 | `examples/trichology_ai_summary/` | Existing source-change-driven, read-only summary card |
 | `examples/example_trichology_interview/` | Synchronized typed interview read/write reference |
 | `examples/example_bookings/` | Synchronized booking contract reference |
 | `examples/example_live_interview/` | FOUNDATION synthetic proposal preview; live start disabled |
-| `browser/` | Public existing-form bridge reference; not a live session client |
+| `examples/vision_visit_assistant/` | Independent Vision 2.0.0 live proposal plugin; requires compatible host runtime |
+| `browser/` | Public live audio client, PCM worklet and existing-form bridge |
 | `preview/` | Offline UI preview with mock feedback, no real API |
 | `LICENSES/` | Full standard license texts |
 
@@ -44,7 +47,8 @@ GitHub is the source/documentation delivery surface: browse this branch and pin 
 | [Notification Contract](docs/PLUGIN_NOTIFICATION_CONTRACT.md) | Scoped recipients and notification behavior |
 | [Booking Contract](docs/PLUGIN_BOOKING_CONTRACT.md) | Organizational reservations and reception scope |
 | [Typed Trichology Interview Contract](docs/PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md) | All 41 new fields, codes, types, read/write and concurrency |
-| [Live Interview FOUNDATION Contract](docs/PLUGIN_LIVE_INTERVIEW_CONTRACT.md) | Text-task/session declarations, synthetic events, panel targeting and unfinished live runtime |
+| [Live Interview Stage 2 Contract](docs/PLUGIN_LIVE_INTERVIEW_CONTRACT.md) | Runtime sessions, audio, authorization, fixed session fee, retention and acceptance limits |
+| [Browser Live Audio Client](browser/live-audio.js) / [PCM Worklet](browser/live-pcm-worklet.js) | Shared host session client and incremental microphone capture; not provider clients |
 | [Browser Form Bridge](browser/trichology-form-bridge.js) | Public bridge source; original-revision writes and native-form guards explained in the live contract |
 | [Extended Trichology Interview](docs/TRICHOLOGY_INTERVIEW_EXTENSION.md) | Native fields, storage, migration and integration boundaries |
 | [Official RPL Catalog Operations](docs/RPL_CATALOG_OPERATIONS.md) | Administrator import, local medicine search and immutable medication snapshots |
@@ -53,7 +57,7 @@ GitHub is the source/documentation delivery surface: browse this branch and pin 
 
 The last two guides are published here as documentation for administrators/maintainers, **not partner runtime permissions or private implementation access**. Any archive exclusions described there concern a separate packaging workflow, not GitHub documentation availability. Start with development and API guides; consult the specific domain contract before using an endpoint. See also [SDK README](sdk/README.md) and the [neutral AI](examples/example_ai/README.md) / [summary](examples/trichology_ai_summary/README.md) sample READMEs.
 
-## Current typed trichology contract (included in SDK 1.2.0)
+## Current typed trichology contract (included in SDK 1.2.1)
 
 The extended interview is **not read-only or strings-only**. Existing `patient.read_trichology_record` and `patient.write_trichology_record` grants cover GET/PATCH on `/api/plugins/{plugin_id}/patients/{patient_id}/trichology?tenant_slug=...`, subject to current clinical role, active doctor profile/clinic assignment and assigned-patient authority. No new grant or AI requirement is introduced.
 
@@ -63,27 +67,28 @@ The extended interview is **not read-only or strings-only**. Existing `patient.r
 - Send the original GET revision in `If-Match` (legacy optional, strongly recommended). On 409 preserve the draft and compare explicitly; never silently fetch a fresh revision and overwrite.
 - Source-change audit/events/revisions remain transactional. The separate AI `TrichologySnapshot.fields` contract **still uses strings/null**; it is not the editable typed DTO. The existing summary demo stays read-only.
 
-See the interview contract for every field, code, bound and clearing rule. Migration 084 is confirmed applied in the inspected deployment; do not rerun it there or assume that fact applies to another deployment. Native interview columns are unencrypted, separate from encrypted AI snapshots/artifacts. Live recording/transcription runtime and Case expansion remain out of scope; FOUNDATION declarations do not implement them.
+See the interview contract for every field, code, bound and clearing rule. Migration 084 is confirmed applied in the inspected deployment; do not rerun it there or assume that fact applies to another deployment. Native interview columns are unencrypted, separate from encrypted AI snapshots/artifacts. Stage 2 live runtime is distinct from typed editing; Case expansion remains out of scope.
 
-## Build, install and validate SDK 1.2.0 locally
+## Build, install and validate SDK 1.2.1 locally
 
-Python 3.10 or newer is required. From this repository root, build the current standalone source or use a release-owner-verified 1.2.0 wheel:
+Python 3.10 or newer is required. From this repository root, build the current standalone source or use a release-owner-verified 1.2.1 wheel:
 
 ```sh
 python -m venv .venv
 # Linux/macOS; on Windows activate .venv\Scripts\activate instead:
 . .venv/bin/activate
 python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
-python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.0-py3-none-any.whl
+python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.1-py3-none-any.whl
 celloklab-plugin-validate starter
 celloklab-plugin-validate examples/example_ai
 celloklab-plugin-validate examples/trichology_ai_summary
 celloklab-plugin-validate examples/example_trichology_interview
 celloklab-plugin-validate examples/example_bookings
 celloklab-plugin-validate examples/example_live_interview
+celloklab-plugin-validate examples/vision_visit_assistant
 ```
 
-Offline validation checks declarations/static policy, including FOUNDATION declarations. It never executes a plugin, grants authority, proves browser/security behavior or activates anything. The retained `wheels/celloklab_plugin_sdk-1.0.0-py3-none-any.whl`, if used, installs only the historical 1.0.0 snapshot and lacks the new modules/contracts.
+Offline validation checks declarations/static policy. It never executes a plugin, grants authority, proves browser/security behavior or activates anything. Retained 1.2.0 FOUNDATION and 1.0.0 wheels install only their historical snapshots, not SDK 1.2.1.
 
 Open `preview/index.html` for the offline preview: **no real authentication, API, email, upload, clinical data or provider calls**. Feedback is mock; fonts use local fallbacks.
 
@@ -93,6 +98,8 @@ Open `preview/index.html` for the offline preview: **no real authentication, API
 - Plugins are reviewed, trusted in-process Python/Jinja/JavaScript, **not a sandbox**. Administrator approval/grants do not replace actor, clinic or patient authorization.
 - Never put secrets, patient data, prompts or clinical output in logs, browser persistence or this repository.
 - Host administrators own credentials, models/providers, costs, licensing and platform availability. Literal `AI` plugins additionally need independent clinic-admin consent; no-AI plugins do not acquire AI-policy dependencies.
+- Vision can be enabled/disabled independently through the existing host plugin lifecycle. Current clinical roles, active doctor profile/clinic assignment and assigned-patient authority remain mandatory. Existing `AI`, `ai.live_interview` and `patient.read_trichology_record` grants authorize live execution; `patient.write_trichology_record` remains a separate write gate. No new grant is introduced.
+- Stage 2 requires only missing, manually reviewed `088_plugin_live_interviews.sql` after operator approval/backup; confirm existing prerequisites without rerunning old migrations, especially 084. This publication performs no migration, provider configuration or deployment. There is no new live worker.
 - Neutral completion text is ephemeral and replay is metadata-only. Clinical summary snapshots/artifacts are separately encrypted and retained by the host; uncertainty stays pending for evidence-based reconciliation without automatic provider replay.
 - `trichology.record.changed` is a narrow transactional summary workflow, **not a general event bus or arbitrary job API**.
 - Dedicated legacy native AI generation has been removed in the current host; there is no native pilot-disable step. Native clinical forms and historical clinical data remain.
@@ -101,7 +108,7 @@ Open `preview/index.html` for the offline preview: **no real authentication, API
 
 ## Versions, licensing and feedback
 
-Pin the reviewed source/documentation commit; a changing branch is not a compatibility guarantee or evidence of installed-host support. Historical tests/artifact inventories in release notes concern their stated implementation snapshots, not proof of a rebuilt 1.2.0 wheel, production deployment or live audio/provider acceptance.
+Pin the reviewed source/documentation commit; a changing branch is not a compatibility guarantee or evidence of installed-host support. Historical tests/artifact inventories in release notes concern their stated implementation snapshots, not proof of a rebuilt 1.2.1 wheel, production deployment or live audio/provider acceptance. Current wheel verification and regression results are reported separately by the release owner.
 
 - **Markdown documentation:** [CC BY 4.0](LICENSES/CC-BY-4.0.txt).
 - **Code, templates, catalogs and documentation code snippets:** [Apache 2.0](LICENSES/Apache-2.0.txt).

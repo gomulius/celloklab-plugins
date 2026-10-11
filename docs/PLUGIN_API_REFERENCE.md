@@ -1,10 +1,33 @@
-# Plugin browser API reference — SDK 1.0
+# Plugin browser API reference — manifest SDK 1.0 / Python SDK 1.2.1
 
-## SDK 1.2 FOUNDATION — deklaracje, nie endpointy live
+## Wywiad na żywo — zaimplementowany etap 2
 
-Aktualny zakres i publiczne sygnatury: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. `clinical_tasks.py`/`live_interview.py` dodają tekstowe DTO, czyste funkcje promptu, rejestrację i walidację propozycji/źródeł; nie dodają `/run`, nagrywania, STT ani routingu dostawcy. `ai.clinical_tasks`, `ai.live_interview` i katalogowe `ai.transcription` nie dowodzą gotowości wykonania. Istniejący completion nie jest obejściem dla klinicznego live.
+Aktualny zakres, publiczne sygnatury i ograniczenia: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. Host implementuje REST PCM → STT → analizę tekstową → propozycje, jedną rezerwację kosztu funkcji pluginu, ograniczenia i ponowną autoryzację. Niezależne `vision.visit-assistant` rejestruje profil `interview`, własne prompty i opcjonalny `LiveInterviewRegistration.result_processor(context, raw)`; dokładne granty to `AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`. Core nie zawiera promptów chorobowych. Ogólne zadania `clinical_tasks.py` pozostają deklaracjami bez uniwersalnego `/run`; neutralne completion nie jest obejściem klinicznego live. Nie potwierdzono rzeczywistego dostawcy/mikrofonu/MariaDB ani odpowiedzi w 2 sekundy.
 
-Hostowy `CelloklabTrichologyFormBridge.readRecord(pluginId)` daje kartę z rewizją. Przyszły jawnie zaakceptowany zapis używa `savePatch(pluginId, changes, {revision: originalRevision})` z rewizją odczytu stanowiącego podstawę propozycji, osobnym grantem zapisu i CSRF — kontrolny GET może tylko zweryfikować tę rewizję, nie zastąpić jej ani wykonać rebase. Konflikt zachowuje szkic; zastosowanie DOM wymaga rzeczywistego potwierdzenia PATCH. Referencja `example.live-interview` tylko pokazuje syntetyczne dane, niczego nie zapisuje. Nowa sekcja jest nadrzędna dla tego fundamentu; starsze opisy wersji/artefaktów poniżej nie są dowodem wydania SDK 1.2.
+Hostowy `CelloklabTrichologyFormBridge.readRecord(pluginId)` daje kartę z rewizją. Dopiero jawna akceptacja pojedynczej propozycji wywołuje `savePatch(pluginId, changes, {revision: originalRevision, expected_values: baseline})`, z osobnym grantem zapisu i CSRF. Kontrolny GET tylko weryfikuje oryginalną rewizję, nigdy jej nie zastępuje/rebase'uje. Konflikt/dirty form zachowuje szkic; DOM zmienia tylko rzeczywiste potwierdzenie PATCH, zachowując inne/nowsze ręczne edycje. Natywne pola i zapis pozostają bez zmian. Referencja `example.live-interview` nadal jest wyłącznie syntetyczna i bez zapisu.
+
+### Sesje REST — rzeczywiste ścieżki
+
+Względem `/api/plugins/{plugin_id}`, zawsze `tenant_slug`, cookies same-origin oraz **`X-CSRF-Token` również dla GET**. Aktualny kliniczny assigned-patient scope, profil/klinika lekarza, lifecycle/granty, globalne AI, licencja/dostępność i jawny opt-in kliniki są niezależne od panelu. Pacjent i sesja to kanoniczne UUID. CSRF/origin poprzedzają body; audio nie jest formularzem ani multipartem.
+
+| Metoda | Ścieżka | Wejście |
+| --- | --- | --- |
+| POST | `/patients/{patient_id}/live-interviews` | Dokładnie `{"profile_id":"interview","recording_consent":true}`, JSON ≤1024 bajtów, UUID `Idempotency-Key` |
+| GET | `/patients/{patient_id}/live-interviews/{session_id}` | Bez body; kontrola stanu/dostępu/czasu, bez dispatchu |
+| POST | `/patients/{patient_id}/live-interviews/{session_id}/audio` | `Content-Type: audio/pcm`, surowe s16le mono 24000 Hz; `X-Audio-Sequence` od 0; `X-Audio-Final: true|false` |
+| POST | `/patients/{patient_id}/live-interviews/{session_id}/stop` | Dokładnie `{}`, JSON |
+
+Regularne PCM: 0,5–5 s / 24000–240000 bajtów; worklet zwykle emituje co ok. 2 s. Finalny ogon z `X-Audio-Final: true`: minimum jedna próbka/2 bajty. HTTP cap 240 KiB, runtime PCM cap 240000 bajtów. Limit czasu domyślnie 1800 s, ustawienie całkowite 60–7200; **także `min(1000,max_duration_seconds)` fragmentów, 40000 znaków transkryptu i limity kontekstu** mogą zakończyć pracę wcześniej. Nie jest to bidirectional provider WS ani gwarancja dwusekundowego wyniku.
+
+Envelope `{plugin_id,session}`: `session_id,status,next_sequence,revision,credit_cost,max_duration_seconds,charged,segments,suggestions,tips`; `revision` sesji nie jest rewizją karty. Host zwraca `recording|stopped|pending|failed` (schema dopuszcza też `cancelled`), 202 dla pending, inaczej 200, private/no-store. Segment zawiera `segment_id,sequence,start,end,speaker,text`; propozycja `proposal_id,field,value,evidence,segment_ids,revision,context:{revision,baseline}`. Host wiąże pełne cytaty i czas/mówcę ze swoim finalnym transkryptem; redaguje wejście tekstowego dostawcy, a UI pokazuje oryginalne hostowe źródło. STT otrzymuje audio — redakcja tekstu nie anonimizuje nagrania.
+
+Jedna stała opłata według efektywnego istniejącego kosztu funkcji pluginu jest rezerwowana przy starcie, **bez debetu za fragment**. Administrator nadal ponosi możliwy koszt wielu STT+text calls dostawcy. Pewnie zamknięta sesja bez dispatchu/cyfrowa cisza zwraca rezerwację; potwierdzone użycie zużywa opłatę bez względu na zaakceptowanie pól. `charged=false` przy pending nie oznacza refundu. Identyczny potwierdzony chunk można jawnie odczytać przez replay bez dispatchu; niepewny fence pozostaje pending/konflikt do uzgodnienia administratora, nigdy fresh-key replay ani automatyczny provider retry. Stop nie refunduje niepewności. Klient planuje GET co 5 s, denial zatrzymuje fizyczne tracki; czas odpowiedzi może wydłużyć wykrycie cofnięcia.
+
+Checkbox operatora zapisuje oświadczenie o pozwoleniu pacjenta, nie zastępuje klinicznego opt-in ani podstawy prawnej/retencji. Nowy prerequisite: ręcznie tylko brakująca `088_plugin_live_interviews.sql`, bez startup SQL i bez powtarzania potwierdzonych starszych migracji. Host przechowuje zaszyfrowane session/chunk payloads, nie PCM; nie dodano TTL/workera retencji. Core hard-delete usuwa sesje/chunki przed kartą, zachowując finansowy ledger. Disable blokuje nowe żądania; prywatne zamknięcie pewnych stanów korzysta tylko z metadanych finansowych, pending/uncertain pozostaje.
+
+### Administracja audio — poza partnerskim browser API
+
+`GET/PUT /api/admin/plugins/{plugin_id}/live-audio-settings`: aktualny super-admin, enabled plugin z `AI`+`ai.live_interview`; PUT z CSRF przed body, JSON ≤2048 bajtów, dokładnie `{speech_model_id,max_duration_seconds}` (integer 60–7200). Response `{plugin_id,speech_model_id,max_duration_seconds,models}`; modele z istniejącego admin-katalogu mają `speech_input_supported`, a UI blokuje nieobsługiwane. Zapis nie aktywuje AI/kliniki i nie przechowuje kluczy. Jeśli zwykły import OpenRouter nie zawiera STT, administrator jawnie dodaje/importuje `openai/gpt-4o-mini-transcribe` do katalogu, sprawdzając katalog z `output_modalities=transcription` i endpoint modelu. Osobny model tekstowy `openai/gpt-4.1-mini`, koszt i globalne enable konfiguruje w konsoli funkcji AI. Obsługiwany STT endpoint/listę modeli sprawdza adapter, nie sama obecność w katalogu. Sekrety pozostają w konsoli dostawcy.
 
 ## Private host clinic-guide API — explicitly outside the partner SDK
 

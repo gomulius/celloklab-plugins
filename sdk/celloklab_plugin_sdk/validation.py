@@ -149,6 +149,8 @@ def validate(folder):
             else:
                 for v in sorted(set(values) - known):
                     error('manifest.unknown', 'manifest.json', 'Unknown ' + key + ': ' + v)
+        if 'description' in data and (not isinstance(data['description'], str) or len(data['description']) > 2000):
+            error('manifest.description', 'manifest.json', 'Opis wtyczki musi być tekstem do 2000 znaków.')
         if 'settings' in data:
             validate_settings(data['settings'])
         for alias, item in descriptors(data).items():

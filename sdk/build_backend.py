@@ -6,7 +6,7 @@ import tarfile
 import io
 import zipfile
 
-NAME = 'celloklab_plugin_sdk-1.2.0'
+NAME = 'celloklab_plugin_sdk-1.2.1'
 ROOT = Path(__file__).resolve().parent
 PACKAGE = ROOT / 'celloklab_plugin_sdk'
 if not PACKAGE.is_dir():
@@ -35,7 +35,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     name = NAME + '-py3-none-any.whl'
     metadata = NAME + '.dist-info/'
     payload = {arc: p.read_bytes() for p, arc in _sources()}
-    payload[metadata + 'METADATA'] = b'Metadata-Version: 2.4\nName: celloklab-plugin-sdk\nVersion: 1.2.0\nRequires-Python: >=3.10\nSummary: Standalone Celloklab partner contracts\nLicense-Expression: Apache-2.0\nLicense-File: LICENSE\nLicense-File: NOTICE\nLicense-File: LICENSES/Apache-2.0.txt\nLicense-File: LICENSES/CC-BY-4.0.txt\n\n'
+    payload[metadata + 'METADATA'] = b'Metadata-Version: 2.4\nName: celloklab-plugin-sdk\nVersion: 1.2.1\nRequires-Python: >=3.10\nSummary: Standalone Celloklab partner contracts\nLicense-Expression: Apache-2.0\nLicense-File: LICENSE\nLicense-File: NOTICE\nLicense-File: LICENSES/Apache-2.0.txt\nLicense-File: LICENSES/CC-BY-4.0.txt\n\n'
     for license_file in LICENSE_FILES:
         payload[metadata + 'licenses/' + license_file] = (ROOT / license_file).read_bytes()
     payload[metadata + 'WHEEL'] = b'Wheel-Version: 1.0\nGenerator: celloklab-stdlib\nRoot-Is-Purelib: true\nTag: py3-none-any\n'

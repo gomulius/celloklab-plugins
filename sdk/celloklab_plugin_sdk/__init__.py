@@ -24,6 +24,6 @@ from .live_interview import (LIVE_INTERVIEW_CAPABILITY, LIVE_INTERVIEW_CAPABILIT
 from .live_interview import __all__ as _live_exports
 
 SDK_VERSION = "1.0"
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __all__ = ["PluginContext", "PluginRegistrar", "UIFragment", "UIHook", "PluginPage", "plugin_page_id", "SDK_VERSION",
            "AI_CAPABILITY", "AIProtocol", "AIResult", "PluginAIProtocol", "PluginAIResult", "plugin_ai_feature_id", "BookingsProtocol", "BOOKING_CAPABILITIES"] + _clinical_exports + _trichology_exports + _task_exports + _live_exports

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "sdk_version": "1.0",
   "publisher": "Przykład Celloklab",
+  "description": "Przykład integracji z hostowym AI: wykonuje neutralne zadanie tekstowe, pokazuje wynik i koszt oraz demonstruje bezpieczne sprawdzanie tego samego wykonania.",
   "entrypoint": {"module": "example_ai:register"},
   "capabilities": {"requested": ["AI"]},
   "ui": {"hooks": ["ui.page", "global.panel.right"]},

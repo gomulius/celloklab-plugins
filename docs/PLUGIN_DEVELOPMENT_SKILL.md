@@ -1,10 +1,21 @@
 # Celloklab partner plugin development
 
-## SDK 1.2 FOUNDATION — początek integracji
+## Opis i zwijane karty pluginów
 
-Przed deklaracją zadań/wywiadu przeczytaj **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. Używaj publicznych `TaskInputs`, `TaskContext`, `TaskPrompt`, `LiveInterviewRegistration` i `registrar.register_live_interview`; nie importuj prywatnego hosta ani klienta dostawcy. Rejestracja nie uruchamia sesji ani endpointu. Dostarczony transkrypt nie oznacza nagrywania; źródła propozycji wymagają odrębnej walidacji względem finalnych segmentów hosta.
+Manifest może zawierać opcjonalne `description`: zwykły tekst po polsku do 2000 znaków, opisujący rzeczywiste działanie wtyczki. Host wyświetla go jako escaped tekst po rozwinięciu karty w `/admin/plugins`. Karty startują zwinięte; nagłówek zawiera ID, wydawcę, wersję pluginu/SDK i polski status. Zwijanie nie aktywuje pluginu, nie wysyła żądań i nie usuwa wpisanych ustawień. Brak opisu zachowuje zgodność starszego manifestu. Dodanie opisu nie zmienia grantów ani wersji wykonywalnego kontraktu.
 
-Referencja `plugins/example_live_interview/` żąda `AI`, `ai.live_interview`, `patient.read_trichology_record`, bez grantu zapisu. Panel: `global.panel.right`, `global_panel`, `documentation_form`, `tab-wywiad`, `requires_doctor=True`. Polski CTA „Rozpocznij wywiad z AI” pozostaje wyłączony; syntetyczny podgląd nie zmienia dokumentacji. Nie omijaj wspólnej bramki AI dla pokazu. Przyszłe rzeczywiste propozycje wymagają jawnej oceny i oryginalnej rewizji odczytu, bez automatycznego rebase. Routing, provider/STT i finanse live pozostają do implementacji; historyczne wersje dystrybucji niżej nie potwierdzają nowego wydania.
+
+## SDK Python 1.2.1 — wywiad na żywo, etap 2
+
+Przeczytaj **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)** i rzeczywiste REST w API reference. Używaj publicznych `TaskInputs`, `TaskContext`, `TaskPrompt`, `LiveInterviewRegistration(..., result_processor=None)` i registrara. Rejestracja deklaruje profil/callbacki, nie uruchamia sesji; host ma już osobny runtime PCM/REST/STT/analizy/finansów. Callbacki są czyste, bez `app`, SQL, provider client lub sekretów. Core transportuje, autoryzuje, minimalizuje/redaguje, wiąże źródła i rozlicza; instrukcje domenowe oraz polski UI należą do niezależnej wtyczki. Ogólne zadania tekstowe pozostają deklaracjami bez uniwersalnego `/run`.
+
+Rzeczywisty partnerski przykład `plugins/vision_visit_assistant/` ma ID `vision.visit-assistant`, profil `interview` i dokładne granty `AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`. Panel: `global.panel.right`, `global_panel`, `documentation_form`, `tab-wywiad`, role kliniczne i `requires_doctor=True`. Wersję bierz z finalnego manifestu. `plugins/example_live_interview/` pozostaje osobną syntetyczną referencją z wyłączonym startem i bez zapisu; nie zastępuje Vision. Istniejące no-AI i frozen Case/personel pozostają bez zmian.
+
+Host-start wymaga profile/recording_consent, CSRF i UUID klucza; jedna stała rezerwacja obejmuje ograniczoną sesję, nie każdą klatkę. Domyślnie 1800 s, ustawienie max 7200, ale także min(1000,limit czasu) fragmentów/40000 znaków i kontekst mogą zakończyć ją wcześniej. Worklet emituje ok. 2 s PCM, regularne minimum 0,5 s, finalny ogon od jednej próbki z `X-Audio-Final: true`. To REST chunk updates, nie provider WS ani gwarancja latencji. Nie obciążaj UI argumentami transportowymi; pokaż zrozumiałe polskie stany, zgodę, stały koszt i jawne akcje.
+
+Każde źródło musi odpowiadać pełnemu finalnemu segmentowi; host po redakcji wiąże oryginalny dowód, a propozycja zachowuje źródłową rewizję/baseline. Tylko explicit bridge accept wykonuje PATCH z oryginalnym If-Match/expected_values; dirty form/409 zachowuje szkic, bez rebase i bez zmiany natywnego zapisu. Checkbox operatora nie zastępuje clinic opt-in ani legal basis. Cisza bez dispatchu przy pewnym zamknięciu zwraca rezerwację; niepewny pending pozostaje do ręcznego uzgodnienia, nigdy nowy płatny klucz jako obejście. Klient zatrzymuje rzeczywiste tracki przy pause/denial i planuje GET co 5 s; retry nie otwiera mikrofonu automatycznie.
+
+Administrator konfiguruje `speech_model_id` (STT) i integer `max_duration_seconds` w typowanym panelu audio wtyczki, a model tekstowy/koszt w konsoli funkcji AI. Przy braku STT w standardowym katalogu OpenRouter musi jawnie dodać/importować `openai/gpt-4o-mini-transcribe`; tekst: `openai/gpt-4.1-mini`. Żadnych poświadczeń w plugin settings. Nowa migracja tylko ręczna brakująca 088; nie rerun starszych SQL. Zaszyfrowane clinical session/chunk data podlegają uzgodnionej retencji i core hard-delete, ledger pozostaje; brak nowego TTL/workera. Local tests nie potwierdzają realnego provider/mic/MariaDB ani wyniku w 2 s. Ten etap dokumentacji nie buduje ZIP i nie publikuje repozytorium; wheel 1.2.1 finalizuje release owner.
 
 ## Contextual guide example: no generic onboarding SDK
 
@@ -26,7 +37,7 @@ Manual migration **080** adds default-off `tenant_plugin_ai_activations` alongsi
 
 ## Supported boundary
 
-Develop against the standalone `celloklab_plugin_sdk` distribution, not private host modules. Manifest SDK version is `1.0`; Python distribution is `1.1.0`; UI-kit version remains `1.0.0`. A partner needs the public ZIP/wheel, starter and catalogs—not access to the platform repository. See `PLUGIN_API_REFERENCE.md` for the implemented browser contract and `PLUGIN_SDK_RELEASE.md` for release limitations.
+Develop against the standalone `celloklab_plugin_sdk` distribution, not private host modules. Manifest SDK version is `1.0`; target Python distribution is `1.2.1`; UI-kit remains `1.0.0`. Release owner finalizes source version/wheel identity separately. Partners need approved public SDK sources/wheel and catalogs, not host repository access. No new ZIP is delivered by this stage. See `PLUGIN_API_REFERENCE.md` and `PLUGIN_SDK_RELEASE.md`.
 
 Plugins are administrator-reviewed, trusted, in-process Python plus server-rendered templates and same-origin JavaScript. This is **not a sandbox**. Capability grants do not authorize an actor or replace tenant/resource checks. There is no automatic installer, marketplace, dependency resolver, general event bus or arbitrary database API. Manifest event declarations alone do not provide event delivery; the one implemented narrow exception is reviewed `register_trichology_summary()` for `trichology.record.changed`.
 
@@ -34,11 +45,11 @@ The browser API uses the authenticated host session and host-resolved clinic con
 
 ## Start without the host
 
-Unzip the public bundle, create a clean virtual environment, install the included wheel and copy `starter/` as your plugin:
+Use approved public SDK sources and the finalized 1.2.1 wheel, create a clean virtual environment and copy the approved `starter/` as your plugin. The commands below assume the wheel has been supplied under `wheels/`; an existing earlier public bundle/preview is not evidence of a new stage-2 ZIP:
 
 ```sh
 python -m venv .venv
-.venv/bin/python -m pip install --no-index --no-deps wheels/celloklab_plugin_sdk-1.1.0-py3-none-any.whl
+.venv/bin/python -m pip install --no-index --no-deps wheels/celloklab_plugin_sdk-1.2.1-py3-none-any.whl
 .venv/bin/celloklab-plugin-validate starter
 python -m http.server 8000 --bind 127.0.0.1 --directory preview
 ```

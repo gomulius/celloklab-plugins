@@ -1,0 +1,21 @@
+<section class="clk-ui-card clk-ui-card--compact" data-vision-visit-assistant aria-label="Asystent wywiadu">
+  <div class="clk-ui-card-body clk-ui-stack">
+    <button type="button" class="clk-ui-button clk-ui-button--primary" data-action="start">Rozpocznij wywiad z AI</button>
+    <div class="clk-ui-field">
+      <label class="clk-ui-check"><input type="checkbox" class="clk-ui-checkbox" data-consent> Mam zgodę pacjenta na nagrywanie. Dźwięk rozmowy jest wysyłany do dostawcy AI w celu transkrypcji i propozycji do dokumentacji.</label>
+      <p class="clk-ui-help">AI nie zapisuje karty. Każdą propozycję sprawdź i zatwierdź osobno. Opłata jest stała za sesję, nie za fragment audio.</p>
+    </div>
+    <p data-status role="status" aria-live="polite">Gotowy do wywiadu.</p>
+    <p data-budget class="clk-ui-help"></p>
+    <div class="clk-ui-row">
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="pause" disabled>Wstrzymaj</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="resume" disabled>Wznów mikrofon</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="stop" disabled>Zakończ wywiad</button>
+      <button type="button" class="clk-ui-button clk-ui-button--secondary" data-action="retry" hidden>Ponów oczekujący fragment</button>
+    </div>
+    <h3 class="clk-ui-card-title">Propozycje do sprawdzenia</h3>
+    <div data-proposals></div>
+    <h3 class="clk-ui-card-title">Wskazówki</h3>
+    <ul data-tips></ul>
+  </div>
+</section>

@@ -1,7 +1,7 @@
 /* Host-owned clinical form bridge. Memory only; never persist drafts or PHI. */
 (function () {
     'use strict';
-    const TEXT_FIELDS = ('chief_complaint complaint_duration complaint_onset shedding_pattern previous_episodes seasonality flaking_type scalp_symptom_details care_details heat_styling chemical_treatments traction_factors medication_changes current_medications hormonal_status menstrual_cycle pregnancy_postpartum contraception trt_status weight_change transplant_details previous_treatments measurements family_history_details visit_recommendations notes trichology_treatments').split(' ');
+    const TEXT_FIELDS = ('chief_complaint complaint_duration complaint_onset shedding_pattern previous_episodes seasonality flaking_type scalp_symptom_details care_details heat_styling chemical_treatments traction_factors medication_changes current_medications hormonal_status menstrual_cycle pregnancy_postpartum contraception trt_status weight_change transplant_details previous_treatments measurements family_history_details visit_recommendations notes trichology_treatments other_conditions allergies_details supplements_list surgeries').split(' ');
     const CHOICE_FIELDS = ('complaint_dynamics shedding_amount hair_loss_pattern sebum_timing washing_frequency menopause_status scale_norwood scale_ludwig scale_salt scale_pull_test').split(' ');
     const MULTI_FIELDS = ('affected_areas scalp_symptoms scalp_condition shaft_condition androgen_symptoms').split(' ');
     const snapshots = new WeakMap();
@@ -25,7 +25,7 @@
             const kind = MULTI_FIELDS.includes(name) ? 'string[]' : name === 'post_transplant' ? 'boolean' : 'string';
             const choices = kind === 'string[]' || CHOICE_FIELDS.includes(name) ?
                 Array.from(new Set(controls.flatMap(c => c.options ? Array.from(c.options).map(o => o.value) : [c.value]).filter(Boolean))) : null;
-            fields.set(name, {controls, kind, choices, legacy: name === 'notes' || name === 'trichology_treatments'});
+            fields.set(name, {controls, kind, choices, legacy: ['notes', 'trichology_treatments', 'other_conditions', 'allergies_details', 'supplements_list', 'surgeries'].includes(name)});
         });
         const nativeControls = () => Array.from(form.querySelectorAll('input, textarea, select')).filter(c => !c.closest('#medicalDocumentationForm'));
         const nativeBaseline = new Map(nativeControls().map(c => [c, controlValue(c)]));

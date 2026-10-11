@@ -25,6 +25,7 @@ class LiveInterviewRegistration:
     title: str
     prompt_builder: Callable[[TaskContext], TaskPrompt]
     inputs: TaskInputs = field(default_factory=lambda: TaskInputs(trichology_record=True, transcript=True))
+    result_processor: Callable[[TaskContext, Any], Mapping[str, Any]] | None = None
 
     def __post_init__(self) -> None:
         self.validate()
@@ -46,6 +47,8 @@ class LiveInterviewRegistration:
             raise ValueError("Sesja wywiadu wymaga tekstu rozmowy i nie dopuszcza załączników.")
         if not callable(self.prompt_builder):
             raise TypeError("Budowanie promptu sesji wymaga funkcji.")
+        if self.result_processor is not None and not callable(self.result_processor):
+            raise TypeError("Przetwarzanie wyniku sesji wymaga funkcji.")
 
 
 @dataclass(frozen=True)

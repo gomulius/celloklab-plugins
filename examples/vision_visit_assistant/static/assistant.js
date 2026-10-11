@@ -35,6 +35,7 @@
                 slot.dataset.visionContext === root.dataset.visionContext);
             this.bridge = window.CelloklabTrichologyFormBridge;
             this.proposals = new Map();
+            this.dismissedTips = new Set();
             this.record = null;
             this.sessionId = null;
             this.latest = null;
@@ -110,6 +111,7 @@
             if (!this.client.restartable) return;
             this.client.dispose();
             this.sessionId = null; this.latest = null;
+            this.dismissedTips.clear();
             this.resetAudioView();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.makeClient();
@@ -147,7 +149,7 @@
                 item.status = 'revoked';
                 for (const control of item.controls || []) control.disabled = true;
             }
-            this.proposals.clear(); this.record = this.latest = null;
+            this.proposals.clear(); this.dismissedTips.clear(); this.record = this.latest = null;
             this.proposalRoot?.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.resetAudioView();
@@ -237,7 +239,19 @@
             if (incomingTips.length) {
                 this.tipVersion = (this.tipVersion || 0) + 1;
                 tips.replaceChildren();
-                for (const tip of incomingTips) tips.appendChild(element('li', tip));
+                for (const tip of incomingTips) {
+                    if (this.dismissedTips.has(tip)) continue;
+                    const pill = element('li', undefined, 'va-question-pill');
+                    pill.appendChild(element('span', tip));
+                    const remove = this.iconButton('Usuń zadane pytanie', 'fa-xmark', 'va-question-remove');
+                    remove.addEventListener('click', () => {
+                        if (!this.access) return;
+                        this.dismissedTips.add(tip);
+                        pill.hidden = true;
+                    });
+                    pill.appendChild(remove);
+                    tips.appendChild(pill);
+                }
             }
             for (const proposal of session.suggestions || []) this.addProposal(proposal, session);
             this.proposalState();

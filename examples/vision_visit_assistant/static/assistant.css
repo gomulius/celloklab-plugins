@@ -1,4 +1,9 @@
 /* Vision geometry only; colors, typography and focus inherit the SDK theme. */
+.vision-assistant [data-tips] { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--clk-ui-space-3); }
+.vision-assistant .va-question-pill { display: flex; align-items: center; gap: var(--clk-ui-space-3); padding: var(--clk-ui-space-3) var(--clk-ui-space-4); border-radius: var(--clk-ui-space-5); border: 1px solid var(--clk-ui-border); background: var(--clk-ui-surface-muted); color: var(--clk-ui-text); line-height: 1.5; }
+.vision-assistant .va-question-pill > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.vision-assistant .va-question-remove { border: 0; background: transparent; color: var(--clk-ui-text-muted); min-width: 32px; width: 32px; height: 32px; }
+
 .vision-assistant, .vision-proposals { min-width: 0; }
 .vision-assistant [hidden], .vision-proposals [hidden] { display: none !important; }
 .vision-assistant .va-card { position: relative; margin-top: var(--clk-ui-space-3); padding: var(--clk-ui-space-4); background: var(--clk-ui-surface-card); }

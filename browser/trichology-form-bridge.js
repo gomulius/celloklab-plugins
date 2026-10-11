@@ -27,7 +27,7 @@
                 Array.from(new Set(controls.flatMap(c => c.options ? Array.from(c.options).map(o => o.value) : [c.value]).filter(Boolean))) : null;
             fields.set(name, {controls, kind, choices, legacy: ['notes', 'trichology_treatments', 'other_conditions', 'allergies_details', 'supplements_list', 'surgeries'].includes(name)});
         });
-        state = {form, fields,
+        state = {form, fields, ownRevisionEdges: new Map(),
             context: Object.freeze({pageId: 'documentation_form', tabId: 'tab-wywiad', patientId: identity.dataset.patientId, tenantSlug: identity.dataset.tenantSlug})};
         return state;
     }
@@ -150,6 +150,33 @@
     }
     const revisionValid = value => typeof value === 'string' && /^[a-zA-Z0-9._:-]{1,200}$/.test(value);
     const pluginValid = value => typeof value === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/.test(value);
+    const MAX_OWN_REVISION_EDGES = 1000;
+    const revisionKey = (pluginId, revision) => JSON.stringify([pluginId, revision]);
+    function ownRevisionConflict(s, pluginId, original, current, names) {
+        // State owns the patient/tenant scope; plugin IDs cannot share edges.
+        // GETs and plugin hints never add edges. Missing links fail closed.
+        const visited = new Set();
+        let fieldChanged = false;
+        while (original !== current) {
+            if (visited.has(original)) return 'revision_conflict';
+            visited.add(original);
+            const edge = s.ownRevisionEdges.get(revisionKey(pluginId, original));
+            if (!edge) return 'revision_conflict';
+            if (names.some(name => edge.fields.includes(name))) fieldChanged = true;
+            original = edge.revision;
+        }
+        // Without expected_values the fallback is today's native snapshot,
+        // not the old proposal baseline: never use it to rewrite an own field.
+        return fieldChanged ? 'baseline_conflict' : null;
+    }
+    function rememberOwnRevision(s, pluginId, previous, next, fields) {
+        if (previous === next) return;
+        const key = revisionKey(pluginId, previous);
+        s.ownRevisionEdges.delete(key);
+        s.ownRevisionEdges.set(key, {revision: next, fields: [...fields]});
+        // Bound all plugins together, retaining enough history for late proposals.
+        if (s.ownRevisionEdges.size > MAX_OWN_REVISION_EDGES) s.ownRevisionEdges.delete(s.ownRevisionEdges.keys().next().value);
+    }
     const statusCode = status => ({401: 'authentication_required', 403: 'access_denied', 404: 'not_found', 409: 'revision_conflict', 412: 'revision_conflict', 422: 'validation_failed', 428: 'revision_required'}[status] || 'request_failed');
     function recordURL(s, pluginId) {
         return '/api/plugins/' + encodeURIComponent(pluginId) + '/patients/' + encodeURIComponent(s.context.patientId) + '/trichology?tenant_slug=' + encodeURIComponent(s.context.tenantSlug);
@@ -189,7 +216,8 @@
         if (!window.CelloklabPatientFormState?.isReady()) return {ok: false, code: 'form_initializing'};
         const names = Object.keys(changes);
         if (!names.length || names.some(name => !s.fields.has(name) || !writable(s.fields.get(name)) || !valid(s.fields.get(name), changes[name], true))) return {ok: false, code: 'invalid_patch'};
-        // A fresh GET verifies the original proposal revision; it never rebases.
+        // A fresh GET may advance only through our confirmed writes, never
+        // through external revisions or plugin-supplied rebase hints.
         if (!revisionValid(options.revision)) return {ok: false, code: 'revision_required'};
         const originalRevision = options.revision, expected = options.expected_values;
         if (expected !== undefined && (!expected || typeof expected !== 'object' || Array.isArray(expected) ||
@@ -206,7 +234,9 @@
             if (!csrf) return {ok: false, code: 'csrf_required'};
             const current = await readRecord(pluginId, options);
             if (!current.ok) return current;
-            if (current.record.revision !== originalRevision) return {ok: false, code: 'revision_conflict'};
+            const currentRevision = current.record.revision;
+            const revisionConflict = ownRevisionConflict(s, pluginId, originalRevision, currentRevision, names);
+            if (revisionConflict) return {ok: false, code: revisionConflict};
             if (names.some(name => !same(read(s.fields.get(name)), snapshot.values[name]))) return {ok: false, code: 'draft_changed'};
             if (nativeDirty(s)) return {ok: false, code: 'native_dirty'};
             for (const name of names) {
@@ -216,13 +246,17 @@
             }
             if (options.signal?.aborted) return {ok: false, code: 'aborted'};
             const saved = await fetch(url, {method: 'PATCH', credentials: 'same-origin', cache: 'no-store', signal: options.signal,
-                headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'If-Match': '"' + originalRevision + '"'}, body: JSON.stringify(payload)});
+                headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'If-Match': '"' + currentRevision + '"'}, body: JSON.stringify(payload)});
             if (!saved.ok) return {ok: false, code: statusCode(saved.status)};
             const envelope = await saved.json();
             const result = envelope.result;
             if (!result || !Array.isArray(result.updated_fields) || !revisionValid(result.revision) || !same([...result.updated_fields].sort(), [...names].sort())) return {ok: false, code: 'invalid_confirmation'};
             confirmations.add(result);
-            return applyConfirmedPatch(snapshot, result);
+            const applied = applyConfirmedPatch(snapshot, result);
+            // A failed, malformed or ambiguous PATCH must never authorize a
+            // later proposal. Register only after full host confirmation.
+            if (applied.ok) rememberOwnRevision(s, pluginId, currentRevision, result.revision, names);
+            return applied;
         } catch (_) { return {ok: false, code: options.signal?.aborted ? 'aborted' : 'network_error'}; }
         finally { releaseSaveLock(token); }
     }

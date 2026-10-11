@@ -1,5 +1,12 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Sekwencyjna akceptacja i pytania pills
+
+Pytania są większymi pills z ikoną X „Usuń zadane pytanie”. Usunięcie jest lokalne dla sesji, nie zapisuje karty i nie wraca przy kolejnych odczytach tej samej odpowiedzi. Nowa sesja czyści listę usuniętych pytań.
+
+Bridge zapisuje ograniczony do 1000 krawędzi łańcuch rewizji z własnych potwierdzonych PATCH, w pamięci i w zakresie plugin/pacjent/klinika. Propozycja z pierwotną rewizją może przejść wyłącznie przez ciąg własnych zapisów niezmieniających jej pola. Świeży GET sprawdza aktualną rewizję i bazową wartość pola; PATCH używa tego If-Match. Zewnętrzna luka, zmiana tego samego pola, ręczne niezapisane edycje i niepewne potwierdzenie nadal odmawiają. Nie należy podmieniać rewizji propozycji w UI na podstawie dowolnego GET.
+
+
 ## Pytania bez mikrofonu i czysty formularz
 
 Pytania są dostępne od razu bez zgody na nagrywanie. Klient tworzy tekstową sesję z `{profile_id:"interview",questions_only:true}` i generuje pytania z karty; ta sesja korzysta z jednej stałej opłaty AI. `POST .../{session_id}/recording` z `{recording_consent:true}` aktywuje mikrofon w tej samej sesji bez drugiej rezerwacji. Audio bez zgody jest odrzucane. Puste `tips` po prawidłowej odpowiedzi AI mają pluginowy zestaw ogólnych polskich pytań; awaria dostawcy pozostaje błędem, nie pozornym sukcesem.

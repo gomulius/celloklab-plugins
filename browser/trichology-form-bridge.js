@@ -19,7 +19,7 @@
         if (!pane || !form || !identity?.dataset.patientId || !identity.dataset.tenantSlug) return null;
         const fields = new Map();
         [...TEXT_FIELDS, ...CHOICE_FIELDS, ...MULTI_FIELDS, 'post_transplant'].forEach(name => {
-            const controls = Array.from(pane.querySelectorAll('[name="' + name + '"]'));
+            const controls = Array.from(pane.querySelectorAll('[name="' + name + '"]')).filter(c => !c.closest('[data-plugin-nonform]'));
             // Dynamic medication/RPL lists and unrelated controls deliberately excluded.
             if (!controls.length || controls.some(c => c.disabled || c.readOnly)) return;
             const kind = MULTI_FIELDS.includes(name) ? 'string[]' : name === 'post_transplant' ? 'boolean' : 'string';
@@ -27,11 +27,8 @@
                 Array.from(new Set(controls.flatMap(c => c.options ? Array.from(c.options).map(o => o.value) : [c.value]).filter(Boolean))) : null;
             fields.set(name, {controls, kind, choices, legacy: ['notes', 'trichology_treatments', 'other_conditions', 'allergies_details', 'supplements_list', 'surgeries'].includes(name)});
         });
-        const nativeControls = () => Array.from(form.querySelectorAll('input, textarea, select')).filter(c => !c.closest('#medicalDocumentationForm'));
-        const nativeBaseline = new Map(nativeControls().map(c => [c, controlValue(c)]));
-        state = {form, fields, nativeControls, nativeBaseline, opaqueDirty: window.celloklabPatientFormDirty === true,
-            context: Object.freeze({pageId: 'documentation_form', tabId: 'tab-wywiad', patientId: identity.dataset.patientId, tenantSlug: identity.dataset.tenantSlug}), baseline: new Map()};
-        fields.forEach((field, name) => state.baseline.set(name, read(field)));
+        state = {form, fields,
+            context: Object.freeze({pageId: 'documentation_form', tabId: 'tab-wywiad', patientId: identity.dataset.patientId, tenantSlug: identity.dataset.tenantSlug})};
         return state;
     }
     function read(field) {
@@ -80,8 +77,7 @@
         });
     }
     function nativeDirty(s) {
-        const controls = s.nativeControls();
-        return s.opaqueDirty || controls.length !== s.nativeBaseline.size || controls.some(c => !s.nativeBaseline.has(c) || !same(controlValue(c), s.nativeBaseline.get(c)));
+        return window.CelloklabPatientFormState?.isDirty() ?? true;
     }
     function applyConfirmedPatch(snapshot, result) {
         const ticket = snapshots.get(snapshot), s = init();
@@ -95,20 +91,16 @@
             const field = s.fields.get(name);
             if (!field || !Object.prototype.hasOwnProperty.call(snapshot.values, name) || !valid(field, value)) return {ok: false, code: 'invalid_confirmation'};
         }
-        // A coarse dirty flag without a detectable control delta may represent
-        // host-only metadata/legacy-list edits: never silently clear it.
-        if (window.celloklabPatientFormDirty === true && !nativeDirty(s)) s.opaqueDirty = true;
         ticket.consumed = true;
-        const applied = [], preserved = [];
+        const applied = [], preserved = [], savedControls = new Map();
         for (const [name, value] of Object.entries(result.updated_values)) {
             const field = s.fields.get(name);
             const unchanged = writable(field) && same(read(field), snapshot.values[name]);
             const live = field.controls.map(controlValue);
             // Advance the saved baseline even if the user typed during PATCH.
-            s.baseline.set(name, clone(value));
             field.controls.forEach(c => {
                 const saved = field.kind === 'string[]' ? (value || []).includes(c.value) : c.type === 'radio' ? c.value === value : field.kind === 'boolean' ? value === true ? 'yes' : value === false ? 'no' : '' : value ?? '';
-                s.nativeBaseline.set(c, saved);
+                savedControls.set(c, saved);
                 if (c.type === 'checkbox' || c.type === 'radio') c.defaultChecked = saved;
                 else if (c.tagName === 'SELECT') Array.from(c.options).forEach(option => { option.defaultSelected = option.value === saved; });
                 else c.defaultValue = saved;
@@ -124,10 +116,9 @@
                 preserved.push(name);
             }
         }
-        // Native form has a coarse dirty flag, not per-field snapshots. Reconcile
-        // only against the host's entire control baseline; medical dirty is untouched.
+        // Advance only confirmed fields in the shared persistence baseline.
         syncInitialization(s, Object.keys(result.updated_values));
-        window.celloklabPatientFormDirty = nativeDirty(s);
+        window.CelloklabPatientFormState.acceptSavedControls(savedControls);
         window.dispatchEvent(new CustomEvent('celloklab:trichology-patch-applied', {detail: Object.freeze({applied: Object.freeze(applied), preserved: Object.freeze(preserved)})}));
         return {ok: true, applied, preserved};
     }
@@ -195,6 +186,7 @@
         const s = init();
         if (!s) return {ok: false, code: 'form_unavailable'};
         if (!pluginValid(pluginId) || !changes || typeof changes !== 'object' || Array.isArray(changes) || !options || typeof options !== 'object') return {ok: false, code: 'invalid_patch'};
+        if (!window.CelloklabPatientFormState?.isReady()) return {ok: false, code: 'form_initializing'};
         const names = Object.keys(changes);
         if (!names.length || names.some(name => !s.fields.has(name) || !writable(s.fields.get(name)) || !valid(s.fields.get(name), changes[name], true))) return {ok: false, code: 'invalid_patch'};
         // A fresh GET verifies the original proposal revision; it never rebases.
@@ -202,7 +194,7 @@
         const originalRevision = options.revision, expected = options.expected_values;
         if (expected !== undefined && (!expected || typeof expected !== 'object' || Array.isArray(expected) ||
             names.some(name => !Object.prototype.hasOwnProperty.call(expected, name) || !valid(s.fields.get(name), expected[name])))) return {ok: false, code: 'invalid_baseline'};
-        if (nativeDirty(s) || window.celloklabPatientFormDirty === true) return {ok: false, code: 'native_dirty'};
+        if (nativeDirty(s)) return {ok: false, code: 'native_dirty'};
         const token = acquireSaveLock();
         if (!token) return {ok: false, code: 'save_locked'};
         const snapshot = captureSnapshot(); // Before the first await, not after GET.
@@ -216,7 +208,7 @@
             if (!current.ok) return current;
             if (current.record.revision !== originalRevision) return {ok: false, code: 'revision_conflict'};
             if (names.some(name => !same(read(s.fields.get(name)), snapshot.values[name]))) return {ok: false, code: 'draft_changed'};
-            if (nativeDirty(s) || window.celloklabPatientFormDirty === true) return {ok: false, code: 'native_dirty'};
+            if (nativeDirty(s)) return {ok: false, code: 'native_dirty'};
             for (const name of names) {
                 const field = s.fields.get(name), actual = recordValue(current.record, name, field);
                 if (!actual.ok) return {ok: false, code: 'invalid_record'};
@@ -253,7 +245,7 @@
             return Object.freeze(Object.fromEntries(Array.from(s.fields, ([name, field]) => [name, Object.freeze({type: field.kind, nullable: !field.legacy, choices: field.choices ? Object.freeze([...field.choices]) : null})])));
         },
         captureSnapshot, applyConfirmedPatch, readRecord, savePatch,
-        isDirty() { const s = init(); return Boolean(s && (nativeDirty(s) || Array.from(s.fields).some(([name, field]) => !same(read(field), s.baseline.get(name))))); },
+        isDirty() { const s = init(); return Boolean(s && nativeDirty(s)); },
         acquireSaveLock, releaseSaveLock,
         isSaveLocked() { return Boolean(lock); }
     });

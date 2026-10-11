@@ -1,5 +1,14 @@
 # Celloklab partner plugin development
 
+## Pytania bez mikrofonu i czysty formularz
+
+Pytania są dostępne od razu bez zgody na nagrywanie. Klient tworzy tekstową sesję z `{profile_id:"interview",questions_only:true}` i generuje pytania z karty; ta sesja korzysta z jednej stałej opłaty AI. `POST .../{session_id}/recording` z `{recording_consent:true}` aktywuje mikrofon w tej samej sesji bez drugiej rezerwacji. Audio bez zgody jest odrzucane. Puste `tips` po prawidłowej odpowiedzi AI mają pluginowy zestaw ogólnych polskich pytań; awaria dostawcy pozostaje błędem, nie pozornym sukcesem.
+
+Nagrywanie jest nieaktywne do checkboxa; po zaznaczeniu blok zgody znika, nowa sesja wymaga nowej zgody. Pomoc, opłaty, transkrypcja i diagnostyka są tylko pod „i” przy tytule. W głównym panelu pozostają kontrolki, sygnał, krótki stan i pytania.
+
+Hostowe `CelloklabPatientFormState` współdzieli semantyczny baseline z bridge i beforeunload. Baseline powstaje po natywnej hydratacji; asynchroniczna hydratacja specjalisty nie oznacza edycji. Pluginowe/transient kontrolki nie zmieniają stanu karty. Powrót do pierwotnej wartości czyści stan; faktyczne ręczne zmiany i konflikty nadal blokują nadpisanie. Potwierdzony zapis aktualizuje baseline, nie samo kliknięcie.
+
+
 ## Polski wywiad i układ roboczy
 
 - Sterowanie nagrywaniem, pauzą/wznowieniem i zakończeniem jest ikonowe z polskimi etykietami dostępności; nagrywanie czerwone, pauza ostrzegawcza. Sidebar pokazuje falę i pytania, nie karty propozycji.

@@ -1,8 +1,12 @@
 /* Vision geometry only; colors, typography and focus inherit the SDK theme. */
 .vision-assistant, .vision-proposals { min-width: 0; }
 .vision-assistant [hidden], .vision-proposals [hidden] { display: none !important; }
-.vision-assistant .va-card { margin-top: var(--clk-ui-space-3); padding: var(--clk-ui-space-4); background: var(--clk-ui-surface-card); }
-.vision-assistant .va-summary { cursor: pointer; font-family: var(--clk-ui-font-heading); font-size: 18px; line-height: 1.4; min-height: 32px; }
+.vision-assistant .va-card { position: relative; margin-top: var(--clk-ui-space-3); padding: var(--clk-ui-space-4); background: var(--clk-ui-surface-card); }
+.vision-assistant .va-summary { padding-right: 48px; cursor: pointer; font-family: var(--clk-ui-font-heading); font-size: 18px; line-height: 1.4; min-height: 36px; }
+.vision-assistant .va-info { position: absolute; top: var(--clk-ui-space-4); right: var(--clk-ui-space-4); z-index: 2; }
+.vision-assistant .va-info-trigger { display: flex; align-items: center; justify-content: center; list-style: none; cursor: pointer; }
+.vision-assistant .va-info-trigger::-webkit-details-marker { display: none; }
+.vision-assistant .va-info-content { position: absolute; top: calc(100% + var(--clk-ui-space-2)); right: 0; width: min(340px, calc(100vw - 64px)); max-height: 60vh; overflow-y: auto; padding: var(--clk-ui-space-3); gap: var(--clk-ui-space-2); background: var(--clk-ui-surface-card); border: 1px solid var(--clk-ui-border); }
 .vision-assistant summary:focus-visible, .vision-proposals .va-icon:focus-visible { outline: 2px solid var(--clk-ui-focus); outline-offset: 3px; }
 .vision-assistant .va-body { margin-top: var(--clk-ui-space-3); padding-top: var(--clk-ui-space-3); border-top: 1px solid var(--clk-ui-border); gap: var(--clk-ui-space-3); }
 .vision-assistant p, .vision-proposals p { max-width: none; white-space: normal; margin: 0; }
@@ -20,8 +24,7 @@
 .vision-assistant .va-meter { display: block; width: 100%; height: 12px; accent-color: var(--clk-ui-success); }
 .vision-assistant .va-meter::-webkit-meter-bar { background: var(--clk-ui-border); border: 0; border-radius: var(--clk-ui-radius-button); }
 .vision-assistant .va-meter::-webkit-meter-optimum-value, .vision-assistant .va-meter::-moz-meter-bar { background: var(--clk-ui-success); }
-.vision-assistant .va-transcript-help summary { cursor: pointer; }
-.vision-assistant .va-transcript-help > p { margin-top: var(--clk-ui-space-2); }
+
 .vision-assistant .va-transcript { list-style: none; padding: 0; margin: 0; max-height: 160px; overflow-y: auto; }
 .vision-assistant .va-transcript-segment { padding: var(--clk-ui-space-2) 0; border-bottom: 1px solid var(--clk-ui-border); }
 .vision-assistant .va-transcript-segment p { white-space: pre-wrap; overflow-wrap: anywhere; }

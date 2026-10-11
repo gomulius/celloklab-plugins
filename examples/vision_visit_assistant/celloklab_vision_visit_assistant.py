@@ -41,7 +41,9 @@ SYSTEM_PROMPT = (
     "i typów ze schema. Każde pole wymaga evidence: pełna wypowiedź verbatim (quote), "
     "start i end dokładnie segmentu, speaker dokładnie jak w transkrypcie. Nie ucinaj negacji. "
     "Zwróć {updates:{kod:wartość}, sources:{kod:[{start,end,speaker,quote,source_role}]}, tips:[tekst]}. "
-    "Tips to najwyżej 4 pytania uzupełniające lub krótkie objaśnienia, nie rozpoznania. "
+    "Tips to od 1 do 4 pytań uzupełniających opartych na karcie i rozmowie, nie rozpoznania. "
+    "Gdy karta i rozmowa są puste, podaj ogólne polskie pytania do wywiadu trychologicznego. "
+    "Nie pozostawiaj tips pustego; pytaj o brakujące informacje, nie powtarzaj tych już wyjaśnionych. "
     "Wszystkie treści wyłącznie po polsku. Mam cukrzycę i otyłość to other_conditions, "
     "zakola to hair_loss_pattern zgodnie z kodami schema. Wyraźne nie miałem przeszczepu lub brak przeszczepów "
     "to post_transplant=false; zachowaj pełny cytat negacji. Nie wnioskuj z ciszy ani braku wzmianki. "
@@ -176,6 +178,14 @@ def process_interview_result(context, raw):
     # it binds original raw sources by full start/end/speaker/quote before validation.
     # Do not add suggestion.sources until that host contract explicitly supports it.
     tips = list(dict.fromkeys(confirmations + tips))[:4]
+    if not tips:
+        # Plugin-owned general interview prompts, not inferred clinical facts.
+        tips = [
+            'Od kiedy występuje problem z włosami i jak zmieniał się w czasie?',
+            'Jakie choroby, alergie oraz przyjmowane leki warto uwzględnić w wywiadzie?',
+            'Czy w rodzinie występują podobne problemy z włosami?',
+            'Jak wygląda codzienna pielęgnacja skóry głowy i włosów?',
+        ]
     result = {"suggestions": [
         {"field": field, "value": value, "evidence": [ref["quote"] for ref in verified[field]], "segment_ids": []}
         for field, value in accepted.items()

@@ -2,9 +2,9 @@
 (function () {
     'use strict';
     const pluginId = 'vision.visit-assistant';
-    const states = {idle: 'Gotowy do wywiadu.', starting: 'Uruchamianie sesji…', recording: 'Mikrofon włączony — trwa wywiad.',
-        paused: 'Wstrzymano — mikrofon wyłączony.', stopping: 'Kończenie i oczekiwanie na ostatnie wyniki…',
-        stopped: 'Wywiad zakończony — mikrofon wyłączony.', retry: 'Mikrofon wyłączony. Ponów oczekujące żądanie bez rozpoczynania nowej sesji.'};
+    const states = {idle: 'Gotowy.', starting: 'Uruchamianie sesji…', recording: 'Nagrywanie.',
+        paused: 'Wstrzymano.', stopping: 'Kończenie sesji…',
+        stopped: 'Zakończono.', retry: 'Ponów oczekujące żądanie.'};
     const errors = {
         live_speech_model_required: 'Brak modelu transkrypcji. Administrator platformy musi go wybrać w Pluginy → vision.visit-assistant → Audio wywiadu na żywo.',
         live_speech_model_unavailable: 'Model transkrypcji lub jego dostawca jest niedostępny. Administrator platformy musi sprawdzić konfigurację audio wtyczki.',
@@ -14,6 +14,8 @@
         access_revoked: 'Dostęp cofnięty. Mikrofon wyłączony.', audio_backpressure: 'Przesyłanie jest zbyt wolne. Nagrywanie przerwano — część audio nie została przesłana. Ponów oczekujące fragmenty, a potem zakończ sesję.',
         audio_uncertain: 'Nie potwierdzono odbioru audio. Mikrofon wyłączony. Ponów ten sam fragment.',
         start_uncertain: 'Nie potwierdzono uruchomienia sesji. Ponów to samo żądanie — nie rozpoczynaj nowej sesji.',
+        recording_activation_uncertain: 'Nie potwierdzono zgody serwera na nagrywanie. Mikrofon pozostaje wyłączony; ponów oczekujące żądanie.',
+        recording_activation_rejected: 'Nie można rozpocząć nagrywania w tej sesji. Mikrofon pozostaje wyłączony.',
         audio_flush_failed: 'Nie udało się odczytać ostatniego fragmentu mikrofonu. Nagrywanie zatrzymano.'};
     const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
     const denied = code => ['access_revoked', 'forbidden', 'plugin_disabled', 'access_denied', 'authentication_required', 'not_found'].includes(code);
@@ -39,14 +41,23 @@
             this.access = true;
             this.scope = 0;
             this.status = root.querySelector('[data-status]');
+            this.consent = root.querySelector('[data-consent]');
+            this.consent.checked = false;
+            this.errorMessage = '';
             this.resetAudioView();
             this.buttons = Object.fromEntries(['start', 'pause', 'resume', 'stop', 'retry', 'questions'].map(action => [action, root.querySelector('[data-action="' + action + '"]')]));
             if (!this.bridge || !window.CelloklabLiveAudio) {
                 this.status.textContent = 'Host nie udostępnia obsługi wywiadu na żywo.';
-                this.buttons.start.disabled = true;
+                for (const button of Object.values(this.buttons)) button.disabled = true;
                 return;
             }
             this.makeClient();
+            this.consent.addEventListener('change', () => {
+                this.root.querySelector('[data-consent-block]').hidden = this.consent.checked;
+                this.refreshControls();
+                if (!this.errorMessage) this.status.textContent = this.consent.checked ? 'Gotowy.' : 'Zgoda wymagana do nagrywania.';
+            });
+            this.sessionState(null, this.client.state);
             this.bridge.registerBeforeTabChangeGuard(() => {
                 if (!this.client.capturing && !['starting', 'recording'].includes(this.client.state)) return true;
                 const message = 'Najpierw zakończ wywiad z AI, aby zmienić zakładkę.';
@@ -55,14 +66,9 @@
                 return false;
             });
             this.buttons.start.addEventListener('click', () => this.run(async () => {
-                if (!this.access || !['idle', 'stopped'].includes(this.client.state)) return;
-                if (!root.querySelector('[data-consent]').checked) { this.status.textContent = 'Potwierdź zgodę pacjenta przed uruchomieniem mikrofonu.'; return; }
-                if (this.client.restartable) {
-                    this.client.dispose();
-                    this.sessionId = null; this.latest = null;
-                    this.resetAudioView();
-                    this.makeClient();
-                }
+                if (!this.access || !this.canStart()) return;
+                if (!this.consent.checked) { this.status.textContent = 'Zgoda wymagana do nagrywania.'; return; }
+                this.prepareClient();
                 const scope = this.scope;
                 const read = await this.bridge.readRecord(pluginId);
                 if (scope !== this.scope || !this.access) return;
@@ -70,24 +76,67 @@
                 this.record = read.record;
                 await this.client.start({recordingConsent: true});
             }));
-            for (const action of ['pause', 'resume', 'stop', 'retry']) this.buttons[action].addEventListener('click', () => this.run(() => this.client[action === 'retry' ? 'retryPending' : action]()));
+            for (const action of ['pause', 'resume', 'stop', 'retry']) this.buttons[action].addEventListener('click', () => this.run(() => {
+                if (action === 'resume' && (!this.consent.checked || this.questionsOnly())) return;
+                return this.client[action === 'retry' ? 'retryPending' : action]();
+            }));
             this.buttons.questions.addEventListener('click', () => this.run(async () => {
-                if (!this.access || this.questionsPending || !['recording', 'paused'].includes(this.client.state)) return;
-                this.questionsPending = true; this.buttons.questions.disabled = true;
-                try { await this.client.requestQuestions(); }
+                if (!this.access || this.questionsPending) return;
+                this.prepareClient();
+                this.questionsPending = true;
+                this.refreshControls();
+                this.status.textContent = 'Przygotowywanie pytań…';
+                const tipVersion = this.tipVersion || 0;
+                try {
+                    await this.client.requestQuestions();
+                    if (this.access && !this.errorMessage) {
+                        this.status.textContent = (this.tipVersion || 0) > tipVersion ? 'Pytania gotowe.' : 'Nie otrzymano pytań. Ponów żądanie.';
+                    }
+                }
                 finally {
                     this.questionsPending = false;
-                    this.buttons.questions.disabled = !this.access || !['recording', 'paused'].includes(this.client.state);
+                    this.refreshControls();
                 }
             }));
+        }
+        canStart() {
+            return this.client.state === 'idle' || this.client.restartable || (this.questionsOnly() && this.client.state === 'paused');
+        }
+        questionsOnly() {
+            return this.client.questionsOnly === true || this.client.session?.recording_consent === false;
+        }
+        prepareClient() {
+            // A paused question-only session must retain its ID, fee and client.
+            if (!this.client.restartable) return;
+            this.client.dispose();
+            this.sessionId = null; this.latest = null;
+            this.resetAudioView();
+            this.root.querySelector('[data-tips]').replaceChildren();
+            this.makeClient();
+        }
+        refreshControls() {
+            const state = this.client.state;
+            const pending = this.operationPending || this.questionsPending || this.client.startPending ||
+                this.client.questionsSending || ['starting', 'stopping', 'retry'].includes(state);
+            const canStart = this.canStart();
+            this.buttons.start.disabled = !this.access || !canStart || !this.consent.checked || Boolean(pending);
+            this.buttons.pause.disabled = !this.access || state !== 'recording' || Boolean(this.operationPending);
+            this.buttons.resume.disabled = !this.access || state !== 'paused' || !this.consent.checked || this.questionsOnly() || Boolean(pending);
+            this.buttons.questions.disabled = !this.access || Boolean(pending);
+            this.buttons.stop.disabled = !this.access || !this.client.session || ['idle', 'stopped', 'stopping'].includes(state) || Boolean(this.operationPending);
+            this.buttons.retry.hidden = state !== 'retry';
+            this.buttons.retry.disabled = !this.access || Boolean(this.operationPending);
+            this.consent.disabled = !this.access || !canStart || Boolean(pending);
         }
         makeClient() {
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
                 onUpdate: session => this.update(session), onSession: (session, state) => this.sessionState(session, state),
                 onAudioLevel: level => this.audioLevel(level),
                 onError: error => {
-                    if (error.code === 'access_revoked') this.clearAccess();
-                    this.status.textContent = errors[error.code] || 'Nie udało się zakończyć operacji. Mikrofon jest wyłączony; sprawdź stan sesji i ponów oczekujące żądanie.';
+                    if (denied(error.code)) this.clearAccess();
+                    this.errorMessage = errors[error.code] || 'Nie udało się zakończyć operacji. Sprawdź stan sesji i ponów oczekujące żądanie.';
+                    this.status.textContent = this.errorMessage;
+                    this.refreshControls();
                 }});
         }
         clearAccess() {
@@ -108,8 +157,17 @@
             this.root.querySelector('[data-consent]').disabled = true;
         }
         async run(action) {
+            if (!this.access || this.operationPending) return;
+            this.operationPending = true;
+            this.errorMessage = '';
+            this.status.textContent = 'Trwa operacja…';
+            this.refreshControls();
             try { await action(); }
-            catch (_) { if (!['retry', 'stopped'].includes(this.client.state)) this.status.textContent = 'Nie udało się wykonać operacji. Karta pozostaje bez zmian.'; }
+            catch (_) {
+                if (!this.errorMessage) this.errorMessage = 'Nie udało się wykonać operacji. Karta pozostaje bez zmian.';
+                this.status.textContent = this.errorMessage;
+            }
+            finally { this.operationPending = false; this.refreshControls(); }
         }
         resetAudioView() {
             this.audioLevel({rms: 0, peak: 0, active: false});
@@ -154,16 +212,15 @@
         sessionState(session, state) {
             if (session?.status === 'revoked') this.clearAccess();
             if (!this.access) return;
-            this.status.textContent = states[state] || 'Sprawdzanie sesji…';
+            if (state === 'stopped' && this.previousState !== 'stopped') {
+                this.consent.checked = false;
+                this.root.querySelector('[data-consent-block]').hidden = false;
+            }
+            this.previousState = state;
+            this.status.textContent = this.errorMessage || (this.questionsPending ? 'Przygotowywanie pytań…' :
+                state === 'idle' && !this.consent.checked ? 'Zgoda wymagana do nagrywania.' : states[state] || 'Sprawdzanie sesji…');
             if (state !== 'recording') this.audioLevel({active: false});
-            const canStart = state === 'idle' || this.client.restartable;
-            this.buttons.start.disabled = !canStart;
-            this.buttons.pause.disabled = state !== 'recording';
-            this.buttons.resume.disabled = state !== 'paused';
-            this.buttons.questions.disabled = this.questionsPending || !['recording', 'paused'].includes(state);
-            this.buttons.stop.disabled = !session || state === 'stopped' || state === 'stopping';
-            this.buttons.retry.hidden = state !== 'retry';
-            this.root.querySelector('[data-consent]').disabled = !canStart;
+            this.refreshControls();
             if (session) this.root.querySelector('[data-budget]').textContent = 'Stała opłata za tę sesję: ' + display(session.credit_cost) +
                 ' kredytów. ' + (session.charged ? 'Opłata naliczona.' : 'Opłata jeszcze nienaliczona.') + ' Limit sesji: ' + display(session.max_duration_seconds) + ' s.';
         }
@@ -175,8 +232,13 @@
             this.latest = session;
             this.transcript(session);
             const tips = this.root.querySelector('[data-tips]');
-            tips.replaceChildren();
-            for (const tip of (session.tips || []).slice(0, 4)) if (typeof tip === 'string') tips.appendChild(element('li', tip));
+            const incomingTips = (Array.isArray(session.tips) ? session.tips : []).filter(tip => typeof tip === 'string' && tip.trim()).slice(0, 4);
+            // Lifecycle/audio responses with no tips must not erase questions.
+            if (incomingTips.length) {
+                this.tipVersion = (this.tipVersion || 0) + 1;
+                tips.replaceChildren();
+                for (const tip of incomingTips) tips.appendChild(element('li', tip));
+            }
             for (const proposal of session.suggestions || []) this.addProposal(proposal, session);
             this.proposalState();
         }

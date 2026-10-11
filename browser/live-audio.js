@@ -17,6 +17,11 @@
             this.startKey = null;
             this.startPending = false;
             this.questionsKey = null;
+            this.startQuestionsOnly = false;
+            this.startSending = null;
+            this.recordingConsent = false;
+            this.activationPending = false;
+            this.activationSending = null;
             this.questionsSending = null;
             this.stream = null;
             this.audio = null;
@@ -38,10 +43,10 @@
         get state() { return this._state; }
         get active() { return Boolean(this._session && !terminal.has(this._session.status) && this._state !== 'stopped'); }
         get capturing() { return Boolean(this.stream || this._state === 'starting'); }
-        get restartable() { return this._state === 'stopped' && !this.startPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
+        get restartable() { return this._state === 'stopped' && !this.startPending && !this.startSending && !this.activationSending && !this.activationPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
         revoke() { this.stopRequested = true; const error = new Error('access_revoked'); error.status = 403; return this._fail(error); }
         dispose() {
-            if (this.active || this.startPending || this.sending || this.questionsSending || this.questionsKey) throw new Error('session_unresolved');
+            if (this.active || this.startPending || this.startSending || this.activationPending || this.activationSending || this.sending || this.questionsSending || this.questionsKey) throw new Error('session_unresolved');
             this._clearTimers();
             window.removeEventListener('pagehide', this.leave);
         }
@@ -95,6 +100,7 @@
             if (this._session?.status === 'revoked') return;
             // A concurrent lifecycle GET may complete after a newer audio ACK.
             if (this._session && (session.next_sequence < this._session.next_sequence ||
+                (Number.isInteger(session.revision) && Number.isInteger(this._session.revision) && session.revision < this._session.revision) ||
                 (terminal.has(this._session.status) && !terminal.has(session.status)))) return;
             this._session = session;
             this.options.onUpdate?.(this.session);
@@ -106,7 +112,7 @@
                 this.uncertain = true;
                 this._release(false);
                 this._set('retry');
-                this._error('audio_uncertain');
+                this._error(this.questionsKey ? 'questions_uncertain' : 'audio_uncertain');
             }
             if (terminal.has(session.status)) {
                 this.generation++;
@@ -115,24 +121,38 @@
                 this.queue = [];
                 this.uncertain = false;
                 this.questionsKey = null;
+                this.activationPending = false;
                 this._set('stopped');
             }
         }
         async start({recordingConsent} = {}) {
             if (recordingConsent !== true) throw new Error('recording_consent_required');
+            if (this._state === 'paused' && this.active) return this.resume({recordingConsent});
             // A client owns exactly one server session. Never reset/restart an
             // uncertain session and accidentally incur another fixed fee.
             if (this._state !== 'idle') throw new Error('session_already_started');
+            this.recordingConsent = true;
+            return this._bootstrap(false);
+        }
+        _bootstrap(questionsOnly) {
             this.context = window.CelloklabTrichologyFormBridge?.getContext();
             if (!this.context?.patientId || !this.context?.tenantSlug) throw new Error('context_required');
+            this.startQuestionsOnly = questionsOnly;
             this.startKey = crypto.randomUUID();
             this.startPending = true;
             return this._startRequest();
         }
-        async _startRequest() {
-            this._set('starting');
+        _startRequest() {
+            if (this.startSending) return this.startSending;
+            this.startSending = this._performStart().finally(() => { this.startSending = null; });
+            return this.startSending;
+        }
+        async _performStart() {
+            this._set(this.startQuestionsOnly ? 'questions' : 'starting');
             try {
-                const session = await this._request('', 'POST', {profile_id: this.options.profileId || 'interview', recording_consent: true}, {'Idempotency-Key': this.startKey});
+                const payload = this.startQuestionsOnly ? {profile_id: this.options.profileId || 'interview', questions_only: true} :
+                    {profile_id: this.options.profileId || 'interview', recording_consent: true};
+                const session = await this._request('', 'POST', payload, {'Idempotency-Key': this.startKey});
                 this.startPending = false;
                 this.sequence = session.next_sequence;
                 this._update(session);
@@ -143,6 +163,7 @@
                 this._poll();
                 if (this.stopRequested) { await this.stop(); return; }
                 if (session.status === 'pending' || this.uncertain) return;
+                if (this.startQuestionsOnly) { this._set('paused'); return; }
                 // Server authorization/consent always precedes microphone permission.
                 await this._capture();
             } catch (error) {
@@ -165,6 +186,7 @@
             }
         }
         async _capture() {
+            if (!this.recordingConsent || this.activationPending) throw new Error('recording_consent_required');
             if (this.stopRequested || !this.active || Date.now() >= this.deadline) throw new Error('session_inactive');
             const generation = ++this.generation;
             const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true}, video: false});
@@ -269,6 +291,7 @@
                 this.stopRequested = true;
                 this.queue = []; this.uncertain = false;
                 this.questionsKey = null;
+                this.activationPending = false;
                 if (this._session) this._session = {...this._session, status: 'revoked', suggestions: [], tips: [], segments: []};
                 this._clearTimers(); this._set('stopped');
             }
@@ -283,12 +306,34 @@
             try { await this._release(true); await this._drain(); }
             catch (error) { await this._fail(error); throw error; }
         }
-        async resume() {
-            if (this._state !== 'paused' || this.uncertain || this.stopRequested || this.questionsSending) throw new Error('resume_unavailable');
+        async resume({recordingConsent} = {}) {
+            if (this._state !== 'paused' || this.uncertain || this.stopRequested || this.questionsSending || this.questionsKey || this.activationSending) throw new Error('resume_unavailable');
+            if (!this.recordingConsent || this._session?.recording_consent === false) {
+                if (recordingConsent !== true) throw new Error('recording_consent_required');
+                this.activationPending = true;
+                this._set('starting');
+                this.activationSending = this._request('/' + this._session.session_id + '/recording', 'POST', {recording_consent: true});
+                try {
+                    this._update(await this.activationSending);
+                    if (!this.active || this.stopRequested) return;
+                    this.activationPending = false;
+                    this.recordingConsent = true;
+                } catch (error) {
+                    if (forbidden.has(error.status)) await this._fail(error);
+                    else {
+                        if (error.status >= 400 && error.status < 500 && ![408, 409, 429].includes(error.status)) this.activationPending = false;
+                        this._set(this.activationPending ? 'retry' : 'paused');
+                        this._error(error.code || (this.activationPending ? 'recording_activation_uncertain' : 'recording_activation_rejected'));
+                    }
+                    throw error;
+                } finally { this.activationSending = null; }
+            }
+            this._set('starting');
             try { await this._capture(); }
             catch (error) { await this._fail(error); throw error; }
         }
         async stop() {
+            if (this.activationSending) throw new Error('recording_activation_inflight');
             if (this.questionsSending) throw new Error('questions_inflight');
             if (this.questionsKey) throw new Error('pending_questions_requires_retry');
             if (!this._session || this._state === 'stopped') return;
@@ -310,9 +355,22 @@
             }
         }
         async retryPending() {
+            if (this.activationSending || this.startSending) return;
             if (this.questionsSending) return;
             if (this.questionsKey) return this.requestQuestions(); // Explicit replay only, same UUID.
+            if (this.startPending && this.startQuestionsOnly) return this.requestQuestions();
             if (this.startPending) return this._startRequest(); // Same idempotency key.
+            if (this.activationPending) {
+                try {
+                    this._update(await this._request('/' + this._session.session_id, 'GET'));
+                    if (!this.active || this._session.status === 'pending') return;
+                    this.uncertain = false;
+                    this.recordingConsent = this._session.recording_consent === true;
+                    this.activationPending = false;
+                    this._set('paused'); // Recovery never implicitly captures audio.
+                } catch (error) { await this._fail(error); }
+                return;
+            }
             if (!this.active || this.sending) return;
             this.uncertain = false;
             this._set('paused');
@@ -328,10 +386,17 @@
         }
         requestQuestions() {
             if (this.questionsSending) return this.questionsSending;
-            if (!this.active || this.stopRequested || this.startPending || (this.uncertain && !this.questionsKey)) return Promise.reject(new Error('questions_unavailable'));
+            const bootstrap = this._state === 'idle' || (this.startPending && this.startQuestionsOnly && !this.startSending);
+            if ((!bootstrap && !this.active) || this.stopRequested || this.activationPending || this.activationSending ||
+                this._state === 'starting' || this._state === 'stopping' ||
+                (this.startPending && !bootstrap) || (this.uncertain && !this.questionsKey)) return Promise.reject(new Error('questions_unavailable'));
             // Flush/ACK PCM before questions and leave capture paused. No automatic
             // retry or microphone reopening; uncertain replay uses the same UUID.
             this.questionsSending = (async () => {
+                if (bootstrap) {
+                    if (this.startPending) await this._startRequest();
+                    else await this._bootstrap(true);
+                }
                 if (this._state === 'recording') await this.pause();
                 await this._drain();
                 if (!this.active || this.queue.length || (this.uncertain && !this.questionsKey)) throw new Error('questions_unavailable');

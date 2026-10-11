@@ -13,6 +13,8 @@ Kontrakt: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.m
 
 ### Konfiguracja i zgody — osobne kroki
 
+Katalog importu OpenRouter łączy listę standardową z `GET /api/v1/models?output_modalities=transcription`, deduplikując po ID. W panelu dostawców zaimportuj np. `openai/gpt-4o-mini-transcribe`, następnie w audio Vision ponownie wczytaj listę i zapisz wybrany model. Lista audio pokazuje wyłącznie obsługiwane, aktywne modele; gdy ich brak, pokazuje link do importu. Odczyt katalogu ani import nie wybierają automatycznie modelu dla wtyczki.
+
 Przełącznik „Udostępniona klinice” w platformowym panelu kredytów AI nie jest zgodą kliniki. Zapisuje `tenant_ai_feature_settings.is_active`; osobna zgoda administratora kliniki jest w `tenant_plugin_ai_activations`. Panel platformy pokazuje `clinic_consent` tylko do odczytu. Włączone udostępnienie i model nie wystarczają do wyświetlenia Vision, jeśli zgoda kliniki pozostaje wyłączona. Zgody nie należy zastępować automatycznym włączeniem przez platformę.
 
 1. Potwierdź istniejące prerekwizyty lifecycle/AI 079/080 i ręcznie zastosuj **tylko brakującą nową `migrations/088_plugin_live_interviews.sql`**, po przeglądzie/backupie. Nie powtarzaj potwierdzonych starszych SQL, szczególnie 084; brak automatycznego SQL/startup runnera i nowego workera live.

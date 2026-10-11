@@ -35,7 +35,8 @@
     const technicalErrors = new Set(['analysis_invalid_json', 'analysis_callback_failed', 'analysis_evidence_invalid',
         'analysis_provider_rejected', 'stt_provider_rejected', 'stt_invalid_output', 'analysis_pending',
         'stt_pending', 'usage_pending', 'runtime_failure', 'session_failed', 'audio_uncertain',
-        'stt_language_rejected', 'questions_uncertain']);
+        'stt_language_rejected', 'questions_uncertain', 'analysis_result_schema', 'analysis_sources_mismatch',
+        'analysis_field_unknown', 'analysis_value_invalid', 'analysis_source_schema', 'analysis_source_unbound', 'analysis_tips_invalid']);
     const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
     const denied = code => ['access_revoked', 'forbidden', 'plugin_disabled', 'access_denied', 'authentication_required', 'not_found'].includes(code);
     function element(tag, text, className) {

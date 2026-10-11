@@ -1,5 +1,10 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Dokładne kody walidacji callbacku Vision
+
+`analysis_callback_failed` dla znanych odmów Vision jest zastąpione przez `analysis_result_schema`, `analysis_sources_mismatch`, `analysis_field_unknown`, `analysis_value_invalid`, `analysis_source_schema`, `analysis_source_unbound`, `analysis_tips_invalid`. Host przenosi tylko kody z zamkniętej allowlisty; nie przenosi wiadomości wyjątków ani surowej odpowiedzi. Model otrzymuje jawny poprawny przykład JSON updates/sources/tips i wymaganie pełnych niezmienionych cytatów. Diagnostyka nie potwierdza skuteczności generowania na produkcji i nie rozluźnia walidacji dowodów.
+
+
 ## Stabilna geometria i prywatna diagnostyka
 
 Przejściowe kody STT/analizy/transportu trafiają do konsoli przeglądarki jako `[Vision] diagnostyka: <kod>`, deduplikowane bez transcriptu, wartości pól, IDs ani surowych odpowiedzi. Nie zmieniają treści statusu nad falą. Status/sygnał mają stałą linię, blok zgody zachowuje geometrię po ukryciu. Istotne błędy zgody, dostępu, mikrofonu i niepotwierdzonego zapisu pozostają komunikowane użytkownikowi.

@@ -44,7 +44,15 @@ SYSTEM_PROMPT = (
     "Jeśli ramki audio przecięły niedokończoną wypowiedź, uwzględnij wszystkie jej kolejne "
     "segmenty jako osobne pełne źródła, nie łącz cytatów ani zakresów czasu w jedno źródło. "
     "source_role w transkrypcie to ostrożna wskazówka kontekstowa, nie potwierdzenie rozpoznania. "
-    "Zwróć {updates:{kod:wartość}, sources:{kod:[{start,end,speaker,quote,source_role}]}, tips:[tekst]}. "
+    'Zwróć dokładnie obiekt JSON z kluczami "updates", "sources", "tips". '
+    'Przykład pustego wyniku: {"updates":{},"sources":{},"tips":["Od kiedy występuje problem?"]}. '
+    'Nie używaj klucza suggestions ani evidence; host utworzy je po walidacji. '
+    'sources musi zawierać dokładnie te same klucze pól co updates. '
+    'Dla każdego pola sources to lista obiektów start (liczba), end (liczba), speaker (tekst), '
+    'quote (pełny tekst segmentu bez zmian), source_role (patient/specialist/unknown). '
+    'Nie skracaj cytatu, nie poprawiaj pisowni transkrypcji, nie zaokrąglaj czasu. '
+    'Nie zwracaj display label jako kodu opcji. '
+
     "Tips to od 1 do 4 pytań uzupełniających opartych na karcie i rozmowie, nie rozpoznania. "
     "Gdy karta i rozmowa są puste, podaj ogólne polskie pytania do wywiadu trychologicznego. "
     "Nie pozostawiaj tips pustego; pytaj o brakujące informacje, nie powtarzaj tych już wyjaśnionych. "
@@ -121,6 +129,12 @@ def _statement(context, segment):
     return SimpleNamespace(speaker=segment.speaker, text=" ".join(s.text for s in parts)), parts
 
 
+class VisionResultError(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__('Wynik analizy nie przeszedł walidacji.')
+
+
 def process_interview_result(context, raw):
     """Keep valid independent proposals; reject invalid fields explicitly.
 
@@ -133,12 +147,12 @@ def process_interview_result(context, raw):
         raw = json.loads(raw)
     validate_task_result(raw)
     if not isinstance(raw, Mapping) or set(raw) - {"updates", "sources", "tips"}:
-        raise ValueError("Nieprawidłowy wynik wywiadu.")
+        raise VisionResultError("analysis_result_schema")
     updates, sources = raw.get("updates", {}), raw.get("sources", {})
     if not isinstance(updates, Mapping) or not isinstance(sources, Mapping) or set(updates) != set(sources):
-        raise ValueError("Każde pole wymaga źródła.")
+        raise VisionResultError("analysis_sources_mismatch")
     if set(updates) - set(TRICHOLOGY_INTERVIEW_FIELDS) - LEGACY_FIELDS:
-        raise ValueError("Niedozwolone pole wywiadu.")
+        raise VisionResultError("analysis_field_unknown")
     # Validate tips even when an invalid field would otherwise hide the error.
     empty = _process_interview_result(context, {"updates": {}, "sources": {}, "tips": raw.get("tips", [])})
     suggestions, confirmations, errors = [], [], []
@@ -170,36 +184,39 @@ def _process_interview_result(context, raw):
         raw = json.loads(raw)
     validate_task_result(raw)
     if not isinstance(raw, Mapping) or set(raw) - {"updates", "sources", "tips"}:
-        raise ValueError("Nieprawidłowy wynik wywiadu.")
+        raise VisionResultError("analysis_result_schema")
     updates, sources = raw.get("updates", {}), raw.get("sources", {})
     if not isinstance(updates, Mapping) or not isinstance(sources, Mapping) or set(updates) != set(sources):
-        raise ValueError("Każde pole wymaga źródła.")
+        raise VisionResultError("analysis_sources_mismatch")
     if set(updates) - set(TRICHOLOGY_INTERVIEW_FIELDS) - LEGACY_FIELDS:
-        raise ValueError("Niedozwolone pole wywiadu.")
-    normalized = dict(validate_trichology_interview_updates({k: v for k, v in updates.items() if k not in LEGACY_FIELDS}))
+        raise VisionResultError("analysis_field_unknown")
+    try:
+        normalized = dict(validate_trichology_interview_updates({k: v for k, v in updates.items() if k not in LEGACY_FIELDS}))
+    except ValueError:
+        raise VisionResultError("analysis_value_invalid") from None
     for field in LEGACY_FIELDS & set(updates):
         value = updates[field]
         if not isinstance(value, str) or not value.strip() or len(value) > 20000 or len(value.encode("utf-8")) > 65535:
-            raise ValueError("Nieprawidłowa wartość pola karty.")
+            raise VisionResultError("analysis_value_invalid")
         normalized[field] = value
     accepted, verified, confirmations = {}, {}, []
     for field, value in normalized.items():
         refs = sources[field]
         if not isinstance(refs, list) or not 1 <= len(refs) <= 8:
-            raise ValueError("Nieprawidłowe źródło propozycji.")
+            raise VisionResultError("analysis_source_schema")
         evidence = []
         safe = True
         for ref in refs:
             if not isinstance(ref, Mapping) or set(ref) - {"start", "end", "speaker", "quote", "segment_id", "source_role"}:
-                raise ValueError("Nieprawidłowe źródło propozycji.")
+                raise VisionResultError("analysis_source_schema")
             if ref.get("source_role", "unknown") not in {"patient", "specialist", "unknown"}:
-                raise ValueError("Nieprawidłowa rola źródła.")
+                raise VisionResultError("analysis_source_schema")
             if type(ref.get("start")) not in (int, float) or type(ref.get("end")) not in (int, float):
-                raise ValueError("Nieprawidłowy zakres źródła.")
+                raise VisionResultError("analysis_source_schema")
             segment = next((s for s in context.transcript if s.start == ref.get("start") and s.end == ref.get("end")
                             and s.text == ref.get("quote") and s.speaker == ref.get("speaker")), None)
             if segment is None:
-                raise ValueError("Źródło nie odpowiada pełnej wypowiedzi.")
+                raise VisionResultError("analysis_source_unbound")
             statement, parts = _statement(context, segment)
             # Context may strengthen role inference only with ALL exact originals.
             # In particular, citing just 'Aspirynę.' cannot hide 'Nie mam ... na'.
@@ -247,7 +264,7 @@ def _process_interview_result(context, raw):
             verified[field] = evidence
     tips = raw.get("tips", [])
     if not isinstance(tips, list) or len(tips) > 4 or any(not isinstance(t, str) or not t.strip() or len(t) > 500 for t in tips):
-        raise ValueError("Nieprawidłowe wskazówki wywiadu.")
+        raise VisionResultError("analysis_tips_invalid")
     # TaskContext deliberately exposes no session-local segment IDs. Empty IDs
     # are NOT invented from list positions (silence can create sequence gaps).
     # The host must bind these complete exact quotes to its final segment IDs

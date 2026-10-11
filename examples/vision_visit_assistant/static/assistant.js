@@ -51,6 +51,7 @@
             this.bridge = window.CelloklabTrichologyFormBridge;
             this.proposals = new Map();
             this.dismissedTips = new Set();
+            this.shownTips = new Set();
             this.record = null;
             this.sessionId = null;
             this.latest = null;
@@ -126,7 +127,7 @@
             if (!this.client.restartable) return;
             this.client.dispose();
             this.sessionId = null; this.latest = null;
-            this.dismissedTips.clear();
+            this.dismissedTips.clear(); this.shownTips.clear();
             this.resetAudioView();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.makeClient();
@@ -172,7 +173,7 @@
                 item.status = 'revoked';
                 for (const control of item.controls || []) control.disabled = true;
             }
-            this.proposals.clear(); this.dismissedTips.clear(); this.record = this.latest = null;
+            this.proposals.clear(); this.dismissedTips.clear(); this.shownTips.clear(); this.record = this.latest = null;
             this.proposalRoot?.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.resetAudioView();
@@ -261,9 +262,9 @@
             // Lifecycle/audio responses with no tips must not erase questions.
             if (incomingTips.length) {
                 this.tipVersion = (this.tipVersion || 0) + 1;
-                tips.replaceChildren();
                 for (const tip of incomingTips) {
-                    if (this.dismissedTips.has(tip)) continue;
+                    if (this.dismissedTips.has(tip) || this.shownTips.has(tip)) continue;
+                    this.shownTips.add(tip);
                     const pill = element('li', undefined, 'va-question-pill');
                     pill.appendChild(element('span', tip));
                     const remove = this.iconButton('Usuń zadane pytanie', 'fa-xmark', 'va-question-remove');

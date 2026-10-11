@@ -1,5 +1,12 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Stabilne pytania i niezależne propozycje
+
+Nowe pytania dopisują się na dole bez zastępowania istniejących pills; tekst identyczny nie jest duplikowany. Tylko operator usuwa pytanie ikoną X w aktywnej sesji. Wyjątki ochronne: cofnięcie dostępu usuwa dane, nowa sesja rozpoczyna nową listę.
+
+Processor Vision uwzględnia sąsiednie segmenty jednej niedokończonej wypowiedzi tylko przy zgodnym mówcy, ciągłości czasu i źródłach cytujących każdy pełny segment. Nie skleja cytatów evidence ani nie wymyśla IDs. Błędna propozycja jednego pola nie usuwa poprawnej propozycji innego pola; odrzucenie jest jawne. Globalny nieprawidłowy schemat nadal odmawia. Pytania, hipotezy, negacje i historia rodzinna nie stają się faktami pacjenta.
+
+
 ## Przechwytywanie niezależne od przetwarzania
 
 Mikrofon i fala działają niezależnie od przejściowych błędów pollingu/POST, 409, opóźnień dostawcy i pending. Bufor PCM jest tylko w RAM i ograniczony autoryzowanym czasem × 48000 bajtów; nie jest trwałym archiwum audio. `onTransport` pokazuje odrębny stan i zaległość. Niepewny POST nie jest ponawiany w ciemno; świeży GET tej samej sesji musi potwierdzić dokładny ACK. Po odzyskaniu ACK wysyłanie kontynuuje się. Terminalna awaria przetwarzania zatrzymuje wysyłanie, ale nie mikrofon; nie tworzy automatycznie nowej płatnej sesji. Przy nieodwracalnym pending/failed buffered audio pozostaje nieprzetworzone, nie należy ogłaszać pełnego dostarczenia. Manual pause/stop i deadline zwalniają fizyczne ścieżki niezależnie od żądań; revocation czyści PCM.

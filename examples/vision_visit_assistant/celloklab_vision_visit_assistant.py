@@ -5,6 +5,7 @@ from dataclasses import asdict
 import json
 import re
 from collections.abc import Mapping
+from types import SimpleNamespace
 
 from celloklab_plugin_sdk import LiveInterviewRegistration, TaskInputs, TaskPrompt, UIFragment
 from celloklab_plugin_sdk.clinical_tasks import validate_task_result
@@ -40,6 +41,9 @@ SYSTEM_PROMPT = (
     "Leki do current_medications, rodzinę do family_history_details. Użyj dokładnych kodów "
     "i typów ze schema. Każde pole wymaga evidence: pełna wypowiedź verbatim (quote), "
     "start i end dokładnie segmentu, speaker dokładnie jak w transkrypcie. Nie ucinaj negacji. "
+    "Jeśli ramki audio przecięły niedokończoną wypowiedź, uwzględnij wszystkie jej kolejne "
+    "segmenty jako osobne pełne źródła, nie łącz cytatów ani zakresów czasu w jedno źródło. "
+    "source_role w transkrypcie to ostrożna wskazówka kontekstowa, nie potwierdzenie rozpoznania. "
     "Zwróć {updates:{kod:wartość}, sources:{kod:[{start,end,speaker,quote,source_role}]}, tips:[tekst]}. "
     "Tips to od 1 do 4 pytań uzupełniających opartych na karcie i rozmowie, nie rozpoznania. "
     "Gdy karta i rozmowa są puste, podaj ogólne polskie pytania do wywiadu trychologicznego. "
@@ -61,7 +65,7 @@ def build_interview_prompt(context):
     schema.update({field: {"label": LEGACY_LABELS[field], "type": "string"} for field in sorted(LEGACY_FIELDS)})
     user = json.dumps({"schema": schema, "card": dict(context.record_fields),
                        "interview_values": dict(context.interview_values),
-                       "transcript": [{**asdict(segment), "source_role": source_role(segment)} for segment in context.transcript]}, ensure_ascii=False)
+                       "transcript": [{**asdict(segment), "source_role": source_role(_statement(context, segment)[0])} for segment in context.transcript]}, ensure_ascii=False)
     # No truncation mid-evidence or hidden omission of older clinical facts.
     if len(user) > 60000:
         raise ValueError("Kontekst wywiadu przekracza limit promptu.")
@@ -89,7 +93,73 @@ def source_role(segment):
     return "unknown"
 
 
+_CONTINUES = re.compile(r"\b(?:na|w|we|z|ze|do|od|oraz|i|mam|miałem|miałam|przyjmuję|biorę|stosuję)\s*$", re.I)
+
+
+def _statement(context, segment):
+    """Join only adjacent same-speaker fragments with an unfinished connector.
+
+    No speaker-number trust, clinical keyword mapping or synthesized evidence.
+    The caller must still cite every original segment of the statement.
+    """
+    index = context.transcript.index(segment)
+    first = last = index
+    while first > 0:
+        previous, current = context.transcript[first - 1:first + 1]
+        if (previous.speaker != current.speaker or previous.end != current.start
+                or not _CONTINUES.search(previous.text) or last - first >= 7):
+            break
+        first -= 1
+    while last + 1 < len(context.transcript):
+        current, following = context.transcript[last:last + 2]
+        if (current.speaker != following.speaker or current.end != following.start
+                or not _CONTINUES.search(current.text) or last - first >= 7):
+            break
+        last += 1
+    parts = context.transcript[first:last + 1]
+    # Retain each original quote; the joined text is for safety checks only.
+    return SimpleNamespace(speaker=segment.speaker, text=" ".join(s.text for s in parts)), parts
+
+
 def process_interview_result(context, raw):
+    """Keep valid independent proposals; reject invalid fields explicitly.
+
+    Global schema/size/tips errors stay fatal. Invalid per-field types/evidence
+    never reach the host; a partial result announces omitted proposals in tips.
+    If every proposal violates validation, retain the existing hard-error path.
+    """
+    context.validate(INPUTS)
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    validate_task_result(raw)
+    if not isinstance(raw, Mapping) or set(raw) - {"updates", "sources", "tips"}:
+        raise ValueError("Nieprawidłowy wynik wywiadu.")
+    updates, sources = raw.get("updates", {}), raw.get("sources", {})
+    if not isinstance(updates, Mapping) or not isinstance(sources, Mapping) or set(updates) != set(sources):
+        raise ValueError("Każde pole wymaga źródła.")
+    if set(updates) - set(TRICHOLOGY_INTERVIEW_FIELDS) - LEGACY_FIELDS:
+        raise ValueError("Niedozwolone pole wywiadu.")
+    # Validate tips even when an invalid field would otherwise hide the error.
+    empty = _process_interview_result(context, {"updates": {}, "sources": {}, "tips": raw.get("tips", [])})
+    suggestions, confirmations, errors = [], [], []
+    for field, value in updates.items():
+        try:
+            result = _process_interview_result(context, {
+                "updates": {field: value}, "sources": {field: sources[field]}, "tips": raw.get("tips", [])})
+        except ValueError as error:
+            errors.append(error)
+            continue
+        suggestions.extend(result["suggestions"])
+        confirmations.extend(t for t in result["tips"] if t.startswith("Potwierdź, czy wzmianka"))
+    if errors and not suggestions:
+        raise errors[0]
+    notice = ["Pominięto nieprawidłowe propozycje AI: wartość lub pełne źródło nie przeszły walidacji."] if errors else []
+    result = {"suggestions": suggestions, "tips": list(dict.fromkeys(notice + confirmations + empty["tips"]))[:4]}
+    validate_task_result(result)
+    return result
+
+
+def _process_interview_result(context, raw):
     """Bound and validate typed values and complete evidence; never perform I/O.
 
     Host binds these start/end/quote references to finalized session-local IDs,
@@ -130,10 +200,18 @@ def process_interview_result(context, raw):
                             and s.text == ref.get("quote") and s.speaker == ref.get("speaker")), None)
             if segment is None:
                 raise ValueError("Źródło nie odpowiada pełnej wypowiedzi.")
-            role = source_role(segment)
-            bare = field == "other_conditions" and bool(_BARE_CONDITION.fullmatch(segment.text.strip()))
-            family = bool(_FAMILY.search(segment.text))
-            if _UNCERTAIN.search(segment.text) or role == "specialist" or ref.get("source_role") == "specialist":
+            statement, parts = _statement(context, segment)
+            # Context may strengthen role inference only with ALL exact originals.
+            # In particular, citing just 'Aspirynę.' cannot hide 'Nie mam ... na'.
+            if any(not any(r.get("start") == part.start and r.get("end") == part.end
+                           and r.get("speaker") == part.speaker and r.get("quote") == part.text
+                           for r in refs if isinstance(r, Mapping)) for part in parts):
+                safe = False
+            role = source_role(statement)
+            text = statement.text
+            bare = field == "other_conditions" and bool(_BARE_CONDITION.fullmatch(text.strip()))
+            family = bool(_FAMILY.search(text))
+            if _UNCERTAIN.search(text) or role == "specialist" or ref.get("source_role") == "specialist":
                 safe = False
             elif family:
                 if field != "family_history_details" or not isinstance(value, str) or not _FAMILY.search(value):
@@ -149,17 +227,17 @@ def process_interview_result(context, raw):
                 else:
                     confirmations.append("Potwierdź, czy wzmianka „" + segment.text + "” dotyczy choroby pacjenta.")
             elif role != "patient" and not (field == "post_transplant" and value is False
-                    and re.fullmatch(r"\s*(?:brak|bez) przeszczep(?:u|ów|ow)(?: włosów| wlosow)?[.!]?\s*", segment.text, re.I)):
+                    and re.fullmatch(r"\s*(?:brak|bez) przeszczep(?:u|ów|ow)(?: włosów| wlosow)?[.!]?\s*", text, re.I)):
                 safe = False
             # Medication use alone does not substantiate a disease proposal.
-            if field == "other_conditions" and re.search(r"\b(?:przyjmuję|biorę|stosuję)\b", segment.text, re.I) and not re.search(r"\b(?:mam|choruję|rozpoznano|zdiagnozowano)\b", segment.text, re.I):
+            if field == "other_conditions" and re.search(r"\b(?:przyjmuję|biorę|stosuję)\b", text, re.I) and not re.search(r"\b(?:mam|choruję|rozpoznano|zdiagnozowano)\b", text, re.I):
                 safe = False
             # Conservative: free-text negative evidence must preserve the negation
             # explicitly. Choice/boolean proposals from negation are not inferred.
-            if _NEGATION.search(segment.text) and value != segment.text and not (
+            if _NEGATION.search(text) and value != text and not (
                     field == "post_transplant" and value is False
-                    and re.fullmatch(r"\s*(?:(?:brak|bez) przeszczep(?:u|ów|ow)|nie (?:miałem|miałam|mam|przeszedłem|przeszłam) przeszczep(?:u|ów|ow))(?: włosów| wlosow)?[.!]?\s*", segment.text, re.I)
-                    and not _FAMILY.search(segment.text)):
+                    and re.fullmatch(r"\s*(?:(?:brak|bez) przeszczep(?:u|ów|ow)|nie (?:miałem|miałam|mam|przeszedłem|przeszłam) przeszczep(?:u|ów|ow))(?: włosów| wlosow)?[.!]?\s*", text, re.I)
+                    and not _FAMILY.search(text)):
                 safe = False
             evidence.append({"start": segment.start, "end": segment.end, "speaker": segment.speaker, "quote": segment.text})
         if value is None or value == [] or value == "":

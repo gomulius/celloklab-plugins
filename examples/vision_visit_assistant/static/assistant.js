@@ -6,25 +6,28 @@
         paused: 'Wstrzymano.', stopping: 'Kończenie sesji…',
         stopped: 'Zakończono.', retry: 'Ponów oczekujące żądanie.'};
     const errors = {
+        stt_language_rejected: 'Odrzucono fragment rozpoznany w obcym alfabecie. Nagrywanie trwa; ten tekst nie trafi do propozycji.',
+        audio_not_delivered: 'Część nagrania pozostaje nieprzetworzona. Nie potwierdzono dostarczenia całego audio.',
+        audio_backpressure: 'Osiągnięto limit bufora nagrania. Sprawdź stan przetwarzania.',
         analysis_invalid_json: 'Audio i transkrypcja zostały przyjęte. Analiza zwróciła nieprawidłowy wynik JSON; zachowano poprzednie propozycje i pytania. Nagrywanie może trwać dalej — nie ponawiaj tego fragmentu.',
         analysis_callback_failed: 'Audio i transkrypcja zostały przyjęte. Nie udało się przetworzyć analizy; zachowano poprzednie propozycje i pytania. Nie ponawiaj tego fragmentu.',
         analysis_evidence_invalid: 'Audio i transkrypcja zostały przyjęte. Wynik analizy nie przeszedł walidacji propozycji lub dowodów; zachowano poprzednie propozycje i pytania. Nie ponawiaj tego fragmentu.',
-        analysis_provider_rejected: 'Dostawca odrzucił analizę. Sesja zakończona; transkrypcja i poprzednie wyniki pozostają dostępne.',
-        stt_provider_rejected: 'Dostawca odrzucił transkrypcję. Sesja zakończona; nie ponawiaj tego fragmentu.',
-        stt_invalid_output: 'Dostawca zwrócił nieprawidłowy wynik transkrypcji. Sesja zakończona.',
-        analysis_pending: 'Wynik analizy jest niepewny. Mikrofon wyłączony; sesja oczekuje na wyjaśnienie. Ponowienie nie uruchomi ponownie dostawcy.',
-        stt_pending: 'Wynik transkrypcji jest niepewny. Mikrofon wyłączony; sesja oczekuje na wyjaśnienie.',
+        analysis_provider_rejected: 'Przetwarzanie analizy jest niedostępne. Mikrofon nadal zbiera audio do bufora.',
+        stt_provider_rejected: 'Przetwarzanie transkrypcji jest niedostępne. Mikrofon nadal zbiera audio do bufora.',
+        stt_invalid_output: 'Przetwarzanie transkrypcji zwróciło błędny wynik. Mikrofon nadal zbiera audio do bufora.',
+        analysis_pending: 'Analiza oczekuje na potwierdzenie. Mikrofon nadal przechwytuje audio do bufora.',
+        stt_pending: 'Transkrypcja oczekuje na potwierdzenie. Mikrofon nadal przechwytuje audio do bufora.',
         usage_pending: 'Nie potwierdzono zapisu rozliczenia dostawcy. Sesja oczekuje na wyjaśnienie; nie rozpoczynaj nowej sesji.',
         context_limit: 'Osiągnięto limit rozmowy. Sesja zakończona; dotychczasowa transkrypcja i wyniki zostały zachowane.',
         runtime_failure: 'Sesja zakończona z błędem przetwarzania. Sprawdź zachowane wyniki; nie ponawiaj przyjętego fragmentu.',
-        session_failed: 'Serwer zakończył sesję z błędem. Mikrofon wyłączony; przyjętego audio nie należy ponawiać. Przyczyna nie jest dostępna.',
+        session_failed: 'Przetwarzanie na serwerze zakończyło się błędem. Mikrofon nadal zbiera audio do bufora; wyniki nie są aktualizowane.',
         live_speech_model_required: 'Brak modelu transkrypcji. Administrator platformy musi go wybrać w Pluginy → vision.visit-assistant → Audio wywiadu na żywo.',
         live_speech_model_unavailable: 'Model transkrypcji lub jego dostawca jest niedostępny. Administrator platformy musi sprawdzić konfigurację audio wtyczki.',
         live_duration_invalid: 'Nieprawidłowy limit czasu wywiadu. Administrator platformy musi ustawić od 60 do 7200 sekund.',
         microphone_unavailable: 'Nie można włączyć mikrofonu. Sesja została bezpiecznie zatrzymana.',
         start_rejected: 'Nie uruchomiono sesji. Sprawdź kredyty i konfigurację dostępu przed ponownym rozpoczęciem.',
-        access_revoked: 'Dostęp cofnięty. Mikrofon wyłączony.', audio_backpressure: 'Przesyłanie jest zbyt wolne. Nagrywanie przerwano — część audio nie została przesłana. Ponów oczekujące fragmenty, a potem zakończ sesję.',
-        audio_uncertain: 'Nie potwierdzono odbioru audio. Mikrofon wyłączony. Ponów ten sam fragment.',
+        access_revoked: 'Dostęp cofnięty. Mikrofon wyłączony.',
+        audio_uncertain: 'Nagrywanie trwa. Przetwarzanie oczekuje na potwierdzenie serwera; audio pozostaje w buforze.',
         start_uncertain: 'Nie potwierdzono uruchomienia sesji. Ponów to samo żądanie — nie rozpoczynaj nowej sesji.',
         recording_activation_uncertain: 'Nie potwierdzono zgody serwera na nagrywanie. Mikrofon pozostaje wyłączony; ponów oczekujące żądanie.',
         recording_activation_rejected: 'Nie można rozpocząć nagrywania w tej sesji. Mikrofon pozostaje wyłączony.',
@@ -146,6 +149,14 @@
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
                 onUpdate: session => this.update(session), onSession: (session, state) => this.sessionState(session, state),
                 onAudioLevel: level => this.audioLevel(level),
+                onTransport: transport => {
+                    const details = this.root.querySelector('[data-audio-accepted]');
+                    details.textContent = 'Audio w buforze: ' + transport.bufferedSeconds.toFixed(1) + ' s. Stan przetwarzania: ' +
+                        ({ready: 'gotowe', sending: 'wysyłanie', pending: 'oczekiwanie na potwierdzenie', recovering: 'sprawdzanie potwierdzenia', failed: 'przetwarzanie niedostępne'}[transport.status] || 'oczekiwanie');
+                    if (this.client?.capturing) {
+                        this.status.textContent = transport.status === 'ready' ? 'Nagrywanie.' : 'Nagrywanie trwa — przetwarzanie oczekuje.';
+                    }
+                },
                 onError: error => {
                     if (denied(error.code)) this.clearAccess();
                     this.errorMessage = errors[error.code] || 'Nie udało się zakończyć operacji. Sprawdź stan sesji i ponów oczekujące żądanie.';

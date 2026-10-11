@@ -5,7 +5,7 @@
     const terminal = new Set(['stopped', 'completed', 'expired', 'revoked', 'failed', 'error']);
     const diagnostics = new Set(['analysis_invalid_json', 'analysis_callback_failed', 'analysis_evidence_invalid',
         'analysis_provider_rejected', 'analysis_pending', 'stt_provider_rejected', 'stt_invalid_output',
-        'stt_pending', 'usage_pending', 'context_limit', 'runtime_failure']);
+        'stt_pending', 'usage_pending', 'context_limit', 'runtime_failure', 'stt_language_rejected']);
     class LiveAudioClient {
         constructor(options) {
             if (!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(options.pluginId || '')) throw new Error('invalid_plugin');
@@ -13,6 +13,12 @@
             this._session = null;
             this._state = 'idle';
             this.queue = [];
+            this.bufferedBytes = 0;
+            this.capturedBytes = 0;
+            this.maxBufferBytes = 0;
+            this.awaitingAck = null;
+            this.processingFailed = false;
+            this.transport = 'ready';
             this.sequence = 0;
             this.sending = null;
             this.uncertain = false;
@@ -38,13 +44,14 @@
                 this.stopRequested = true;
                 this._release(false);
                 this._clearTimers();
+                this._clearPCM();
                 if (this._session) this._request('/' + this._session.session_id + '/stop', 'POST', {}, {}, true).catch(() => {});
             };
             window.addEventListener('pagehide', this.leave);
         }
         get session() { return this._session ? JSON.parse(JSON.stringify(this._session)) : null; }
         get state() { return this._state; }
-        get active() { return Boolean(this._session && !terminal.has(this._session.status) && this._state !== 'stopped'); }
+        get active() { return Boolean(this._session && (!terminal.has(this._session.status) || this.processingFailed) && this._state !== 'stopped'); }
         get capturing() { return Boolean(this.stream || this._state === 'starting'); }
         get restartable() { return this._state === 'stopped' && !this.startPending && !this.startSending && !this.activationSending && !this.activationPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
         revoke() { this.stopRequested = true; const error = new Error('access_revoked'); error.status = 403; return this._fail(error); }
@@ -55,6 +62,17 @@
         }
         _set(state) { this._state = state; this.options.onSession?.(this.session, state); }
         _error(code) { this.options.onError?.({code}); }
+        _transport(status) {
+            this.transport = status;
+            this.options.onTransport?.({status, bufferedBytes: this.bufferedBytes,
+                bufferedSeconds: this.bufferedBytes / 48000, uncertain: this.uncertain});
+        }
+        _clearPCM() { this.queue = []; this.bufferedBytes = 0; this.awaitingAck = null; }
+        _ackPacket() {
+            const packet = this.queue.shift();
+            if (packet) this.bufferedBytes -= packet.bytes.byteLength;
+            this.awaitingAck = null;
+        }
         _resetLevel() {
             this.levelAt = -Infinity;
             this.options.onAudioLevel?.({rms: 0, peak: 0, active: false});
@@ -63,6 +81,7 @@
             if (node !== this.node || generation !== this.generation || !this.stream || this.stopRequested) return;
             if (!Number.isFinite(data.rms) || !Number.isFinite(data.peak) || data.rms < 0 || data.rms > 1 || data.peak < 0 || data.peak > 1) return;
             const now = Date.now();
+            if (now >= this.deadline) { this.stop().catch(() => {}); return; }
             if (now - this.levelAt < 80) return;
             this.levelAt = now;
             // Only bounded aggregates cross the SDK callback, not raw PCM.
@@ -101,6 +120,10 @@
         }
         _update(session) {
             if (this._session?.status === 'revoked') return;
+            if (session.status === 'revoked') {
+                const error = new Error('access_revoked'); error.status = 403;
+                this._fail(error); return;
+            }
             // A concurrent lifecycle GET may complete after a newer audio ACK.
             if (this._session && (session.next_sequence < this._session.next_sequence ||
                 (Number.isInteger(session.revision) && Number.isInteger(this._session.revision) && session.revision < this._session.revision) ||
@@ -112,17 +135,25 @@
             // Pending is the normal dispatch fence while our own packet is
             // in flight. Only an idle/recovered pending state implies uncertainty.
             if (session.status === 'pending' && ((!this.sending && !this.questionsSending) || this.uncertain)) {
-                this.generation++;
                 this.uncertain = true;
-                this._release(false);
-                this._set('retry');
+                this._transport('pending');
+                if (!this.stream) this._set('retry');
                 this._error(this.questionsKey ? 'questions_uncertain' : 'audio_uncertain');
             }
-            if (terminal.has(session.status)) {
+            if (session.status === 'failed' || session.status === 'error') {
+                // A processing failure does not revoke consent or restart billing.
+                this.processingFailed = true;
+                this.uncertain = true;
+                this._transport('failed');
+            } else if (terminal.has(session.status)) {
                 this.generation++;
+                this.stopRequested = true;
                 this._release(false);
                 this._clearTimers();
-                this.queue = [];
+                if (session.status === 'revoked') this._session = {...session, suggestions: [], tips: [], segments: []};
+                else if (this.queue.length && session.next_sequence <= this.queue[this.queue.length - 1].sequence) this._error('audio_not_delivered');
+                this._clearPCM();
+                this.processingFailed = false;
                 this.uncertain = false;
                 this.questionsKey = null;
                 this.activationPending = false;
@@ -163,7 +194,8 @@
                 this.sequence = session.next_sequence;
                 this._update(session);
                 if (terminal.has(session.status)) return;
-                if (!(session.max_duration_seconds > 0)) throw new Error('invalid_duration');
+                if (!Number.isInteger(session.max_duration_seconds) || session.max_duration_seconds <= 0 || session.max_duration_seconds > 7200) throw new Error('invalid_duration');
+                this.maxBufferBytes = session.max_duration_seconds * 48000;
                 this.deadline = Date.now() + session.max_duration_seconds * 1000;
                 this.limitTimer = setTimeout(() => this.stop().catch(() => {}), session.max_duration_seconds * 1000);
                 this._poll();
@@ -196,7 +228,7 @@
             if (this.stopRequested || !this.active || Date.now() >= this.deadline) throw new Error('session_inactive');
             const generation = ++this.generation;
             const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true}, video: false});
-            if (generation !== this.generation || this.stopRequested || !this.active) { stream.getTracks().forEach(t => t.stop()); return; }
+            if (generation !== this.generation || this.stopRequested || !this.active || Date.now() >= this.deadline) { stream.getTracks().forEach(t => t.stop()); return; }
             this.stream = stream;
             try {
                 const Audio = window.AudioContext || window.webkitAudioContext;
@@ -217,37 +249,48 @@
                 this.source.connect(this.node);
                 this.node.connect(this.audio.destination);
                 await this.audio.resume();
-                if (generation !== this.generation || this.stopRequested || !this.active) { await this._release(false); return; }
+                if (generation !== this.generation || this.stopRequested || !this.active || Date.now() >= this.deadline) { await this._release(false); return; }
                 this._set('recording');
             } catch (error) { await this._release(false); throw error; }
         }
         _enqueue(bytes, final = false) {
-            if (this._session && terminal.has(this._session.status)) return;
+            if (this._session && terminal.has(this._session.status) && !this.processingFailed) return;
             if (!(bytes instanceof ArrayBuffer) || !bytes.byteLength || bytes.byteLength % 2 || bytes.byteLength > 240000) {
                 this._fail(new Error('invalid_audio_packet')); return;
             }
-            if (this.queue.length >= 3) {
-                // Explicit fatal backpressure: do not silently overwrite a packet.
-                this._fail(new Error('audio_backpressure')); return;
-            }
+            const rawLength = bytes.byteLength;
             if (!final && bytes.byteLength < 24000) {
                 const padded = new Uint8Array(24000); padded.set(new Uint8Array(bytes)); bytes = padded.buffer;
             }
+            if (this.bufferedBytes + bytes.byteLength > this.maxBufferBytes || this.capturedBytes + rawLength > this.maxBufferBytes) {
+                this._fail(new Error('audio_backpressure')); return;
+            }
             this.queue.push({sequence: this.sequence + this.queue.length, bytes, final});
+            this.capturedBytes += rawLength;
+            this.bufferedBytes += bytes.byteLength;
+            this._transport(this.uncertain ? this.transport : 'backlog');
             this._drain();
+            // Timers may be throttled in a background tab. PCM callbacks enforce
+            // the same wall-clock deadline, without waiting for any HTTP request.
+            if (!this.stopRequested && Date.now() >= this.deadline) this.stop().catch(() => {});
         }
         _drain() {
-            if (this.sending || this.uncertain || !this.queue.length || !this.active) return this.sending || Promise.resolve();
+            if (this.sending || this.uncertain || this.processingFailed || this._session?.status === 'pending' || !this.queue.length || !this.active) return this.sending || Promise.resolve();
             this.sending = (async () => {
                 while (this.queue.length && !this.uncertain && this.active) {
                     const packet = this.queue[0];
+                    this.awaitingAck = packet.sequence;
                     try {
                         const s = await this._request('/' + this._session.session_id + '/audio', 'POST', packet.bytes,
                             {'X-Audio-Sequence': String(packet.sequence), 'X-Audio-Final': packet.final ? 'true' : 'false'});
                         // A lifecycle poll may have established a terminal ACK
                         // while this older request was still in flight.
-                        if (terminal.has(this._session?.status)) break;
+                        if (terminal.has(this._session?.status)) {
+                            if (this._session.next_sequence === packet.sequence + 1) this._ackPacket();
+                            break;
+                        }
                         if (terminal.has(s.status)) {
+                            if (s.next_sequence === packet.sequence + 1) this._ackPacket();
                             this._update(s);
                             break;
                         }
@@ -256,9 +299,11 @@
                             throw new Error('audio_uncertain');
                         }
                         if (s.next_sequence !== packet.sequence + 1) throw new Error('sequence_mismatch');
-                        this.queue.shift();
+                        this._ackPacket();
                         this.sequence = s.next_sequence;
+                        this.uncertain = false;
                         this._update(s);
+                        this._transport(this.queue.length ? 'backlog' : 'ready');
                     } catch (error) { await this._fail(error); break; }
                 }
             })().finally(() => {
@@ -296,25 +341,36 @@
             }
         }
         async _fail(error) {
-            // An authoritative terminal response is not transport uncertainty.
-            // Never flush extra PCM or overwrite stopped with retry in a race.
-            if (terminal.has(this._session?.status)) { await this._release(false); return; }
-            this.generation++;
-            if (error.message === 'audio_backpressure' || error.message === 'invalid_audio_packet' || error.message === 'audio_processor_failed') this.stopRequested = true;
-            this.uncertain = true;
-            this._set('retry');
             if (forbidden.has(error.status)) {
+                this.generation++;
                 this.stopRequested = true;
-                this.queue = []; this.uncertain = false;
+                this._clearPCM(); this.uncertain = false;
+                this.processingFailed = false;
                 this.questionsKey = null;
                 this.activationPending = false;
                 if (this._session) this._session = {...this._session, status: 'revoked', suggestions: [], tips: [], segments: []};
                 this._clearTimers(); this._set('stopped');
+                await this._release(false);
+                this._transport('revoked'); this._error('access_revoked');
+                return;
             }
-            try { await this._release(!forbidden.has(error.status) && error.message !== 'audio_backpressure'); }
-            catch (_) { this._error('audio_flush_failed'); }
-            if (terminal.has(this._session?.status) && this._session.status !== 'revoked') return;
-            this._error(error.message === 'audio_backpressure' ? 'audio_backpressure' : forbidden.has(error.status) ? 'access_revoked' : 'audio_uncertain');
+            if (terminal.has(this._session?.status)) {
+                if (this.processingFailed) {
+                    const packet = this.queue[0];
+                    if (packet && this._session.next_sequence === packet.sequence + 1) this._ackPacket();
+                }
+                return;
+            }
+            this.uncertain = true;
+            const captureFailure = ['audio_backpressure', 'invalid_audio_packet', 'audio_processor_failed', 'audio_flush_failed'].includes(error.message);
+            if (captureFailure) {
+                this.generation++;
+                this.stopRequested = true;
+                await this._release(false);
+                this._transport('overflow');
+            } else this._transport(this.processingFailed ? 'failed' : 'uncertain');
+            if (!this.stream) this._set('retry');
+            this._error(captureFailure ? error.message : 'audio_uncertain');
         }
         async pause() {
             if (this._state !== 'recording') return;
@@ -350,15 +406,18 @@
             catch (error) { await this._fail(error); throw error; }
         }
         async stop() {
-            if (this.activationSending) throw new Error('recording_activation_inflight');
-            if (this.questionsSending) throw new Error('questions_inflight');
-            if (this.questionsKey) throw new Error('pending_questions_requires_retry');
             if (!this._session || this._state === 'stopped') return;
+            if (this.activationSending) throw new Error('recording_activation_inflight');
             this.stopRequested = true;
             this.generation++;
+            clearTimeout(this.limitTimer); this.limitTimer = null;
             this._set('stopping');
             try {
                 await this._release(true, true);
+                if (this.activationSending) throw new Error('recording_activation_inflight');
+                if (this.questionsSending) throw new Error('questions_inflight');
+                if (this.questionsKey) throw new Error('pending_questions_requires_retry');
+                if (this.processingFailed) throw new Error('audio_not_delivered');
                 await this._drain();
                 if (this.uncertain || this.queue.length) throw new Error('pending_audio_requires_retry');
                 if (terminal.has(this._session.status)) return;
@@ -366,7 +425,7 @@
                 if (this._session.status === 'pending') throw new Error('pending_session_requires_reconciliation');
                 this._clearTimers(); this._set('stopped');
             } catch (error) {
-                if (terminal.has(this._session?.status)) return;
+                if (terminal.has(this._session?.status) && !this.processingFailed) return;
                 if (forbidden.has(error.status)) await this._fail(error);
                 else { this._set('retry'); this._error(error.message); }
                 throw error;
@@ -389,24 +448,19 @@
                 } catch (error) { await this._fail(error); }
                 return;
             }
-            if (!this.active || this.sending) return;
-            this.uncertain = false;
-            this._set('paused');
-            if (!this.queue.length && this._session.status === 'pending') {
-                try { this._update(await this._request('/' + this._session.session_id, 'GET')); }
-                catch (error) { await this._fail(error); return; }
-                if (!this.active || this.uncertain) return;
-            }
-            await this._drain(); // Same sequence and exact original bytes.
+            if (!this.active || this.sending || this.processingFailed) return;
+            try { this._reconcile(await this._request('/' + this._session.session_id, 'GET')); }
+            catch (error) { await this._fail(error); return; }
+            await this._drain();
             if (!this.active) return;
             if (this.uncertain) return;
             if (this.stopRequested) return this.stop();
-            this._set('paused'); // Retry never implicitly reopens a microphone.
+            if (!this.stream) this._set('paused'); // Never reopen a microphone.
         }
         requestQuestions() {
             if (this.questionsSending) return this.questionsSending;
             const bootstrap = this._state === 'idle' || (this.startPending && this.startQuestionsOnly && !this.startSending);
-            if ((!bootstrap && !this.active) || this.stopRequested || this.activationPending || this.activationSending ||
+            if ((!bootstrap && !this.active) || (this.stopRequested && !this.questionsKey) || this.activationPending || this.activationSending ||
                 this._state === 'starting' || this._state === 'stopping' ||
                 (this.startPending && !bootstrap) || (this.uncertain && !this.questionsKey)) return Promise.reject(new Error('questions_unavailable'));
             // Flush/ACK PCM before questions and leave capture paused. No automatic
@@ -445,10 +499,32 @@
             })().finally(() => { this.questionsSending = null; });
             return this.questionsSending;
         }
+        _reconcile(session) {
+            this._update(session);
+            if (!this.active || this.processingFailed || this.sending || this.questionsKey || this.activationPending || this._session.status === 'pending') return;
+            const next = this._session.next_sequence;
+            if (this.awaitingAck !== null) {
+                // A missing response is NOT permission to replay a paid call.
+                // Only the exact committed sequence acknowledges the head PCM.
+                if (next !== this.awaitingAck + 1 || this.queue[0]?.sequence !== this.awaitingAck) {
+                    this.uncertain = true; this._transport('uncertain'); return;
+                }
+                this._ackPacket();
+                this.sequence = next;
+            } else if (next !== this.sequence) {
+                this.uncertain = true; this._transport('uncertain'); return;
+            }
+            this.uncertain = false;
+            this._transport(this.queue.length ? 'backlog' : 'ready');
+            this._drain();
+        }
         _poll() {
             this.pollTimer = setTimeout(async () => {
                 if (!this.active) return;
-                try { this._update(await this._request('/' + this._session.session_id, 'GET')); }
+                try {
+                    this._reconcile(await this._request('/' + this._session.session_id, 'GET'));
+                    if (this.stopRequested && !this.uncertain && !this.sending) await this.stop();
+                }
                 catch (error) { await this._fail(error); }
                 if (this.active) this._poll();
             }, 5000);

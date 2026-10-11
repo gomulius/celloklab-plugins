@@ -1,5 +1,12 @@
 # Vision — Asystent wywiadu, etap 2
 
+## Przechwytywanie niezależne od przetwarzania
+
+Mikrofon i fala działają niezależnie od przejściowych błędów pollingu/POST, 409, opóźnień dostawcy i pending. Bufor PCM jest tylko w RAM i ograniczony autoryzowanym czasem × 48000 bajtów; nie jest trwałym archiwum audio. `onTransport` pokazuje odrębny stan i zaległość. Niepewny POST nie jest ponawiany w ciemno; świeży GET tej samej sesji musi potwierdzić dokładny ACK. Po odzyskaniu ACK wysyłanie kontynuuje się. Terminalna awaria przetwarzania zatrzymuje wysyłanie, ale nie mikrofon; nie tworzy automatycznie nowej płatnej sesji. Przy nieodwracalnym pending/failed buffered audio pozostaje nieprzetworzone, nie należy ogłaszać pełnego dostarczenia. Manual pause/stop i deadline zwalniają fizyczne ścieżki niezależnie od żądań; revocation czyści PCM.
+
+Polski STT nadal używa `language=pl`. Wynik zawierający litery spoza alfabetów łacińskich jest odrzucany z `stt_language_rejected`, ACK fragmentu bez ponownego dispatchu i bez propozycji. To filtr alfabetu, nie pełny detektor języka ani korektor treści klinicznej; błędna polska transkrypcja pozostaje do poprawy dostawcy.
+
+
 ## Diagnostyka wyników i odporność sesji
 
 Sesja zwraca opcjonalny `error_code` z zamkniętej allowlisty (bez wyjątków, treści dostawcy lub danych pacjenta): analiza JSON/callback/dowody, STT, niepewny dispatch/księgowanie i limit kontekstu. Definitywnie zwrócony nieprawidłowy wynik analizy nie kończy nagrywania: zachowuje transkrypcję i poprzednie propozycje/pytania, potwierdza fragment raz i pokazuje ostrzeżenie. Nie wykonuje ponownie tego samego dispatchu. Niepewna odpowiedź lub COMMIT pozostaje `pending`, bez zwrotu i płatnego retry. Terminalne `failed` po odebranym fragmencie jest wynikiem serwera, nie brakiem odbioru audio; klient nie flushuje dodatkowego PCM ani nie zastępuje go stanem transportowej niepewności.

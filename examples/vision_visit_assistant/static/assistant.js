@@ -6,6 +6,18 @@
         paused: 'Wstrzymano.', stopping: 'Kończenie sesji…',
         stopped: 'Zakończono.', retry: 'Ponów oczekujące żądanie.'};
     const errors = {
+        analysis_invalid_json: 'Audio i transkrypcja zostały przyjęte. Analiza zwróciła nieprawidłowy wynik JSON; zachowano poprzednie propozycje i pytania. Nagrywanie może trwać dalej — nie ponawiaj tego fragmentu.',
+        analysis_callback_failed: 'Audio i transkrypcja zostały przyjęte. Nie udało się przetworzyć analizy; zachowano poprzednie propozycje i pytania. Nie ponawiaj tego fragmentu.',
+        analysis_evidence_invalid: 'Audio i transkrypcja zostały przyjęte. Wynik analizy nie przeszedł walidacji propozycji lub dowodów; zachowano poprzednie propozycje i pytania. Nie ponawiaj tego fragmentu.',
+        analysis_provider_rejected: 'Dostawca odrzucił analizę. Sesja zakończona; transkrypcja i poprzednie wyniki pozostają dostępne.',
+        stt_provider_rejected: 'Dostawca odrzucił transkrypcję. Sesja zakończona; nie ponawiaj tego fragmentu.',
+        stt_invalid_output: 'Dostawca zwrócił nieprawidłowy wynik transkrypcji. Sesja zakończona.',
+        analysis_pending: 'Wynik analizy jest niepewny. Mikrofon wyłączony; sesja oczekuje na wyjaśnienie. Ponowienie nie uruchomi ponownie dostawcy.',
+        stt_pending: 'Wynik transkrypcji jest niepewny. Mikrofon wyłączony; sesja oczekuje na wyjaśnienie.',
+        usage_pending: 'Nie potwierdzono zapisu rozliczenia dostawcy. Sesja oczekuje na wyjaśnienie; nie rozpoczynaj nowej sesji.',
+        context_limit: 'Osiągnięto limit rozmowy. Sesja zakończona; dotychczasowa transkrypcja i wyniki zostały zachowane.',
+        runtime_failure: 'Sesja zakończona z błędem przetwarzania. Sprawdź zachowane wyniki; nie ponawiaj przyjętego fragmentu.',
+        session_failed: 'Serwer zakończył sesję z błędem. Mikrofon wyłączony; przyjętego audio nie należy ponawiać. Przyczyna nie jest dostępna.',
         live_speech_model_required: 'Brak modelu transkrypcji. Administrator platformy musi go wybrać w Pluginy → vision.visit-assistant → Audio wywiadu na żywo.',
         live_speech_model_unavailable: 'Model transkrypcji lub jego dostawca jest niedostępny. Administrator platformy musi sprawdzić konfigurację audio wtyczki.',
         live_duration_invalid: 'Nieprawidłowy limit czasu wywiadu. Administrator platformy musi ustawić od 60 do 7200 sekund.',

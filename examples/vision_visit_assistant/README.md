@@ -1,5 +1,10 @@
 # Vision — Asystent wywiadu, etap 2
 
+## Diagnostyka wyników i odporność sesji
+
+Sesja zwraca opcjonalny `error_code` z zamkniętej allowlisty (bez wyjątków, treści dostawcy lub danych pacjenta): analiza JSON/callback/dowody, STT, niepewny dispatch/księgowanie i limit kontekstu. Definitywnie zwrócony nieprawidłowy wynik analizy nie kończy nagrywania: zachowuje transkrypcję i poprzednie propozycje/pytania, potwierdza fragment raz i pokazuje ostrzeżenie. Nie wykonuje ponownie tego samego dispatchu. Niepewna odpowiedź lub COMMIT pozostaje `pending`, bez zwrotu i płatnego retry. Terminalne `failed` po odebranym fragmencie jest wynikiem serwera, nie brakiem odbioru audio; klient nie flushuje dodatkowego PCM ani nie zastępuje go stanem transportowej niepewności.
+
+
 ## Sekwencyjna akceptacja i pytania pills
 
 Pytania są większymi pills z ikoną X „Usuń zadane pytanie”. Usunięcie jest lokalne dla sesji, nie zapisuje karty i nie wraca przy kolejnych odczytach tej samej odpowiedzi. Nowa sesja czyści listę usuniętych pytań.

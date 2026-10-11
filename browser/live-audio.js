@@ -3,6 +3,9 @@
     'use strict';
     const forbidden = new Set([401, 403, 404]);
     const terminal = new Set(['stopped', 'completed', 'expired', 'revoked', 'failed', 'error']);
+    const diagnostics = new Set(['analysis_invalid_json', 'analysis_callback_failed', 'analysis_evidence_invalid',
+        'analysis_provider_rejected', 'analysis_pending', 'stt_provider_rejected', 'stt_invalid_output',
+        'stt_pending', 'usage_pending', 'context_limit', 'runtime_failure']);
     class LiveAudioClient {
         constructor(options) {
             if (!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(options.pluginId || '')) throw new Error('invalid_plugin');
@@ -103,6 +106,7 @@
                 (Number.isInteger(session.revision) && Number.isInteger(this._session.revision) && session.revision < this._session.revision) ||
                 (terminal.has(this._session.status) && !terminal.has(session.status)))) return;
             this._session = session;
+            if (terminal.has(session.status)) this.sequence = Math.max(this.sequence, session.next_sequence);
             this.options.onUpdate?.(this.session);
             this.options.onSession?.(this.session, this._state);
             // Pending is the normal dispatch fence while our own packet is
@@ -124,6 +128,8 @@
                 this.activationPending = false;
                 this._set('stopped');
             }
+            if (diagnostics.has(session.error_code)) this._error(session.error_code);
+            else if (session.status === 'failed') this._error('session_failed');
         }
         async start({recordingConsent} = {}) {
             if (recordingConsent !== true) throw new Error('recording_consent_required');
@@ -216,6 +222,7 @@
             } catch (error) { await this._release(false); throw error; }
         }
         _enqueue(bytes, final = false) {
+            if (this._session && terminal.has(this._session.status)) return;
             if (!(bytes instanceof ArrayBuffer) || !bytes.byteLength || bytes.byteLength % 2 || bytes.byteLength > 240000) {
                 this._fail(new Error('invalid_audio_packet')); return;
             }
@@ -237,6 +244,13 @@
                     try {
                         const s = await this._request('/' + this._session.session_id + '/audio', 'POST', packet.bytes,
                             {'X-Audio-Sequence': String(packet.sequence), 'X-Audio-Final': packet.final ? 'true' : 'false'});
+                        // A lifecycle poll may have established a terminal ACK
+                        // while this older request was still in flight.
+                        if (terminal.has(this._session?.status)) break;
+                        if (terminal.has(s.status)) {
+                            this._update(s);
+                            break;
+                        }
                         if (s.status === 'pending') {
                             this._update(s);
                             throw new Error('audio_uncertain');
@@ -282,7 +296,9 @@
             }
         }
         async _fail(error) {
-            if (this._session?.status === 'revoked') { await this._release(false); return; }
+            // An authoritative terminal response is not transport uncertainty.
+            // Never flush extra PCM or overwrite stopped with retry in a race.
+            if (terminal.has(this._session?.status)) { await this._release(false); return; }
             this.generation++;
             if (error.message === 'audio_backpressure' || error.message === 'invalid_audio_packet' || error.message === 'audio_processor_failed') this.stopRequested = true;
             this.uncertain = true;
@@ -297,6 +313,7 @@
             }
             try { await this._release(!forbidden.has(error.status) && error.message !== 'audio_backpressure'); }
             catch (_) { this._error('audio_flush_failed'); }
+            if (terminal.has(this._session?.status) && this._session.status !== 'revoked') return;
             this._error(error.message === 'audio_backpressure' ? 'audio_backpressure' : forbidden.has(error.status) ? 'access_revoked' : 'audio_uncertain');
         }
         async pause() {
@@ -349,6 +366,7 @@
                 if (this._session.status === 'pending') throw new Error('pending_session_requires_reconciliation');
                 this._clearTimers(); this._set('stopped');
             } catch (error) {
+                if (terminal.has(this._session?.status)) return;
                 if (forbidden.has(error.status)) await this._fail(error);
                 else { this._set('retry'); this._error(error.message); }
                 throw error;
@@ -380,6 +398,7 @@
                 if (!this.active || this.uncertain) return;
             }
             await this._drain(); // Same sequence and exact original bytes.
+            if (!this.active) return;
             if (this.uncertain) return;
             if (this.stopRequested) return this.stop();
             this._set('paused'); // Retry never implicitly reopens a microphone.

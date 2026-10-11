@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "fragment",
+    "hook": "global.panel.right",
+    "template": "templates/panel.html",
+    "placement": "global_panel",
+    "fragment_id": "live-interview-example",
+    "page_ids": ["documentation_form"],
+    "tab_id": "tab-wywiad",
+    "roles": ["doctor", "medical_staff", "specialist", "trichologist"],
+    "requires_doctor": true,
+    "js_assets": ["interview.js"]
+  }
+]

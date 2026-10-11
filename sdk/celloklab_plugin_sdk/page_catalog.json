@@ -88,11 +88,6 @@
       "partial": false
     },
     {
-      "page_id": "admin.reporting_ai_stats",
-      "template": "admin/reporting_ai_stats.html",
-      "partial": false
-    },
-    {
       "page_id": "admin.reporting_clinics",
       "template": "admin/reporting_clinics.html",
       "partial": false
@@ -115,6 +110,11 @@
     {
       "page_id": "ai_credits_utilization",
       "template": "ai_credits_utilization.html",
+      "partial": false
+    },
+    {
+      "page_id": "appointment_booking_detail",
+      "template": "appointment_booking_detail.html",
       "partial": false
     },
     {
@@ -288,6 +288,11 @@
       "partial": false
     },
     {
+      "page_id": "emails.treatment_consent_request",
+      "template": "emails/treatment_consent_request.html",
+      "partial": false
+    },
+    {
       "page_id": "emails.visit_cancellation",
       "template": "emails/visit_cancellation.html",
       "partial": false
@@ -305,11 +310,6 @@
     {
       "page_id": "external_doctor_activation",
       "template": "external_doctor_activation.html",
-      "partial": false
-    },
-    {
-      "page_id": "labs",
-      "template": "labs.html",
       "partial": false
     },
     {
@@ -405,6 +405,11 @@
     {
       "page_id": "patient_portal.settings",
       "template": "patient_portal/settings.html",
+      "partial": false
+    },
+    {
+      "page_id": "patient_portal.treatment_consent",
+      "template": "patient_portal/treatment_consent.html",
       "partial": false
     },
     {

@@ -1,0 +1,10 @@
+{
+  "id": "example.live-interview",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Celloklab",
+  "entrypoint": {"module": "example_live_interview:register"},
+  "capabilities": {"requested": ["AI", "ai.live_interview", "patient.read_trichology_record"]},
+  "ui": {"hooks": ["global.panel.right"]},
+  "events": {"subscribe": []}
+}

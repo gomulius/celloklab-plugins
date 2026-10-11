@@ -1,0 +1,18 @@
+<section class="clk-plugin-ui" aria-label="Wywiad trychologiczny — przykład partnera" data-plugin-nonform>
+  <details class="clk-ui-card clk-ui-card--compact" data-trichology-interview data-plugin-nonform
+           data-plugin-id="example.trichology-interview" data-patient-id="{{ patient_id|default('', true) }}"
+           data-tenant-slug="{{ tenant_slug|default('', true) }}">
+    <summary class="clk-ui-card-title">Wywiad trychologiczny — edytor partnera</summary>
+    <div class="clk-ui-card-body clk-ui-stack">
+      <p class="clk-ui-help">41 pól wywiadu. Zapisz zmiany osobnym przyciskiem poniżej. Zapis formularza pacjenta nie zapisuje tego edytora. Przed zmianą edytora zapisz zmiany w formularzu pacjenta.</p>
+      <script type="application/json" data-interview-schema>{{ interview_schema|tojson }}</script>
+      <div class="clk-ui-grid clk-ui-grid--2" data-fields></div>
+      <div class="clk-ui-row">
+        <button type="button" class="clk-ui-button clk-ui-button--primary" data-save disabled>Zapisz wywiad partnera</button>
+        <button type="button" class="clk-ui-button clk-ui-button--secondary" data-refresh>Odczytaj aktualną wersję</button>
+      </div>
+      <div role="status" aria-live="polite" data-status>Odczytywanie wywiadu…</div>
+      <p class="clk-ui-help" data-dirty hidden>Niezapisane zmiany w edytorze partnera.</p>
+    </div>
+  </details>
+</section>

@@ -3,28 +3,34 @@
 
 Public developer guidelines, standalone SDK contracts and reference examples for administrator-reviewed Celloklab plugins. Partners need no private application repository, database credentials or patient data. This is **not** the Celloklab application, a marketplace, an upload installer or a public patient-data API.
 
-## Documentation-only publication: read this first
+## SDK 1.2 FOUNDATION publication: read this first
 
-The documentation describes the inspected current **Python SDK 1.1.0** and host contracts. The default `main` branch retains **older public SDK/code/catalog/demo snapshots at distribution 1.0.0**. Updating Markdown does not update these files or the bundled wheel. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**, and plugin versions are independent.
+This checkout publishes standalone **Python SDK 1.2.0 FOUNDATION** source, catalogs and synchronized reference demos, including `trichology.py`, `bookings.py`, `clinical_tasks.py` and `live_interview.py`. Manifest SDK remains **1.0**, browser UI Kit **1.0.0**, and plugin versions are independent.
 
-**Installing or rebuilding this checkout gives SDK 1.0.0, not 1.1.0.** In particular, it does not supply the current `trichology.py` or `bookings.py` modules, typed interview editor or booking demo. References to those additions in technical guides describe current contracts, not files available here. Confirm deployed-host support with the platform administrator before integration. No public 1.1.0 artifact or GitHub release is asserted by this documentation update; do not seek private host access as an installation workaround.
+Building `sdk/` now produces **1.2.0**, not the older 1.0.0 snapshot. The release owner builds and verifies the 1.2.0 wheel separately; the historical 1.0.0 wheel may remain, but installing it does not install FOUNDATION. Source publication is not evidence of a GitHub release, deployment or installed-host support. Confirm host compatibility with the platform administrator; private host modules are not published here.
 
-GitHub is the documentation delivery surface: browse this branch and pin its reviewed commit. **No ZIP is required or generated.** SDK 1.1.0 implementation/artifact publication is a separate reviewed release, not part of this docs-only branch.
+FOUNDATION implements contracts, host registration/registry integration, tab-targeted panel behavior and the existing-form browser bridge, **not a live audio runtime**. It supplies no live execution/session router, microphone capture, audio transport, STT, streaming or provider adapter. `example_live_interview` is a synthetic preview with its start CTA disabled and no actual provider calls or clinical writes. See the live contract below for the exact implementation boundary.
+
+GitHub is the source/documentation delivery surface: browse this branch and pin its reviewed commit. **No ZIP is required or generated.** This README update does not build or replace wheels, configure providers or publish private application code.
 
 ## Contents
 
 | Directory | Purpose |
 |---|---|
-| `docs/` | All 14 technical guides indexed below |
-| `sdk/` | Older standalone Python SDK 1.0.0, catalogs and offline build backend |
-| `wheels/` | Existing SDK 1.0.0 wheel; not a current-contract upgrade |
+| `docs/` | Technical guides indexed below |
+| `sdk/` | Standalone Python SDK 1.2.0 FOUNDATION, catalogs and offline build backend |
+| `wheels/` | Release-owner-built wheels; any retained 1.0.0 wheel is historical |
 | `starter/` | Existing page, modal, floating panel and declaration examples |
 | `examples/example_ai/` | Existing neutral-text AI page and right-panel example |
 | `examples/trichology_ai_summary/` | Existing source-change-driven, read-only summary card |
-| `preview/` | Older offline UI preview with mock feedback, no real API |
+| `examples/example_trichology_interview/` | Synchronized typed interview read/write reference |
+| `examples/example_bookings/` | Synchronized booking contract reference |
+| `examples/example_live_interview/` | FOUNDATION synthetic proposal preview; live start disabled |
+| `browser/` | Public existing-form bridge reference; not a live session client |
+| `preview/` | Offline UI preview with mock feedback, no real API |
 | `LICENSES/` | Full standard license texts |
 
-## Complete documentation index (14 guides)
+## Complete documentation index
 
 | Guide | Purpose |
 |---|---|
@@ -38,6 +44,8 @@ GitHub is the documentation delivery surface: browse this branch and pin its rev
 | [Notification Contract](docs/PLUGIN_NOTIFICATION_CONTRACT.md) | Scoped recipients and notification behavior |
 | [Booking Contract](docs/PLUGIN_BOOKING_CONTRACT.md) | Organizational reservations and reception scope |
 | [Typed Trichology Interview Contract](docs/PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md) | All 41 new fields, codes, types, read/write and concurrency |
+| [Live Interview FOUNDATION Contract](docs/PLUGIN_LIVE_INTERVIEW_CONTRACT.md) | Text-task/session declarations, synthetic events, panel targeting and unfinished live runtime |
+| [Browser Form Bridge](browser/trichology-form-bridge.js) | Public bridge source; original-revision writes and native-form guards explained in the live contract |
 | [Extended Trichology Interview](docs/TRICHOLOGY_INTERVIEW_EXTENSION.md) | Native fields, storage, migration and integration boundaries |
 | [Official RPL Catalog Operations](docs/RPL_CATALOG_OPERATIONS.md) | Administrator import, local medicine search and immutable medication snapshots |
 | [Administrator Installation Guide](docs/PLATFORM_ADMIN_PLUGIN_INSTALLATION_SKILL.md) | Administrator-only review, manual prerequisites and activation |
@@ -45,7 +53,7 @@ GitHub is the documentation delivery surface: browse this branch and pin its rev
 
 The last two guides are published here as documentation for administrators/maintainers, **not partner runtime permissions or private implementation access**. Any archive exclusions described there concern a separate packaging workflow, not GitHub documentation availability. Start with development and API guides; consult the specific domain contract before using an endpoint. See also [SDK README](sdk/README.md) and the [neutral AI](examples/example_ai/README.md) / [summary](examples/trichology_ai_summary/README.md) sample READMEs.
 
-## Current typed trichology contract (SDK 1.1.0)
+## Current typed trichology contract (included in SDK 1.2.0)
 
 The extended interview is **not read-only or strings-only**. Existing `patient.read_trichology_record` and `patient.write_trichology_record` grants cover GET/PATCH on `/api/plugins/{plugin_id}/patients/{patient_id}/trichology?tenant_slug=...`, subject to current clinical role, active doctor profile/clinic assignment and assigned-patient authority. No new grant or AI requirement is introduced.
 
@@ -55,29 +63,29 @@ The extended interview is **not read-only or strings-only**. Existing `patient.r
 - Send the original GET revision in `If-Match` (legacy optional, strongly recommended). On 409 preserve the draft and compare explicitly; never silently fetch a fresh revision and overwrite.
 - Source-change audit/events/revisions remain transactional. The separate AI `TrichologySnapshot.fields` contract **still uses strings/null**; it is not the editable typed DTO. The existing summary demo stays read-only.
 
-See the interview contract for every field, code, bound and clearing rule. Migration 084 is confirmed applied in the inspected deployment; do not rerun it there or assume that fact applies to another deployment. Native interview columns are unencrypted, separate from encrypted AI snapshots/artifacts. Recording/transcription/RPL and Case expansion are out of scope.
+See the interview contract for every field, code, bound and clearing rule. Migration 084 is confirmed applied in the inspected deployment; do not rerun it there or assume that fact applies to another deployment. Native interview columns are unencrypted, separate from encrypted AI snapshots/artifacts. Live recording/transcription runtime and Case expansion remain out of scope; FOUNDATION declarations do not implement them.
 
-## Install and validate the bundled older snapshot locally
+## Build, install and validate SDK 1.2.0 locally
 
-Python 3.10 or newer is required. From this repository root (these commands install **1.0.0 only**):
+Python 3.10 or newer is required. From this repository root, build the current standalone source or use a release-owner-verified 1.2.0 wheel:
 
 ```sh
 python -m venv .venv
 # Linux/macOS; on Windows activate .venv\Scripts\activate instead:
 . .venv/bin/activate
-python -m pip install --no-index --no-deps wheels/celloklab_plugin_sdk-1.0.0-py3-none-any.whl
+python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
+python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.0-py3-none-any.whl
 celloklab-plugin-validate starter
 celloklab-plugin-validate examples/example_ai
 celloklab-plugin-validate examples/trichology_ai_summary
+celloklab-plugin-validate examples/example_trichology_interview
+celloklab-plugin-validate examples/example_bookings
+celloklab-plugin-validate examples/example_live_interview
 ```
 
-Offline validation checks the bundled older declarations/static policy, not all new 1.1.0 contracts. It never executes a plugin, grants authority, proves browser/security behavior or activates anything. Rebuilding the existing public sources also yields 1.0.0:
+Offline validation checks declarations/static policy, including FOUNDATION declarations. It never executes a plugin, grants authority, proves browser/security behavior or activates anything. The retained `wheels/celloklab_plugin_sdk-1.0.0-py3-none-any.whl`, if used, installs only the historical 1.0.0 snapshot and lacks the new modules/contracts.
 
-```sh
-python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
-```
-
-Open `preview/index.html` for the older offline preview: **no real authentication, API, email, upload, clinical data or provider calls**. Feedback is mock; fonts use local fallbacks.
+Open `preview/index.html` for the offline preview: **no real authentication, API, email, upload, clinical data or provider calls**. Feedback is mock; fonts use local fallbacks.
 
 ## Runtime and security boundaries
 
@@ -93,7 +101,7 @@ Open `preview/index.html` for the older offline preview: **no real authenticatio
 
 ## Versions, licensing and feedback
 
-Pin the reviewed documentation commit; a changing branch is not a compatibility guarantee or evidence of installed-host support. Historical tests/artifact inventories in release notes concern their stated implementation snapshots, not tests or a rebuilt release from this docs-only checkout.
+Pin the reviewed source/documentation commit; a changing branch is not a compatibility guarantee or evidence of installed-host support. Historical tests/artifact inventories in release notes concern their stated implementation snapshots, not proof of a rebuilt 1.2.0 wheel, production deployment or live audio/provider acceptance.
 
 - **Markdown documentation:** [CC BY 4.0](LICENSES/CC-BY-4.0.txt).
 - **Code, templates, catalogs and documentation code snippets:** [Apache 2.0](LICENSES/Apache-2.0.txt).

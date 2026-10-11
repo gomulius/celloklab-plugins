@@ -1,5 +1,21 @@
 # Platform administrator: reviewed plugin installation
 
+## SDK 1.2 FOUNDATION — nie aktywuj pozornego wywiadu
+
+Kontrakt: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md)**. Nowa referencja `plugins/example_live_interview/`, ID `example.live-interview`, wersja pluginu `1.0.0`, manifest SDK `1.0`, wymaga standardowego przeglądu dokładnej wersji i jawnego enable z grantami `AI`, `ai.live_interview`, `patient.read_trichology_record`; nie przyznawaj zapisu do demo. Discovery nie oznacza aktywacji ani instalacji produkcyjnej. Wspólna bramka całego pluginu wymaga także aktywnej globalnej funkcji/modelu/dostawcy i jawnego opt-in kliniki. Sama rekomendacja modelu nie zapisuje konfiguracji; UI nie zależy od sprawdzenia salda.
+
+Panel jest tylko dla `documentation_form`/`tab-wywiad` z `requires_doctor=True`. CTA rozpoczęcia jest wyłączony; drugi przycisk pokazuje dane syntetyczne bez mikrofonu, LLM i zapisu. To nie zakończona integracja badawcza. Nie wprowadzaj migracji, workerów ani płatnych prób na podstawie deklaracji SDK. Rzeczywiste live/STT, adaptery i rozliczenia wymagają kolejnego przeglądu i dowodów. Ten zakres nie potwierdza ZIP/wheel, konfiguracji ani wdrożenia.
+
+## Dobrowolny przewodnik kliniki — `clinic.guided-setup` 1.0.0
+
+Dla istniejącej kliniki użyj **Ustawienia → „Uruchom przewodnik”** w nagłówku; przycisk wymaga aktywnej lokalnej `tenant_admin`, także gdy użytkownik jest super-adminem. Brak automatycznego powitania starej kliniki jest zamierzony. Przycisk otwiera także zamknięty/zakończony/odłożony przewodnik oraz zwinięty panel, bez resetu przeczytanych kroków/kohorty. Gdy moduł lub jego JS nie jest dostępny, pokazuje jawny polski status/toast: sprawdź lifecycle, host tenant/rolę, hook i assets/API, nie zakładaj cache ani migracji bez dowodów. Ta zmiana nie dodaje migracji ani nie włącza pluginu automatycznie.
+
+Przeczytaj [docs/CLINIC_GUIDED_SETUP.md](docs/CLINIC_GUIDED_SETUP.md). Przejrzyj dokładne źródło i manifest, wdroż/restartuj standardowo, następnie jako `is_super_admin` sprawdź discovery w `/api/admin/plugins`, zatwierdź `POST /api/admin/plugins/clinic.guided-setup/approve-version` z `{"version":"1.0.0"}` i jawnie włącz `POST /api/admin/plugins/clinic.guided-setup/enable` z **`{"capabilities":[]}`**. Nie ma żadnego grantu onboarding/AI ani auto-enable; uprawnienia administratora platformy nie zastępują aktywnego lokalnego `tenant_admin` w API postępu.
+
+Backup i ręczne zatwierdzenie **wyłącznie brakującej `087_clinic_onboarding.sql`**, bez powtarzania potwierdzonych wcześniejszych migracji. Wstrzymaj tworzenie klinik przy pierwszym przechwyceniu immutable max tenant ID; jedno połączenie, stop-on-error. Powtórzenie nie zmienia cutoff. Stare kliniki nie otrzymują popupu, ale mają ręczne „Pierwsze kroki”; nowa kohorta ma zaproszenie per użytkownik+klinika+`clinic_admin:v1`, a „Nie teraz” nie ponawia zaproszenia po skutecznym zapisie.
+
+Odbierz polski UI, stan czytania nie konfiguracji, „W przygotowaniu” bez martwego linku prawnego, recepcyjne linki pacjent/wizyta (null dla pure admin), wznowienie i jawny GET po409/niepewnym zapisie, no-store oraz middleware multipart bez receive/parse przed CSRF. Nie przechowuje treści PII/formularzy, ale postęp jest powiązany z użytkownikiem. Brak automatycznej retencji/cascade/DELETE; polityka usuwania stanów wymaga osobnej decyzji operacyjnej. Rollback: `POST /api/admin/plugins/clinic.guided-setup/disable`, zatwierdzony rollback źródła/restart, **zachowaj schema087, kohortę, postęp i audyt**. Nie wykonuj produkcyjnego SQL na podstawie samych lokalnych testów.
+
 ## Akceptacja rezerwacji kontaktowych recepcji
 
 Kontrakt: `PLUGIN_BOOKING_CONTRACT.md`; referencja `example.bookings` 1.0.0, strona `calendar`, bez AI. Zatwierdź źródło i dokładną wersję, przyznaj tylko potrzebne `visits.schedule_guest`, `visits.read_bookings`, `visits.attach_patient`, `visits.read_availability`, `visits.reschedule_booking`, `visits.cancel_booking`. `visits.schedule` pozostaje oddzielnym grantem tworzenia zarejestrowanego pacjenta. Rola aktywnej recepcji i ograniczenia aktorów mieszanych są niezależne od grantów. Nie wymagaj aktywacji/licencji AI dla tej wtyczki.
@@ -32,7 +48,7 @@ Migration **084 is confirmed applied** for this deployment; do not request or ru
 
 ## Natywny katalog RPL i kolejność wywiadu — odbiór
 
-Przewodnik operacyjny: [docs/RPL_CATALOG_OPERATIONS.md](RPL_CATALOG_OPERATIONS.md). Nowy katalog wymaga wyłącznie brakującej, ręcznie zatwierdzonej migracji **086_rpl_catalog.sql**; **084 jest potwierdzona — nie powtarzać**. Aktualizacja dokumentacji nie wykonuje SQL produkcyjnego. Administrator platformy obsługuje RPL w istniejącym `/admin/clinical-dictionaries`: jawne pobranie ze stałego oficjalnego źródła albo upload XML do 100 MiB, bez harmonogramu, workera i importu przy otwarciu strony. Zapis wymaga uwierzytelnionej sesji oraz poprawnego nagłówka `X-CSRF-Token`; upload nie akceptuje tokenu jako pola multipart i autoryzuje przed parsowaniem.
+Przewodnik operacyjny: [docs/RPL_CATALOG_OPERATIONS.md](docs/RPL_CATALOG_OPERATIONS.md). Nowy katalog wymaga wyłącznie brakującej, ręcznie zatwierdzonej migracji **086_rpl_catalog.sql**; **084 jest potwierdzona — nie powtarzać**. Aktualizacja dokumentacji nie wykonuje SQL produkcyjnego. Administrator platformy obsługuje RPL w istniejącym `/admin/clinical-dictionaries`: jawne pobranie ze stałego oficjalnego źródła albo upload XML do 100 MiB, bez harmonogramu, workera i importu przy otwarciu strony. Zapis wymaga uwierzytelnionej sesji oraz poprawnego nagłówka `X-CSRF-Token`; upload nie akceptuje tokenu jako pola multipart i autoryzuje przed parsowaniem.
 
 Sprawdź bieżący import, datę stanu katalogu z XML, datę importu, SHA-256 i liczbę leków dla ludzi, bez deklarowania stałej daty/liczebności przyszłych katalogów. Nieudany import zachowuje poprzedni katalog; po niepewnym timeout/500 odczytaj status/historię przed świadomą kolejną próbą. Parser obsługuje ściśle oficjalny format 6.0.0, nie dowolny XML. Wyszukiwanie natywne wymaga 2 znaków, zwraca maksymalnie 20 wyników i dopasowuje prefiks nazwy lub zapisanego tekstu substancji.
 

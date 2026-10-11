@@ -1,0 +1,10 @@
+{
+  "id": "example.trichology-interview",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Celloklab",
+  "entrypoint": {"module": "example_trichology_interview:register"},
+  "capabilities": {"requested": ["patient.read_trichology_record", "patient.write_trichology_record"]},
+  "ui": {"hooks": ["patient.records.sections"]},
+  "events": {"subscribe": []}
+}

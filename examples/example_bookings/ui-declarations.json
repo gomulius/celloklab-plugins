@@ -1,0 +1,3 @@
+[
+  {"kind": "page", "page_id": "calendar", "title": "Rezerwacje — demo recepcji", "nav_label": "Rezerwacje — demo", "template": "calendar.html", "roles": ["reception_staff"], "requires_doctor": false, "js_assets": ["bookings.js"]}
+]

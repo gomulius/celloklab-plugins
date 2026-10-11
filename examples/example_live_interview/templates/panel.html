@@ -1,0 +1,19 @@
+<section class="clk-plugin-ui" data-live-interview-example aria-label="Przykład SDK wywiadu">
+  <div class="clk-ui-card clk-ui-stack">
+    <button type="button" class="clk-ui-button clk-ui-button--primary" disabled aria-describedby="example-live-runtime">Rozpocznij wywiad z AI</button>
+    <p class="clk-ui-help" id="example-live-runtime">Uruchamianie wywiadu nie jest jeszcze wdrożone. Ten przykład nie włącza mikrofonu, nie nagrywa i nie wywołuje modelu AI.</p>
+    <h2 class="clk-ui-card-title">Przykład SDK — bez nagrywania i zapisu</h2>
+    <p class="clk-ui-help">Dane poniżej są wyłącznie syntetyczne, nie pochodzą od pacjenta. Deklaracja sesji nie oznacza dostępnego wykonania ani zainstalowanej integracji badawczej.</p>
+    <button type="button" class="clk-ui-button clk-ui-button--secondary" data-synthetic-show>Pokaż syntetyczną propozycję</button>
+    <p class="clk-ui-help" role="status" aria-live="polite" data-synthetic-status>Możesz obejrzeć przykład propozycji bez zmiany dokumentacji.</p>
+    <div class="clk-ui-stack" data-synthetic-review hidden>
+      <h3 class="clk-ui-card-title">Propozycja do oceny — dane syntetyczne</h3>
+      <p class="clk-ui-help">Główna dolegliwość</p>
+      <p data-synthetic-value></p>
+      <p class="clk-ui-help">Źródło: przykładowy segment, nie nagranie pacjenta</p>
+      <blockquote data-synthetic-source></blockquote>
+      <p class="clk-ui-help">Tylko podgląd. Brak przycisku akceptacji lub zapisu; propozycja nie trafia do formularza ani karty pacjenta.</p>
+    </div>
+    <script type="application/json" data-synthetic-events>{{ synthetic_events | tojson }}</script>
+  </div>
+</section>

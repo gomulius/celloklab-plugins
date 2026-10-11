@@ -1,0 +1,28 @@
+<section class="clk-plugin-ui" data-booking-demo data-plugin-id="{{ plugin_id }}" data-tenant-slug="{{ tenant_slug }}" aria-label="Rezerwacje recepcji">
+  <div class="clk-ui-card clk-ui-stack">
+    <h2 class="clk-ui-card-title">Rezerwacje — demo recepcji</h2>
+    <p class="clk-ui-help">Rezerwacja kontaktowa nie tworzy konta ani dokumentacji. Po rejestracji pacjenta przypisz go do tej samej wizyty. Dostępność obejmuje całą dobę; nie oznacza godzin pracy. Czas zabiegu ustala katalog kliniki, a wizyta zachowuje jego migawkę.</p>
+    <div role="status" aria-live="polite" data-status></div>
+    <div class="clk-ui-grid clk-ui-grid--2">
+      <div class="clk-ui-field"><label class="clk-ui-label" for="booking-provider">Specjalista</label><select id="booking-provider" class="clk-ui-select" data-provider></select></div>
+      <div class="clk-ui-field"><label class="clk-ui-label" for="booking-day">Dzień kalendarza</label><input id="booking-day" class="clk-ui-input" type="date" data-day></div>
+    </div>
+    <div class="clk-ui-row"><button type="button" class="clk-ui-button clk-ui-button--secondary" data-refresh>Odczytaj kalendarz i dostępność</button></div>
+    <div class="clk-ui-card clk-ui-card--compact"><h3 class="clk-ui-card-title">Zajęte przedziały</h3><ul data-busy></ul></div>
+    <form class="clk-ui-form clk-ui-stack" data-create>
+      <h3 class="clk-ui-card-title">Rezerwacja bez zarejestrowanego pacjenta</h3>
+      <div class="clk-ui-grid clk-ui-grid--2">
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-name">Imię</label><input id="booking-name" name="name" class="clk-ui-input" required maxlength="255"></div>
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-surname">Nazwisko</label><input id="booking-surname" name="surname" class="clk-ui-input" required maxlength="255"></div>
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-phone">Telefon</label><input id="booking-phone" name="phone" type="tel" class="clk-ui-input" maxlength="64"></div>
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-email">E-mail</label><input id="booking-email" name="email" type="email" class="clk-ui-input" maxlength="255"></div>
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-date">Termin</label><input id="booking-date" name="visit_date" type="datetime-local" class="clk-ui-input" required></div>
+        <div class="clk-ui-field"><label class="clk-ui-label" for="booking-type">Procedura i czas</label><select id="booking-type" name="treatment_id" data-treatment class="clk-ui-select" required></select></div>
+      </div>
+      <p class="clk-ui-help">Wybierz aktywną procedurę z katalogu kliniki. Czas i rodzaj wizyty potwierdza serwer; podgląd nie zawiera danych kontaktowych.</p>
+      <p class="clk-ui-help" data-preview aria-live="polite"></p>
+      <div class="clk-ui-row"><button type="submit" class="clk-ui-button clk-ui-button--primary">Zarezerwuj</button><button type="button" class="clk-ui-button clk-ui-button--secondary" data-retry hidden>Sprawdź tym samym żądaniem</button><button type="button" class="clk-ui-button clk-ui-button--secondary" data-new disabled>Nowa rezerwacja</button></div>
+    </form>
+    <div class="clk-ui-card clk-ui-card--compact"><h3 class="clk-ui-card-title">Kalendarz rezerwacji</h3><div data-calendar class="clk-ui-stack"></div></div>
+  </div>
+</section>

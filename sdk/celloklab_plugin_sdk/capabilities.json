@@ -3,6 +3,9 @@
   "capabilities": [
     "AI",
     "ai.trichology_summary",
+    "ai.clinical_tasks",
+    "ai.live_interview",
+    "ai.transcription",
     "cases.read",
     "cases.read_own_medical_documentation",
     "cases.read_participants",
@@ -42,6 +45,12 @@
     "patient.write_identity",
     "patient.write_photo_metadata",
     "patient.write_trichology_record",
+    "visits.attach_patient",
+    "visits.cancel_booking",
+    "visits.read_availability",
+    "visits.read_bookings",
+    "visits.reschedule_booking",
+    "visits.schedule_guest",
     "visits.cancel",
     "visits.read_full",
     "visits.read_scheduling_options",
@@ -50,6 +59,11 @@
     "visits.schedule",
     "visits.write"
   ],
+  "capability_descriptions": {
+    "ai.clinical_tasks": "Deklaracje zadań tekstowych E1; bez gwarancji runtime, dostępu do danych, zapisu ani dowolnego wywołania dostawcy. Wymaga AI oraz osobnych deklaracji odczytu wejść i autoryzacji hosta.",
+    "ai.live_interview": "Deklaracje sesji i propozycji do oceny specjalisty; bez uruchamiania audio, AI lub zapisu karty. Wymaga AI oraz autoryzacji, zgody i kontroli źródeł przez hosta.",
+    "ai.transcription": "Opcjonalna deklaracja przyszłej transkrypcji hosta; SDK nie zapewnia STT ani nagrywania i nie nadaje zgody, dostępu do mikrofonu, danych lub dostawcy. Tekst istniejącego transkryptu nie wymaga tej deklaracji."
+  },
   "ui_hooks": [
     "case.header.actions",
     "case.sidebar",

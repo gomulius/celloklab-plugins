@@ -6,6 +6,8 @@ from typing import Callable
 
 from .ui import UIFragment, PluginPage
 from .clinical_ai import TrichologySummaryRegistration
+from .clinical_tasks import TaskRegistration
+from .live_interview import LiveInterviewRegistration
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -25,6 +27,20 @@ class PluginRegistrar:
             raise TypeError("expected TrichologySummaryRegistration")
         registration.validate()
         self._registry.register_trichology_summary(self.plugin_id, registration)
+
+    def register_clinical_task(self, registration: TaskRegistration) -> None:
+        """Declare a pure text task, not runtime availability or authorization."""
+        if not isinstance(registration, TaskRegistration):
+            raise TypeError("Wymagany jest TaskRegistration.")
+        registration.validate()
+        self._registry.register_clinical_task(self.plugin_id, registration)
+
+    def register_live_interview(self, registration: LiveInterviewRegistration) -> None:
+        """Declare a review-only live session, without starting audio or AI."""
+        if not isinstance(registration, LiveInterviewRegistration):
+            raise TypeError("Wymagany jest LiveInterviewRegistration.")
+        registration.validate()
+        self._registry.register_live_interview(self.plugin_id, registration)
 
     def register_ui(self, hook: str, renderer: Callable[..., UIFragment | None]) -> None:
         """Register a renderer for a manifest-declared UI hook."""

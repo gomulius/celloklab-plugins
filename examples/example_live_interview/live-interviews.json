@@ -1,0 +1,7 @@
+[
+  {
+    "session_id": "interview-review",
+    "title": "Wywiad — przykład deklaracji SDK",
+    "inputs": {"trichology_record": true, "transcript": true}
+  }
+]

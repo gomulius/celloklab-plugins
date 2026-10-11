@@ -12,6 +12,8 @@ from .catalog import CAPABILITIES, UI_HOOKS, DESIGN_TOKENS
 from .ui import PluginPage, UIFragment
 from .ai import plugin_ai_feature_id
 from .clinical_ai import TRICHOLOGY_CHANGED, TRICHOLOGY_SUMMARY_CAPABILITY, TRICHOLOGY_SUMMARY_CAPABILITIES
+from .clinical_tasks import TaskInputs, TaskRegistration, TaskPrompt
+from .live_interview import LiveInterviewRegistration
 
 
 def contained(root, value):
@@ -215,6 +217,38 @@ def validate(folder):
             error('ui.declaration', 'ui-declarations.json', str(exc))
     else:
         warnings.append({'code': 'ui.absent', 'file': 'ui-declarations.json', 'message': 'No static UI declarations supplied; registration was not executed.'})
+    # Optional reviewed metadata, never callback imports or runtime emulation.
+    for filename, cls, identifier, maximum in (
+        ('clinical-tasks.json', TaskRegistration, 'task_id', 100),
+        ('live-interviews.json', LiveInterviewRegistration, 'session_id', 32),
+    ):
+        declaration = root / filename
+        if not declaration.exists():
+            continue
+        warnings.append({'code': 'clinical.static-only', 'file': filename,
+                         'message': 'Sprawdzono wyłącznie deklaracje; runtime, funkcje, zgoda, źródła i autoryzacja hosta nie są sprawdzane ani zapewniane.'})
+        try:
+            items = json.loads(bounded_text(contained(root, filename)))
+            if not isinstance(items, list) or len(items) > maximum:
+                raise ValueError('Nieprawidłowy lub zbyt duży zbiór deklaracji klinicznych.')
+            capability_section = (data or {}).get('capabilities', {})
+            requested = capability_section.get('requested', []) if isinstance(capability_section, dict) else capability_section
+            if not isinstance(requested, list) or any(not isinstance(cap, str) for cap in requested):
+                raise ValueError('Nieprawidłowe deklaracje uprawnień manifestu.')
+            seen = set()
+            for item in items:
+                if not isinstance(item, dict) or set(item) & {'prompt_builder', 'result_processor'}:
+                    raise ValueError('Deklaracje offline nie mogą zawierać funkcji ani ścieżek do funkcji.')
+                item = dict(item)
+                item['inputs'] = TaskInputs(**item.get('inputs', {}))
+                contract = cls(**item, prompt_builder=lambda _: TaskPrompt('', 'Deklaracja offline'))
+                if getattr(contract, identifier) in seen:
+                    raise ValueError('Identyfikatory deklaracji nie mogą się powtarzać.')
+                seen.add(getattr(contract, identifier))
+                if not contract.required_capabilities.issubset(requested):
+                    raise ValueError('Manifest nie deklaruje wymaganych uprawnień zadania lub sesji.')
+        except (OSError, ValueError, TypeError, KeyError, AttributeError, UnicodeError, RecursionError):
+            error('clinical.declaration', filename, 'Nieprawidłowa deklaracja kliniczna: sprawdź pola, limity, unikalność i uprawnienia manifestu.')
     errors.sort(key=lambda x: (x['file'], x['code'], x['message']))
     return {'schema_version': 1, 'ok': not errors, 'errors': errors, 'warnings': warnings}
 

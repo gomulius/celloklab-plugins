@@ -1,0 +1,10 @@
+{
+  "id": "example.bookings",
+  "version": "1.0.0",
+  "sdk_version": "1.0",
+  "publisher": "Przykład Celloklab",
+  "entrypoint": {"module": "example_bookings:register"},
+  "capabilities": {"requested": ["visits.schedule_guest", "visits.read_bookings", "visits.read_availability", "visits.attach_patient", "visits.reschedule_booking", "visits.cancel_booking"]},
+  "ui": {"hooks": ["ui.page"]},
+  "events": {"subscribe": []}
+}

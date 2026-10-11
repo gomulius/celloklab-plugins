@@ -259,9 +259,22 @@
                     if (!result.ok) {
                         if (denied(result.code)) { this.clearAccess(); return; }
                         item.status = 'pending';
-                        note.textContent = ['revision_conflict', 'baseline_conflict'].includes(result.code) ?
-                            'Karta zmieniła się od powstania propozycji. Sprawdź aktualną kartę i poczekaj na nową propozycję; niczego nie zapisano.' :
-                            'Nie zapisano zmiany. Sprawdź niezapisane edycje karty lub dostęp.';
+                        const saveErrors = {
+                            native_dirty: 'Najpierw zapisz ręczne zmiany w karcie pacjenta. Propozycja pozostaje do sprawdzenia; niczego nie nadpisano.',
+                            draft_changed: 'Pole zostało zmienione podczas akceptacji. Zachowano ręczną edycję; niczego nie zapisano.',
+                            revision_conflict: 'Karta zmieniła się od powstania propozycji. Poczekaj na nową propozycję opartą na aktualnej karcie.',
+                            baseline_conflict: 'Wartość pola w formularzu różni się od zapisanej karty. Zapisz ręczne zmiany przed ponowną analizą.',
+                            invalid_patch: 'Proponowana wartość nie pasuje do edytowalnego pola formularza.',
+                            invalid_baseline: 'Nieprawidłowa wartość bazowa propozycji. Niczego nie zapisano.',
+                            save_locked: 'Trwa inny zapis karty. Spróbuj po jego zakończeniu.',
+                            csrf_required: 'Brak tokenu sesji do zapisu. Otwórz ponownie kartę po zachowaniu ręcznych zmian.',
+                            network_error: 'Nie potwierdzono zapisu z powodu błędu połączenia. Sprawdź kartę przed ponowieniem.',
+                            form_unavailable: 'Formularz wywiadu jest niedostępny.',
+                            invalid_confirmation: 'Serwer nie zwrócił prawidłowego potwierdzenia zapisu. Sprawdź kartę przed ponowieniem.',
+                            revision_required: 'Propozycja nie ma prawidłowej wersji źródłowej karty.',
+                            invalid_record: 'Odczyt karty nie zawiera prawidłowej wartości tego pola.'
+                        };
+                        note.textContent = saveErrors[result.code] || 'Nie potwierdzono zapisu zmiany. Sprawdź odpowiedź żądania zapisu w panelu Network.';
                         accept.disabled = reject.disabled = false;
                         return;
                     }

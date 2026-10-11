@@ -1,3 +1,3 @@
 [
-  {"kind":"fragment","hook":"global.panel.right","template":"templates/panel.html","placement":"global_panel","fragment_id":"vision-visit-assistant","page_ids":["documentation_form"],"tab_id":"tab-wywiad","roles":["doctor","medical_staff","specialist","trichologist"],"requires_doctor":true,"js_assets":["assistant.js"]}
+  {"kind":"fragment","hook":"global.panel.right","template":"templates/panel.html","placement":"global_panel","fragment_id":"vision-visit-assistant","page_ids":["documentation_form"],"tab_id":"tab-wywiad","roles":["doctor","medical_staff","specialist","trichologist"],"requires_doctor":false,"js_assets":["assistant.js"]}
 ]

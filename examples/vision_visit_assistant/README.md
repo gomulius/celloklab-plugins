@@ -8,7 +8,7 @@ Kontrakt: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](../../PLUGIN_LIVE_INTERVIEW_CONTRA
 
 ## Panel i bezpieczna ocena
 
-Panel `global.panel.right` / `global_panel`, `documentation_form`, `tab-wywiad`, role kliniczne i `requires_doctor=True`. Przed startem UI odczytuje kartę przez publiczny bridge. Widoczność nie daje dostępu: host ponownie sprawdza aktywny profil i clinic assignment, assigned patient, plugin/version/grants, feature/model/provider, dostępność/licencję i clinic opt-in. No-AI, pozostałe moduły, native fields/save i frozen Case/staff nie zmieniają się.
+Panel `global.panel.right` / `global_panel`, `documentation_form`, `tab-wywiad`, role kliniczne i `requires_doctor=False` (wywiad trychologiczny nie wymaga roli lekarza). Przed startem UI odczytuje kartę przez publiczny bridge. Widoczność nie daje dostępu: host ponownie sprawdza aktywny profil i clinic assignment, assigned patient, plugin/version/grants, feature/model/provider, dostępność/licencję i clinic opt-in. No-AI, pozostałe moduły, native fields/save i frozen Case/staff nie zmieniają się.
 
 Checkbox **„Mam zgodę pacjenta na nagrywanie”** zapisuje oświadczenie operatora, że uzyskał pozwolenie na opisane nagranie/przekazanie audio do AI. Nie jest samodzielną decyzją pacjenta i nie zastępuje jawnego opt-in administratora kliniki, informacji dla pacjenta, podstawy prawnej lub polityki retencji/dostawcy. Mikrofon dopiero po checkboxie i potwierdzonym starcie serwera.
 

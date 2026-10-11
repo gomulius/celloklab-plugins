@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "sdk_version": "1.0",
   "publisher": "Celloklab",
-  "description": "Przykład odczytu i edycji typowanych pól wywiadu trychologicznego. Chroni niezapisane zmiany i konflikty wersji; zapis wymaga kliknięcia użytkownika.",
+  "description": "Współpracuje z wtyczką vision.visit-assistant — udostępnia formularz pól wywiadu, który asystent AI pomaga uzupełniać po akceptacji specjalisty. Może też działać samodzielnie, bez AI. Umożliwia odczyt i edycję typowanych pól wywiadu trychologicznego. Chroni niezapisane zmiany i konflikty wersji; zapis wymaga kliknięcia użytkownika.",
   "entrypoint": {"module": "example_trichology_interview:register"},
   "capabilities": {"requested": ["patient.read_trichology_record", "patient.write_trichology_record"]},
   "ui": {"hooks": ["patient.records.sections"]},

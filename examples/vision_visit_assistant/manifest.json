@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "sdk_version": "1.0",
   "publisher": "Celloklab Vision",
-  "description": "Asystent wywiadu trychologicznego na żywo: przechwytuje mikrofon, transkrybuje rozmowę oraz proponuje uzupełnienia dokumentacji i pytania. Do karty trafiają wyłącznie zmiany zaakceptowane przez specjalistę.",
+  "description": "Wymaga wtyczki example.trichology-interview — obie wtyczki należy włączyć w klinice, aby korzystać ze wspólnego wywiadu i edycji jego pól. Asystent wywiadu trychologicznego na żywo: przechwytuje mikrofon, transkrybuje rozmowę oraz proponuje uzupełnienia dokumentacji i pytania. Do karty trafiają wyłącznie zmiany zaakceptowane przez specjalistę.",
   "entrypoint": {"module": "celloklab_vision_visit_assistant:register"},
   "capabilities": {"requested": ["AI", "ai.live_interview", "patient.read_trichology_record", "patient.write_trichology_record"]},
   "ui": {"hooks": ["global.panel.right"]},

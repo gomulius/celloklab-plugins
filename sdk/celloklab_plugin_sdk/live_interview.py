@@ -12,7 +12,7 @@ from typing import Any, Callable, Mapping, Tuple
 
 from .clinical_tasks import (TaskContext, TaskInputs, TaskPrompt, TranscriptSegment,
                              _number, _slug, _text, validate_task_result)
-from .trichology import TrichologyInterviewUpdates, validate_trichology_interview_updates
+from .trichology import NativeTrichologyUpdates, validate_native_trichology_updates
 
 LIVE_INTERVIEW_CAPABILITY = "ai.live_interview"
 LIVE_INTERVIEW_CAPABILITIES = frozenset({"AI", LIVE_INTERVIEW_CAPABILITY})
@@ -101,7 +101,7 @@ class TranscriptSourceReference:
 
 @dataclass(frozen=True)
 class LiveProposalEvent:
-    """Typed expanded trichology fields only. Never a command to save the record.
+    """Typed native trichology fields. Never a command to save the record.
 
     Each proposed field needs at least one transcript source. ``validate_sources``
     must additionally be called with the host's session-local finalized segments;
@@ -111,7 +111,7 @@ class LiveProposalEvent:
     session_id: str
     proposal_id: str
     sequence: int
-    updates: TrichologyInterviewUpdates
+    updates: NativeTrichologyUpdates
     sources: Mapping[str, Tuple[TranscriptSourceReference, ...]]
     confidence: float | None = None
 
@@ -124,7 +124,7 @@ class LiveProposalEvent:
         if type(self.sequence) is not int or not 0 <= self.sequence <= 1_000_000:
             raise ValueError("Nieprawidłowy numer propozycji.")
         try:
-            normalized = validate_trichology_interview_updates(self.updates)
+            normalized = validate_native_trichology_updates(self.updates)
         except (ValueError, TypeError):
             raise ValueError("Propozycja zawiera nieprawidłowe pola lub wartości wywiadu trychologicznego.") from None
         if not normalized or not isinstance(self.sources, Mapping) or set(self.sources) != set(normalized):

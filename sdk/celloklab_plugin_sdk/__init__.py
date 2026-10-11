@@ -12,6 +12,10 @@ from .bookings import BookingsProtocol, BOOKING_CAPABILITIES
 from .trichology import (TRICHOLOGY_INTERVIEW_FIELDS, FIELD_LABELS, OPTIONS, MULTI_FIELDS,
                         TrichologyInterviewUpdates, validate_trichology_interview_updates)
 from .trichology import __all__ as _trichology_exports
+from .trichology import (LEGACY_NATIVE_FIELDS, LEGACY_NATIVE_OPTIONS, LEGACY_NATIVE_MULTI_FIELDS,
+                        NATIVE_TRICHOLOGY_FIELDS, NATIVE_OPTIONS, NATIVE_MULTI_FIELDS,
+                        NATIVE_BOOLEAN_FIELDS, NATIVE_FIELD_LABELS, NativeTrichologyUpdates,
+                        validate_native_trichology_updates)
 
 from .clinical_tasks import (TaskInputs, TaskAttachmentText, TranscriptSegment, TaskContext,
                              TaskPrompt, TaskRegistration, register_tasks, validate_task_result,
@@ -24,6 +28,6 @@ from .live_interview import (LIVE_INTERVIEW_CAPABILITY, LIVE_INTERVIEW_CAPABILIT
 from .live_interview import __all__ as _live_exports
 
 SDK_VERSION = "1.0"
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 __all__ = ["PluginContext", "PluginRegistrar", "UIFragment", "UIHook", "PluginPage", "plugin_page_id", "SDK_VERSION",
            "AI_CAPABILITY", "AIProtocol", "AIResult", "PluginAIProtocol", "PluginAIResult", "plugin_ai_feature_id", "BookingsProtocol", "BOOKING_CAPABILITIES"] + _clinical_exports + _trichology_exports + _task_exports + _live_exports

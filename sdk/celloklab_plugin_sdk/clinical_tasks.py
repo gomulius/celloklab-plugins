@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Optional, Tuple
 
-from .trichology import validate_trichology_interview_updates
+from .trichology import validate_native_trichology_updates
 
 CLINICAL_TASKS_CAPABILITY = "ai.clinical_tasks"
 TRANSCRIPTION_CAPABILITY = "ai.transcription"
@@ -193,7 +193,7 @@ class TaskContext:
             if value is not None:
                 _text(value, 20_000)
         try:
-            validate_trichology_interview_updates(self.interview_values)
+            validate_native_trichology_updates(self.interview_values)
         except (ValueError, TypeError):
             raise ValueError("Kontekst zawiera nieprawidłowe pola lub wartości wywiadu trychologicznego.") from None
         if not isinstance(self.transcript, (tuple, list)) or len(self.transcript) > 1000:

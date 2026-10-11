@@ -1,4 +1,4 @@
-/* Independent Vision review UI. Only an explicit per-proposal click can write. */
+/* Independent Vision review UI. Only explicit acceptance of displayed fields writes. */
 (function () {
     'use strict';
     const pluginId = 'vision.visit-assistant';
@@ -55,6 +55,7 @@
                 slot.dataset.visionContext === root.dataset.visionContext);
             this.bridge = window.CelloklabTrichologyFormBridge;
             this.proposals = new Map();
+            this.groups = [];
             this.dismissedTips = new Set();
             this.shownTips = new Set();
             this.diagnosticKeys = new Set();
@@ -186,7 +187,7 @@
                 item.status = 'revoked';
                 for (const control of item.controls || []) control.disabled = true;
             }
-            this.proposals.clear(); this.dismissedTips.clear(); this.shownTips.clear(); this.record = this.latest = null;
+            this.proposals.clear(); this.groups = []; this.dismissedTips.clear(); this.shownTips.clear(); this.record = this.latest = null;
             this.proposalRoot?.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.resetAudioView();
@@ -333,9 +334,26 @@
                     });
                 }
                 if (!Array.isArray(refs) || !refs.length || !refs.every(ref => ref && typeof ref.quote === 'string' && ref.quote.trim())) { this.diagnose('proposal_evidence_invalid'); continue; }
-                const item = {key, proposal, field, value, current, revision, status: 'pending', refs, descriptor};
+                // AI adds checkbox selections; it must not silently remove a
+                // clinician's persisted selections. The exact union is shown
+                // before acceptance, not appended invisibly during saving.
+                const proposed = descriptor.type === 'string[]' ? [...new Set([...(current || []), ...(value || [])])] : value;
+                if (!this.valid(descriptor, proposed)) { this.diagnose('proposal_value_invalid'); continue; }
+                const item = {key, proposal, field, value: Array.isArray(proposed) ? Object.freeze([...proposed]) : proposed,
+                    current: Array.isArray(current) ? Object.freeze([...current]) : current,
+                    revision, status: 'pending', refs: refs.map(ref => ({...ref})), descriptor};
                 this.proposals.set(key, item);
-                this.render(item);
+                // Exact source identity and original revision, never semantic
+                // text matching or rebasing. Closed/saving groups cannot gain
+                // unseen fields. Duplicate-field proposals stay separate.
+                const sourceKey = JSON.stringify([session.session_id, revision,
+                    [...(proposal.segment_ids || [])].sort(), refs.map(ref =>
+                        [ref.quote, ref.start ?? null, ref.end ?? null, ref.speaker ?? null]).sort()]);
+                let group = this.groups.find(g => g.sourceKey === sourceKey &&
+                    g.items.every(member => member.status === 'pending') && !g.items.some(member => member.field === field));
+                if (!group) { group = {sourceKey, items: []}; this.groups.push(group); }
+                group.items.push(item);
+                this.render(group);
             }
         }
         valid(schema, value) {
@@ -344,14 +362,20 @@
             if (schema.type === 'string[]') return Array.isArray(value) && value.length <= 200 && value.every(v => typeof v === 'string' && (!schema.choices || schema.choices.includes(v))) && new Set(value).size === value.length;
             return typeof value === 'string' && value.length <= 20000 && (!schema.choices || schema.choices.includes(value));
         }
-        render(item) {
-            const card = element('article', undefined, 'clk-ui-card clk-ui-card--compact va-proposal');
+        render(group) {
+            const items = [...group.items], item = items[0];
+            const card = group.card || element('article', undefined, 'clk-ui-card clk-ui-card--compact va-proposal');
+            const firstRender = !group.card;
+            group.card = card;
+            card.replaceChildren();
             const body = element('div', undefined, 'clk-ui-card-body va-proposal-content');
             card.appendChild(body);
-            body.appendChild(element('strong', this.record?.field_labels?.[item.field] || item.descriptor.label || 'Pole wywiadu'));
-            body.appendChild(element('p', 'Było: ' + this.fieldDisplay(item, item.current), 'va-baseline clk-ui-help'));
-            const next = element('p', 'Propozycja: ' + this.fieldDisplay(item, item.value), 'va-proposed');
-            body.appendChild(next);
+            if (items.length > 1) body.appendChild(element('strong', 'Jedna wypowiedź · ' + items.length + ' pól'));
+            for (const member of items) {
+                body.appendChild(element('strong', this.record?.native_field_labels?.[member.field] || this.record?.field_labels?.[member.field] || member.descriptor.label || member.field));
+                body.appendChild(element('p', 'Było: ' + this.fieldDisplay(member, member.current), 'va-baseline clk-ui-help'));
+                body.appendChild(element('p', 'Propozycja: ' + this.fieldDisplay(member, member.value), 'va-proposed'));
+            }
             for (const ref of item.refs) body.appendChild(element('blockquote', 'Źródło' +
                 (Number.isFinite(ref.start) && Number.isFinite(ref.end) ? ' (' + ref.start + '–' + ref.end + ' s)' : '') + ': „' + ref.quote + '”', 'va-source clk-ui-help'));
             const note = element('p', '', 'clk-ui-help');
@@ -359,31 +383,30 @@
             body.appendChild(note);
             const actions = element('div', undefined, 'clk-ui-row va-proposal-actions');
             body.appendChild(actions);
-            const accept = this.iconButton('Akceptuj propozycję', 'fa-check', 'va-accept');
-            const reject = this.iconButton('Odrzuć propozycję', 'fa-xmark', 'va-reject');
-            item.controls = [accept, reject];
+            const accept = this.iconButton(items.length > 1 ? 'Akceptuj wszystkie pola wypowiedzi' : 'Akceptuj propozycję', 'fa-check', 'va-accept');
+            const reject = this.iconButton(items.length > 1 ? 'Odrzuć wszystkie pola wypowiedzi' : 'Odrzuć propozycję', 'fa-xmark', 'va-reject');
+            items.forEach(member => { member.controls = [accept, reject]; });
             for (const button of item.controls) actions.appendChild(button);
             reject.addEventListener('click', () => {
-                if (!this.access || item.status !== 'pending') return;
-                item.status = 'rejected'; card.hidden = true;
+                if (!this.access || items.some(member => member.status !== 'pending') || group.card !== card || group.items.length !== items.length) return;
+                items.forEach(member => { member.status = 'rejected'; }); card.hidden = true;
                 this.proposalState();
                 // Tombstone retained for this proposal only: later independent
                 // proposals for the same field remain reviewable.
             });
             accept.addEventListener('click', async () => {
-                if (!this.access || item.status !== 'pending') return;
+                if (!this.access || items.some(member => member.status !== 'pending') || group.items.length !== items.length) return;
                 const scope = this.scope;
-                const value = item.value;
-                if (!this.valid(item.descriptor, value)) { note.textContent = 'Wybierz poprawną wartość pola.'; return; }
-                item.status = 'saving';
+                if (items.some(member => !this.valid(member.descriptor, member.value))) { note.textContent = 'Wybierz poprawną wartość pola.'; return; }
+                items.forEach(member => { member.status = 'saving'; });
                 accept.disabled = reject.disabled = true;
                 try {
-                    const result = await this.bridge.savePatch(pluginId, {[item.field]: value},
-                        {revision: item.revision, expected_values: {[item.field]: item.current}});
+                    const result = await this.bridge.savePatch(pluginId, Object.fromEntries(items.map(member => [member.field, member.value])),
+                        {revision: item.revision, expected_values: Object.fromEntries(items.map(member => [member.field, member.current]))});
                     if (scope !== this.scope || !this.access) return;
                     if (!result.ok) {
                         if (denied(result.code)) { this.clearAccess(); return; }
-                        item.status = 'pending';
+                        items.forEach(member => { member.status = 'pending'; });
                         const saveErrors = {
                             native_dirty: 'Najpierw zapisz ręczne zmiany w karcie pacjenta. Propozycja pozostaje do sprawdzenia; niczego nie nadpisano.',
                             draft_changed: 'Pole zostało zmienione podczas akceptacji. Zachowano ręczną edycję; niczego nie zapisano.',
@@ -403,7 +426,7 @@
                         accept.disabled = reject.disabled = false;
                         return;
                     }
-                    item.status = 'accepted';
+                    items.forEach(member => { member.status = 'accepted'; });
                     card.hidden = true;
                     this.proposalState();
                     note.textContent = result.preserved?.length ? 'Zapisano. Zachowano nowszą ręczną edycję formularza.' : 'Zapisano zatwierdzoną zmianę.';
@@ -417,14 +440,20 @@
                     if (scope === this.scope && this.access && read?.ok) this.record = read.record;
                 } catch (_) {
                     if (scope !== this.scope || !this.access) return;
-                    item.status = 'pending'; accept.disabled = reject.disabled = false;
+                    items.forEach(member => { member.status = 'pending'; }); accept.disabled = reject.disabled = false;
                     note.textContent = 'Nie potwierdzono zapisu. Sprawdź kartę przed ponowieniem.';
                 }
             });
-            this.proposalRoot.querySelector('[data-proposals]').appendChild(card);
+            if (firstRender) this.proposalRoot.querySelector('[data-proposals]').appendChild(card);
         }
         fieldDisplay(item, value) {
-            const labels = this.record?.interview_options?.[item.field] || item.descriptor.choice_labels || {};
+            if (item.field === 'supplements_list' && typeof value === 'string') {
+                try {
+                    const rows = JSON.parse(value);
+                    if (Array.isArray(rows)) return rows.map(row => [row.name, row.dose, row.frequency, row.since ? 'od ' + row.since : '', row.schedule].filter(Boolean).join(' · ')).join('; ') || '(brak)';
+                } catch (_) { /* Historical plain text remains visible. */ }
+            }
+            const labels = {...(item.descriptor.choice_labels || {}), ...(this.record?.interview_options?.[item.field] || {}), ...(this.record?.native_options?.[item.field] || {})};
             const label = choice => labels[choice] || (item.descriptor.choices ? 'Wartość bez etykiety' : display(choice));
             if (value == null || value === '' || typeof value === 'boolean') return display(value);
             return Array.isArray(value) ? value.map(label).join(', ') || '(brak)' : label(value);

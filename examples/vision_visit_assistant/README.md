@@ -127,3 +127,18 @@ python -m pytest -q tests/test_plugin_live_audio_client.py tests/test_vision_vis
 ```
 
 Raportuj actual executed results bez historycznych counts. Static validation nie wykonuje entrypointu/autoryzacji; fake/QuickJS/SQLite nie zastępują realnego mikrofonu HTTPS/browser, provider STT+text, klinicznej jakości, kosztów, MariaDB transaction/deletion/concurrency ani wyniku w2 s. **Te odbiory pozostają niepotwierdzone.** Source implementation nie jest deployed configuration. Właściciel wydania finalizuje Python SDK1.2.1 sources/wheel; ta dokumentacja nie buduje ZIP, nie wykonuje public sync, commit/push, SQL lub płatnego smoke testu.
+
+
+## Natywne uzupełnianie 12 sekcji wywiadu — SDK 1.2.2
+
+Vision otrzymuje schemat rzeczywistych pól 12 sekcji: tekst, wybory, grupy checkboxów, booleany i suplementy. Potwierdzona choroba trafia do `chronic_diseases` z kodem opcji (np. `["diabetes"]`), nie tylko do opisu. To katalog pól i kodów, nie lista wymaganych zwrotów rozmowy. AI interpretuje treść semantycznie; cytat nie dowodzi poprawności interpretacji.
+
+Propozycje z tymi samymi źródłami i pierwotną rewizją są pokazywane razem. Specjalista widzi wszystkie zmieniane pola i zatwierdza je jednym kliknięciem; host wykonuje jeden atomowy PATCH. Nie uruchamia się niewidocznego drugiego AI ani dodatkowych zapisów po zatwierdzeniu. Istniejące wybory checkboxów są zachowane w widocznej propozycji. Rewizje, źródła, uprawnienia i ochrona ręcznych edycji nadal obowiązują.
+
+Addytywne `NATIVE_TRICHOLOGY_FIELDS`, `NATIVE_OPTIONS`, `NATIVE_MULTI_FIELDS`, `NATIVE_BOOLEAN_FIELDS`, `NATIVE_FIELD_LABELS` i `validate_native_trichology_updates` obejmują 76 pól. Historyczny kontrakt 41 pól pozostaje. GET dodaje `native_values`, `native_options`, `native_field_labels`; `interview_values` w GET zachowuje wcześniejszy zakres. `TaskContext.interview_values` może zawierać pełny natywny kontrakt. Legacy arrays koduje jako JSON-string dopiero host przed persystencją w istniejących kolumnach.
+
+`supplements_list` ma string JSON z listą obiektów `name`, `dose`, `frequency`, `since`, `schedule` (stringi). Nieznane szczegóły to pusty string. Vision wymaga wszystkich kluczy, niepustej nazwy i nie proponuje czyszczenia. Propozycja obejmuje całą listę, zachowując istniejące pozycje. Host synchronizuje rzeczywiste wiersze oraz zapisany baseline; zmiany podczas PATCH pozostają widoczne. Historycznych list readonly nie zastępuje ukrytymi kontrolkami.
+
+**Granica farmakoterapii:** rozmowa uzupełnia `current_medications` i `medication_changes`; automatyczny wybór katalogowego produktu RPL nie jest zaimplementowany. Nie wolno fabrykować identyfikatorów leków. To ograniczenie, nie deklaracja pełnego automatycznego wypełnienia listy RPL.
+
+Bez nowej migracji i bez automatycznego włączania pluginu. Wydanie wymaga zgodnego hosta, SDK 1.2.2 oraz aktualnego przykładu Vision. Testy syntetyczne potwierdzają kontrakt, zapis i UI; nie stanowią odbioru rzeczywistego STT/LLM ani produkcyjnej bazy.

@@ -1,5 +1,7 @@
 # Przykład: edytor wywiadu trychologicznego
 
+Wyłącznie przykład dla autorów SDK. Nie jest wymagany przez Vision i nie jest wdrażany w katalogu `plugins/` aplikacji: natywne sekcje wywiadu już udostępniają te pola.
+
 Moduł `example.trichology-interview` nie używa AI. Publiczny SDK 1.1.0
 (`sdk_version: 1.0`) dostarcza niezależny od hosta schemat wszystkich 41 nowych
 pól. Moduł generuje edytory tekstu, pojedynczego i wielokrotnego wyboru oraz

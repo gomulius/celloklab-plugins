@@ -4,7 +4,7 @@
 
 Manifest może zawierać opcjonalne `description`: zwykły tekst po polsku do 2000 znaków, opisujący rzeczywiste działanie wtyczki. Host wyświetla go jako escaped tekst po rozwinięciu karty w `/admin/plugins`. Karty startują zwinięte; nagłówek zawiera ID, wydawcę, wersję pluginu/SDK i polski status. Zwijanie nie aktywuje pluginu, nie wysyła żądań i nie usuwa wpisanych ustawień. Brak opisu zachowuje zgodność starszego manifestu. Dodanie opisu nie zmienia grantów ani wersji wykonywalnego kontraktu.
 
-Opisy wykorzystują całą szerokość wnętrza karty i zawijają się naturalnie, bez ręcznych podziałów linii. Zależność lub współpracę należy opisać w pierwszym zdaniu: `Wymaga wtyczki …` albo `Współpracuje z wtyczką …`; host wyróżnia to zdanie bez interpretowania HTML. Dla wspólnego wywiadu Vision wymagane jest włączenie w klinice `vision.visit-assistant` i `example.trichology-interview`; druga wtyczka udostępnia formularz i może też działać samodzielnie bez AI. Sam opis nie wprowadza automatycznego włączania ani resolvera zależności.
+Opisy wykorzystują całą szerokość wnętrza karty i zawijają się naturalnie, bez ręcznych podziałów linii. Zależność lub współpracę należy opisać w pierwszym zdaniu: `Wymaga wtyczki …` albo `Współpracuje z wtyczką …`; host wyróżnia to zdanie bez interpretowania HTML. Vision korzysta z natywnych pól Dokumentacji Trychologicznej przez hostowy bridge i nie wymaga `example.trichology-interview`. Edytor partnera jest wyłącznie demonstracją SDK, poza katalogiem wtyczek wdrażanych aplikacji. Sam opis nie wprowadza automatycznego włączania ani resolvera zależności.
 
 
 ## SDK Python 1.2.1 — wywiad na żywo, etap 2

@@ -1,5 +1,7 @@
 # Vision — Asystent wywiadu, etap 2
 
+Vision pracuje z natywnymi polami sekcji wywiadu przez `CelloklabTrichologyFormBridge`. Nie wymaga `example.trichology-interview`; demonstracyjny edytor partnera nie jest elementem instalacji Vision.
+
 Niezależna rzeczywista wtyczka **`vision.visit-assistant`**, profil **`interview`**, włączana/wyłączana standardowym lifecycle hosta. Wersję do zatwierdzenia odczytaj z **finalnego `manifest.json`**; nie utożsamiaj jej z docelowym Python SDK **1.2.1**, manifest SDK `1.0` ani UI Kit `1.0.0`. Czyste callbacki importują wyłącznie publiczny SDK, nie backend, SQL, klienta dostawcy ani sekrety. Wtyczka posiada domenowe instrukcje i polski panel; core wyłącznie generyczny transport, wejście, autoryzację, provider/redakcję/credits.
 
 Dokładne requested/granted capabilities: **`AI`, `ai.live_interview`, `patient.read_trichology_record`, `patient.write_trichology_record`**. Tylko jawne **„Akceptuj”** lub **„Zapisz zatwierdzoną zmianę”** zapisuje pojedyncze pole przez istniejący bridge. Odrzucenie jest lokalne, AI nie zapisuje automatycznie. Legacy ask/insights nie są rejestrowane ani pokazywane jako martwe kontrolki. Osobny `example.live-interview` pozostaje syntetycznym FOUNDATION demo bez wykonania/zapisu.

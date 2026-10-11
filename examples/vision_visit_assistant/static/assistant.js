@@ -293,6 +293,11 @@
             const suggestions = Array.isArray(session.suggestions) ? session.suggestions : [];
             const diagnostic = [suggestions.length, (session.segments || []).length, session.error_code || 'none'].join('_');
             this.diagnose('result_' + diagnostic);
+            const counts = session.extraction_counts;
+            if (counts) {
+                const values = ['model_updates','validated_proposals','unchanged_proposals','published_proposals'].map(k => Number.isSafeInteger(counts[k]) && counts[k] >= 0 ? counts[k] : 0);
+                this.diagnose('extraction_' + values.join('_'));
+            }
             for (const proposal of suggestions) this.addProposal(proposal, session);
             this.proposalState();
         }

@@ -1,5 +1,10 @@
 # Wywiad na żywo — etap 2, SDK Python 1.2.1
 
+## Liczniki ekstrakcji bez danych klinicznych
+
+`extraction_counts` i log `extraction_A_B_C_D` oznaczają: A — zmiany zwrócone przez model, B — propozycje po walidacji, C — pominięte jako identyczne z kartą, D — opublikowane. Brak error_code nie oznacza braku odrzucenia przez reguły bezpieczeństwa. Liczniki nie zawierają nazw pól, wartości, źródeł ani identyfikatorów.
+
+
 ## Dokładne kody walidacji callbacku Vision
 
 `analysis_callback_failed` dla znanych odmów Vision jest zastąpione przez `analysis_result_schema`, `analysis_sources_mismatch`, `analysis_field_unknown`, `analysis_value_invalid`, `analysis_source_schema`, `analysis_source_unbound`, `analysis_tips_invalid`. Host przenosi tylko kody z zamkniętej allowlisty; nie przenosi wiadomości wyjątków ani surowej odpowiedzi. Model otrzymuje jawny poprawny przykład JSON updates/sources/tips i wymaganie pełnych niezmienionych cytatów. Diagnostyka nie potwierdza skuteczności generowania na produkcji i nie rozluźnia walidacji dowodów.

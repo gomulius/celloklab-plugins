@@ -10,10 +10,7 @@
     ],
     "tab_id": "tab-wywiad",
     "roles": [
-      "doctor",
-      "medical_staff",
-      "specialist",
-      "trichologist"
+      "specialist"
     ],
     "requires_doctor": false,
     "css_assets": [
@@ -33,10 +30,7 @@
     ],
     "tab_id": "tab-wywiad",
     "roles": [
-      "doctor",
-      "medical_staff",
-      "specialist",
-      "trichologist"
+      "specialist"
     ],
     "requires_doctor": false,
     "priority": 10,

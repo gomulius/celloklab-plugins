@@ -166,12 +166,12 @@
             this.setReady(false, !denied(code));
             this.checkMicrophoneButton.disabled = true;
             const messages = {
-                actor_denied: 'Nie potwierdzono dostępu do karty. Sprawdź, czy pacjent jest przypisany do zalogowanego specjalisty i czy aktywny jest właściwy profil kliniczny.',
+                actor_denied: 'Nie potwierdzono dostępu do karty. Sprawdź, czy pacjent jest przypisany do zalogowanego specjalisty i czy aktywny jest użytkownik oraz jego rola specjalisty w tej klinice.',
                 capability_denied: 'Brak uprawnienia do odczytu karty pacjenta przez Vision. Poproś administratora o nadanie wtyczce wymaganych uprawnień odczytu.',
-                access_revoked: 'Dostęp do karty został cofnięty. Sprawdź uprawnienia i aktywny profil kliniczny.'
+                access_revoked: 'Dostęp do karty został cofnięty. Sprawdź aktywną rolę specjalisty w tej klinice i przypisanie pacjenta.'
             };
             this.accessStatus.textContent = messages[code] || (denied(code) ?
-                'Nie potwierdzono dostępu do karty pacjenta. Sprawdź zalogowane konto, aktywny profil kliniczny i uprawnienia.' :
+                'Nie potwierdzono dostępu do karty pacjenta. Sprawdź zalogowane konto, aktywną rolę specjalisty w tej klinice i przypisanie pacjenta.' :
                 'Nie udało się potwierdzić odczytu karty pacjenta. Sprawdź połączenie i ponów sprawdzenie.');
             this.microphoneStatus.textContent = 'Mikrofon sprawdzimy dopiero po potwierdzeniu dostępu do karty.';
             if (denied(code)) this.clearAccess(code);
@@ -339,7 +339,7 @@
             this.accessChecked = false;
             this.setReady(false, false);
             this.checkMicrophoneButton.disabled = true;
-            if (code === 'access_revoked') this.accessStatus.textContent = 'Dostęp do karty został cofnięty. Sprawdź uprawnienia i aktywny profil kliniczny.';
+            if (code === 'access_revoked') this.accessStatus.textContent = 'Dostęp do karty został cofnięty. Sprawdź aktywną rolę specjalisty w tej klinice i przypisanie pacjenta.';
             if (!this.access) return;
             this.access = false; this.scope++;
             if ((this.client.active || this.client.startPending || this.client.capturing) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});

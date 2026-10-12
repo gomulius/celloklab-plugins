@@ -13,7 +13,7 @@ from celloklab_plugin_sdk.trichology import (
 )
 
 PLUGIN_ID = "vision.visit-assistant"
-CLINICAL_ROLES = ("doctor", "medical_staff", "specialist", "trichologist")
+VISION_ROLES = ("specialist",)
 LEGACY_FIELDS = frozenset({"other_conditions", "allergies_details", "supplements_list", "surgeries", "trichology_treatments", "notes"})
 LEGACY_LABELS = {
     "other_conditions": "Inne choroby", "allergies_details": "Alergie — szczegóły",
@@ -170,11 +170,11 @@ def register(registrar):
     registrar.register_fragment("global.panel.right", UIFragment(
         template="templates/panel.html", hook="global.panel.right", placement="global_panel",
         fragment_id="vision-visit-assistant", page_ids=("documentation_form",), tab_id="tab-wywiad",
-        roles=CLINICAL_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("assistant.js",),
+        roles=VISION_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("assistant.js",),
     ))
     registrar.register_fragment("patient.records.sections", UIFragment(
         template="templates/proposals.html", hook="patient.records.sections",
         fragment_id="vision-proposals", page_ids=("documentation_form",), tab_id="tab-wywiad",
-        roles=CLINICAL_ROLES, priority=10, requires_doctor=False,
+        roles=VISION_ROLES, priority=10, requires_doctor=False,
         css_assets=("assistant.css",), js_assets=("assistant.js",),
     ))

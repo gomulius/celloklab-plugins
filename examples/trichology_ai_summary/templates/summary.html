@@ -3,7 +3,11 @@
            data-patient-id="{{ patient_id|default('', true) }}" data-tenant-slug="{{ tenant_slug|default('', true) }}">
     <summary class="clk-ui-card-title">Podsumowanie dokumentacji trychologicznej — AI <span class="clk-ui-text-muted">— pokaż / ukryj</span></summary>
     <div class="clk-ui-card-body clk-ui-stack clk-ui-gap-1 clk-ui-mt-2">
-      <div class="clk-ui-text-muted">Aktualizowane po zmianie dokumentacji. <span style="white-space: nowrap;">AI — wymaga</span> weryfikacji specjalisty; nie jest diagnozą.</div>
+      <div class="clk-ui-text-muted">Podsumowanie wszystkich 12 zapisanych sekcji wywiadu oraz notatek trychologa. Powstaje po użyciu „Zapisz” lub „Podsumuj teraz” — nie zapisuje zmian formularza. <span style="white-space: nowrap;">AI — wymaga</span> weryfikacji specjalisty; nie jest diagnozą.</div>
+      <div class="clk-ui-row">
+        <button type="button" class="clk-ui-button clk-ui-button--primary" data-summary-request disabled>Podsumuj teraz</button>
+      </div>
+      <div data-summary-action-status role="status" aria-live="polite" hidden></div>
       <div data-summary-status role="status" aria-live="polite">Sprawdzanie podsumowania…</div>
       <div data-summary-revision class="clk-ui-text-muted" hidden></div>
       <div data-summary-obsolete class="clk-ui-alert clk-ui-alert--warning" hidden>To podsumowanie dotyczy poprzedniej wersji dokumentacji. Nie jest aktualne.</div>

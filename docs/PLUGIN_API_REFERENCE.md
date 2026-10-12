@@ -1,5 +1,10 @@
 # Plugin browser API reference — manifest SDK 1.0 / Python SDK 1.2.1
 
+## Prezentacja katalogu wtyczek kliniki
+
+Prywatny katalog hosta `GET /api/clinic-plugins` dodaje pole `description` do każdego elementu. Host zwraca bezpieczną nazwę i krótki opis po polsku. Interfejs pokazuje wyłącznie nazwę, opis i przełącznik w osobnym kafelku. Po niepewnym PATCH uzgadnia stan odczytem GET, bez automatycznego ponowienia zapisu; proste „Spróbuj ponownie” pojawia się wyłącznie przy błędzie. Uprawnienia, kontrola wersji i jawna zgoda AI pozostają niezależne.
+
+
 ## Independent clinic module gate / private management boundary
 
 All clinic modules, including no-AI plugins, honor the host-owned module activation gate on operational UI/pages/navigation, runtime/replay and new event/queue work. AI plugins also require independent clinic AI opt-in and existing AI/grant/actor/resource/entitlement/configuration/credit checks. **Ustawienia → Wtyczki** (`tab-wtyczki`, before `tab-ai`) lists healthy globally enabled exact-approved modules even when local OFF or AI-not-ready. OFF preserves AI consent, guide progress and data; it does not promise cancelling in-flight requests/provider dispatch or refunding charges. No new SDK export or capability is introduced.

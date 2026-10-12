@@ -1,5 +1,12 @@
 # Celloklab Plugin UI Kit v1
 
+## Prosty interfejs dla użytkowników bez doświadczenia z komputerem
+
+Katalog wtyczek korzysta z osobnych kafelków: **nazwa, krótki opis, włącz/wyłącz**. Nie pokazuj identyfikatorów, rewizji ani dodatkowych technicznych objaśnień. Nie dodawaj stałych przycisków typu „Wczytaj aktualny stan”; uzgadnianie stanu pozostaje mechanizmem hosta, a błąd wymaga prostego komunikatu.
+
+Akapity wypełniają dostępny kontener. Globalne ograniczenie `max-width: 75ch` i arbitralne zwężanie tekstu są niedozwolone. Ograniczenia geometrii okien dialogowych są odrębną zasadą.
+
+
 ## Mandatory Polish language and AI visibility
 
 **Every new or maintained platform module/plugin must use Polish for all user-facing UI**, including partner and administrative UI: page/navigation/surface titles, labels/buttons/help/placeholders/tooltips, accessibility names (`aria-label`, `title`), loading/status/errors/validation, confirmations/toasts/notifications and generated-output framing. English developer prose is allowed; internal IDs/API fields/capability names/stable codes stay unchanged. Map `pending`/`succeeded`/`failed` to „oczekujące”/„zakończone pomyślnie”/„nieudane”; display flags as „tak”/„nie”. Unknown states get a safe Polish fallback, never raw server text. Distinguish safe code `ai_policy_denied` (global activation plus local clinic-admin opt-in guidance), membership/capability denial and HTTP 402 (insufficient clinic AI credits), never raw exceptions. This mandate does not claim unrelated legacy UI was translated.

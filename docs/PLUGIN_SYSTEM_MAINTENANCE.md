@@ -1,5 +1,12 @@
 # Plugin system host maintenance
 
+## Sprawdzenie gotowości w istniejącej sekcji Vision
+
+Po rozwinięciu sekcji asystenta hostowy odczyt karty sprawdza bieżące uprawnienia, aktywny profil kliniczny i przypisanie pacjenta. `actor_denied` nie dowodzi samego braku przypisania — instrukcja obejmuje również aktywny profil; `capability_denied` wskazuje wymagane uprawnienie wtyczki. Nie omijamy autoryzacji i nie tworzymy osobnego panelu poza istniejącą sekcją.
+
+Kontrolki nagrywania, fala i wskazówki pozostają zamontowane, ale ukryte do potwierdzenia dostępu do karty i mikrofonu. Sprawdzenie Permissions API nie wywołuje prośby o zgodę. Przy braku potwierdzenia użytkownik klika „Sprawdź mikrofon” wewnątrz tej samej sekcji: test używa `getUserMedia({audio: true})` i natychmiast zatrzymuje ścieżki, bez przesyłania audio, tworzenia sesji AI lub naliczania kredytów. Komunikaty rozróżniają brak HTTPS, blokadę uprawnień, brak urządzenia oraz zajęty mikrofon. Cofnięcie dostępu ukrywa kontrolki; uruchomienie wywiadu ponownie sprawdza kartę. Pytania bez nagrywania pozostają dostępne po przejściu bramki gotowości.
+
+
 ## Opis i zwijane karty pluginów
 
 Manifest może zawierać opcjonalne `description`: zwykły tekst po polsku do 2000 znaków, opisujący rzeczywiste działanie wtyczki. Host wyświetla go jako escaped tekst po rozwinięciu karty w `/admin/plugins`. Karty startują zwinięte; nagłówek zawiera ID, wydawcę, wersję pluginu/SDK i polski status. Zwijanie nie aktywuje pluginu, nie wysyła żądań i nie usuwa wpisanych ustawień. Brak opisu zachowuje zgodność starszego manifestu. Dodanie opisu nie zmienia grantów ani wersji wykonywalnego kontraktu.

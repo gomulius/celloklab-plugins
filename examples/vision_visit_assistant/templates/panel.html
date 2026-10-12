@@ -3,6 +3,17 @@
     <details class="va-main">
       <summary class="va-summary">Asystent wywiadu z AI</summary>
       <div class="clk-ui-card-body clk-ui-stack va-body">
+        <div class="clk-ui-stack va-prerequisites" data-prerequisites aria-label="Warunki uruchomienia asystenta">
+          <h3 class="clk-ui-card-title">Przed rozpoczęciem</h3>
+          <p class="clk-ui-help" data-access-status role="status" aria-live="polite">Rozwiń sekcję, aby sprawdzić dostęp do karty pacjenta.</p>
+          <p class="clk-ui-help" data-microphone-status role="status" aria-live="polite">Mikrofon sprawdzimy po potwierdzeniu dostępu. Nie uruchamiamy nagrywania automatycznie.</p>
+          <div class="clk-ui-row va-prerequisite-actions">
+            <button type="button" class="clk-ui-button" data-check-access>Ponów sprawdzenie</button>
+            <button type="button" class="clk-ui-button" data-check-microphone disabled>Sprawdź mikrofon</button>
+          </div>
+          <p class="clk-ui-help">Sprawdzenie mikrofonu tylko potwierdza dostęp do urządzenia i od razu je wyłącza. Nie wysyła audio, nie tworzy sesji AI i nie zużywa kredytów.</p>
+        </div>
+        <div class="clk-ui-stack" data-ready-controls hidden>
         <div class="clk-ui-row va-player" role="group" aria-label="Sterowanie wywiadem">
           <button type="button" class="clk-ui-button va-icon va-record" data-action="start" aria-label="Rozpocznij wywiad z AI" title="Rozpocznij wywiad z AI" aria-describedby="vision-interview-status" disabled><i class="fa-solid fa-circle" aria-hidden="true"></i></button>
           <button type="button" class="clk-ui-button va-icon va-pause" data-action="pause" aria-label="Wstrzymaj wywiad" title="Wstrzymaj wywiad" disabled><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
@@ -22,12 +33,13 @@
         </div>
         <h3 class="clk-ui-card-title">Wskazówki</h3>
         <ul data-tips></ul>
+        </div>
       </div>
     </details>
-    <details class="va-info" data-info>
+    <details class="va-info" data-info hidden>
       <summary class="clk-ui-button va-icon va-info-trigger" aria-label="Informacje o asystencie wywiadu" title="Informacje o asystencie wywiadu"><i class="fa-solid fa-info" aria-hidden="true"></i></summary>
       <div class="clk-ui-card clk-ui-stack va-info-content">
-        <p class="clk-ui-help">Pytania możesz uzyskać bez nagrywania i bez zgody na mikrofon, na podstawie karty pacjenta albo jako ogólne pytania do wywiadu.</p>
+        <p class="clk-ui-help">Po sprawdzeniu dostępu do karty i mikrofonu pytania możesz uzyskać bez nagrywania i bez zgody pacjenta na nagrywanie, na podstawie karty pacjenta albo jako ogólne pytania do wywiadu.</p>
         <p class="clk-ui-help">Po potwierdzeniu zgody dźwięk rozmowy jest wysyłany do dostawcy AI w celu transkrypcji i propozycji do dokumentacji. Nowa sesja nagrywania wymaga ponownego potwierdzenia zgody.</p>
         <p class="clk-ui-help">AI nie zapisuje karty bez zatwierdzenia. Propozycje sprawdzisz nad sekcjami dokumentacji. Opłata jest stała za sesję, także za sesję samych pytań.</p>
         <p data-budget class="clk-ui-help"></p>

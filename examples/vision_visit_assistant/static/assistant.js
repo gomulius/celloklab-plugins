@@ -38,7 +38,7 @@
         'stt_language_rejected', 'questions_uncertain', 'analysis_result_schema', 'analysis_sources_mismatch',
         'analysis_field_unknown', 'analysis_value_invalid', 'analysis_source_schema', 'analysis_source_unbound', 'analysis_tips_invalid', 'analysis_safety_filtered', 'analysis_speaker_unconfirmed']);
     const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
-    const denied = code => ['access_revoked', 'forbidden', 'plugin_disabled', 'access_denied', 'authentication_required', 'not_found'].includes(code);
+    const denied = code => ['access_revoked', 'forbidden', 'plugin_disabled', 'access_denied', 'authentication_required', 'not_found', 'actor_denied', 'capability_denied'].includes(code);
     function element(tag, text, className) {
         const node = document.createElement(tag);
         if (text !== undefined) node.textContent = text;
@@ -64,14 +64,32 @@
             this.latest = null;
             this.access = true;
             this.scope = 0;
+            this.ready = false;
+            this.preflightVersion = 0;
+            this.accessChecked = false;
+            this.disclosure = root.querySelector('.va-main');
+            this.gate = root.querySelector('[data-prerequisites]');
+            this.readyControls = root.querySelector('[data-ready-controls]');
+            this.info = root.querySelector('[data-info]');
+            this.accessStatus = root.querySelector('[data-access-status]');
+            this.microphoneStatus = root.querySelector('[data-microphone-status]');
+            this.checkAccessButton = root.querySelector('[data-check-access]');
+            this.checkMicrophoneButton = root.querySelector('[data-check-microphone]');
             this.status = root.querySelector('[data-status]');
             this.consent = root.querySelector('[data-consent]');
             this.consent.checked = false;
             this.errorMessage = '';
             this.resetAudioView();
             this.buttons = Object.fromEntries(['start', 'pause', 'resume', 'stop', 'retry', 'questions'].map(action => [action, root.querySelector('[data-action="' + action + '"]')]));
+            this.setReady(false);
+            this.disclosure.addEventListener('toggle', () => {
+                if (this.disclosure.open) this.checkPrerequisites();
+            });
+            this.checkAccessButton.addEventListener('click', () => this.checkPrerequisites());
+            this.checkMicrophoneButton.addEventListener('click', () => this.checkPrerequisites(true));
             if (!this.bridge || !window.CelloklabLiveAudio) {
                 this.status.textContent = 'Host nie udostępnia obsługi wywiadu na żywo.';
+                this.accessStatus.textContent = this.status.textContent;
                 for (const button of Object.values(this.buttons)) button.disabled = true;
                 return;
             }
@@ -94,9 +112,11 @@
                 if (!this.consent.checked) { this.status.textContent = 'Zgoda wymagana do nagrywania.'; return; }
                 this.prepareClient();
                 const scope = this.scope;
-                const read = await this.bridge.readRecord(pluginId);
-                if (scope !== this.scope || !this.access) return;
-                if (!read.ok) { if (denied(read.code)) this.clearAccess(); throw new Error('record_unavailable'); }
+                let read;
+                try { read = await this.bridge.readRecord(pluginId); }
+                catch (error) { if (scope === this.scope) this.rejectRead('network_error'); throw error; }
+                if (scope !== this.scope || !this.access || !this.ready) return;
+                if (!read.ok) { this.rejectRead(read.code); throw new Error('record_unavailable'); }
                 this.record = read.record;
                 await this.client.start({recordingConsent: true});
             }));
@@ -122,6 +142,132 @@
                     this.refreshControls();
                 }
             }));
+            if (this.disclosure.open) this.checkPrerequisites();
+        }
+        setReady(ready, stopCapture = true) {
+            const wasReady = this.ready;
+            this.ready = ready;
+            this.readyControls.hidden = !ready;
+            this.info.hidden = !ready;
+            if (!ready) this.info.open = false;
+            this.gate.hidden = ready;
+            if (!ready && wasReady) {
+                this.scope++;
+            }
+            // Public stop releases capture, including an in-flight start.
+            if (!ready && stopCapture && (this.client?.capturing || this.client?.state === 'starting')) {
+                Promise.resolve(this.client.stop()).catch(() => {});
+            }
+            if (this.client) this.refreshControls();
+        }
+        rejectRead(code) {
+            this.accessChecked = false;
+            // A denial uses revoke (no audio flush), not a normal session stop.
+            this.setReady(false, !denied(code));
+            this.checkMicrophoneButton.disabled = true;
+            const messages = {
+                actor_denied: 'Nie potwierdzono dostępu do karty. Sprawdź, czy pacjent jest przypisany do zalogowanego specjalisty i czy aktywny jest właściwy profil kliniczny.',
+                capability_denied: 'Brak uprawnienia do odczytu karty pacjenta przez Vision. Poproś administratora o nadanie wtyczce wymaganych uprawnień odczytu.',
+                access_revoked: 'Dostęp do karty został cofnięty. Sprawdź uprawnienia i aktywny profil kliniczny.'
+            };
+            this.accessStatus.textContent = messages[code] || (denied(code) ?
+                'Nie potwierdzono dostępu do karty pacjenta. Sprawdź zalogowane konto, aktywny profil kliniczny i uprawnienia.' :
+                'Nie udało się potwierdzić odczytu karty pacjenta. Sprawdź połączenie i ponów sprawdzenie.');
+            this.microphoneStatus.textContent = 'Mikrofon sprawdzimy dopiero po potwierdzeniu dostępu do karty.';
+            if (denied(code)) this.clearAccess(code);
+        }
+        async checkPrerequisites(explicitMicrophone = false) {
+            const version = ++this.preflightVersion;
+            this.accessChecked = false;
+            this.setReady(false, false);
+            this.checkMicrophoneButton.disabled = true;
+            this.accessStatus.textContent = 'Sprawdzanie dostępu do karty pacjenta…';
+            this.microphoneStatus.textContent = 'Oczekiwanie na potwierdzenie dostępu do karty.';
+            const current = () => version === this.preflightVersion;
+            try {
+                if (!this.bridge || !window.CelloklabLiveAudio) { this.rejectRead('host_unavailable'); return; }
+                const read = await this.bridge.readRecord(pluginId);
+                if (!current()) return;
+                if (!read?.ok) { this.rejectRead(read?.code); return; }
+                this.access = true;
+                this.accessChecked = true;
+                this.record = read.record;
+                this.accessStatus.textContent = 'Dostęp do karty pacjenta potwierdzony.';
+                if (window.isSecureContext !== true) {
+                    this.setReady(false);
+                    this.microphoneStatus.textContent = 'Mikrofon wymaga bezpiecznego połączenia HTTPS. Otwórz kartę w bezpiecznej wersji strony.';
+                    return;
+                }
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    this.setReady(false);
+                    this.microphoneStatus.textContent = 'Ta przeglądarka nie udostępnia obsługi mikrofonu. Użyj przeglądarki obsługującej nagrywanie audio.';
+                    return;
+                }
+                let permission = null;
+                try { permission = await navigator.permissions?.query({name: 'microphone'}); } catch (_) { /* Explicit check below. */ }
+                if (!current()) return;
+                if (permission && permission !== this.microphonePermission) {
+                    if (this.microphonePermission && this.permissionListener) this.microphonePermission.removeEventListener?.('change', this.permissionListener);
+                    this.microphonePermission = permission;
+                    this.permissionListener = () => {
+                        // Granting a prompted verification must finish and release
+                        // its stream before it can reveal the player.
+                        if (permission.state === 'granted' && this.microphoneCheckVersion === this.preflightVersion) return;
+                        // Invalidate before any awaited read or device verification.
+                        this.preflightVersion++;
+                        this.setReady(false);
+                        this.checkPrerequisites();
+                    };
+                    permission.addEventListener?.('change', this.permissionListener);
+                }
+                this.checkMicrophoneButton.disabled = false;
+                if (permission?.state === 'denied') {
+                    this.setReady(false);
+                    this.microphoneStatus.textContent = 'Dostęp do mikrofonu jest zablokowany. Zezwól na mikrofon w ustawieniach tej strony i ponów sprawdzenie.';
+                    return;
+                }
+                if (explicitMicrophone) {
+                    this.checkMicrophoneButton.disabled = true;
+                    this.microphoneStatus.textContent = 'Sprawdzanie mikrofonu…';
+                    let stream;
+                    this.microphoneCheckVersion = version;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({audio: true});
+                        if (!stream.getTracks().some(track => track.kind === 'audio' && track.readyState !== 'ended')) throw Object.assign(new Error(), {name: 'NotFoundError'});
+                    } finally {
+                        // Even stale checks must release every verification track.
+                        for (const track of stream?.getTracks() || []) track.stop();
+                        if (this.microphoneCheckVersion === version) this.microphoneCheckVersion = null;
+                    }
+                    if (!current()) return;
+                } else if (permission?.state !== 'granted') {
+                    this.setReady(false);
+                    this.microphoneStatus.textContent = 'Kliknij „Sprawdź mikrofon”, aby potwierdzić dostęp do urządzenia. Przeglądarka może poprosić o zgodę.';
+                    return;
+                } else if (navigator.mediaDevices.enumerateDevices) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    if (!current()) return;
+                    if (!devices.some(device => device.kind === 'audioinput')) throw Object.assign(new Error(), {name: 'NotFoundError'});
+                } else {
+                    this.setReady(false);
+                    this.microphoneStatus.textContent = 'Kliknij „Sprawdź mikrofon”, aby potwierdzić dostępność urządzenia.';
+                    return;
+                }
+                if (!current() || !this.access || permission?.state === 'denied') return;
+                this.microphoneStatus.textContent = 'Dostęp do mikrofonu potwierdzony. Mikrofon pozostaje wyłączony do rozpoczęcia wywiadu.';
+                this.setReady(true);
+            } catch (error) {
+                if (!current()) return;
+                if (!this.accessChecked) { this.rejectRead('network_error'); return; }
+                this.setReady(false);
+                this.microphoneStatus.textContent = ({
+                    NotAllowedError: 'Nie udzielono dostępu do mikrofonu. Zezwól na mikrofon w ustawieniach strony i kliknij „Sprawdź mikrofon”.',
+                    NotFoundError: 'Nie znaleziono mikrofonu. Podłącz urządzenie i kliknij „Sprawdź mikrofon”.',
+                    NotReadableError: 'Mikrofon jest zajęty lub niedostępny. Zamknij inne aplikacje używające mikrofonu i ponów sprawdzenie.'
+                })[error.name] || 'Nie udało się sprawdzić mikrofonu. Sprawdź urządzenie i ponów sprawdzenie.';
+            } finally {
+                if (current()) this.checkMicrophoneButton.disabled = !this.accessChecked || window.isSecureContext !== true || !navigator.mediaDevices?.getUserMedia;
+            }
         }
         canStart() {
             return this.client.state === 'idle' || this.client.restartable || (this.questionsOnly() && this.client.state === 'paused');
@@ -152,6 +298,10 @@
             this.buttons.retry.hidden = state !== 'retry';
             this.buttons.retry.disabled = !this.access || Boolean(this.operationPending);
             this.consent.disabled = !this.access || !canStart || Boolean(pending);
+            if (!this.ready) {
+                for (const button of Object.values(this.buttons)) button.disabled = true;
+                this.consent.disabled = true;
+            }
         }
         makeClient() {
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
@@ -167,7 +317,12 @@
                 onError: error => {
                     this.diagnose(error.code);
                     if (technicalErrors.has(error.code)) return;
-                    if (denied(error.code)) this.clearAccess();
+                    if (denied(error.code)) this.rejectRead(error.code);
+                    if (error.code === 'microphone_unavailable') {
+                        this.preflightVersion++;
+                        this.setReady(false);
+                        this.microphoneStatus.textContent = 'Nie można włączyć mikrofonu. Sprawdź urządzenie i kliknij „Sprawdź mikrofon”.';
+                    }
                     this.errorMessage = errors[error.code] || 'Nie udało się zakończyć operacji. Sprawdź stan sesji i ponów oczekujące żądanie.';
                     this.status.textContent = this.errorMessage;
                     this.refreshControls();
@@ -179,10 +334,15 @@
             this.diagnosticKeys.add(code);
             console.warn('[Vision] diagnostyka:', code);
         }
-        clearAccess() {
+        clearAccess(code = 'access_revoked') {
+            this.preflightVersion++;
+            this.accessChecked = false;
+            this.setReady(false, false);
+            this.checkMicrophoneButton.disabled = true;
+            if (code === 'access_revoked') this.accessStatus.textContent = 'Dostęp do karty został cofnięty. Sprawdź uprawnienia i aktywny profil kliniczny.';
             if (!this.access) return;
             this.access = false; this.scope++;
-            if ((this.client.active || this.client.startPending) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});
+            if ((this.client.active || this.client.startPending || this.client.capturing) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});
             for (const item of this.proposals.values()) {
                 item.status = 'revoked';
                 for (const control of item.controls || []) control.disabled = true;
@@ -197,7 +357,7 @@
             this.root.querySelector('[data-consent]').disabled = true;
         }
         async run(action) {
-            if (!this.access || this.operationPending) return;
+            if (!this.access || !this.ready || this.operationPending) return;
             this.operationPending = true;
             this.errorMessage = '';
             this.status.textContent = 'Trwa operacja…';
@@ -405,7 +565,7 @@
                         {revision: item.revision, expected_values: Object.fromEntries(items.map(member => [member.field, member.current]))});
                     if (scope !== this.scope || !this.access) return;
                     if (!result.ok) {
-                        if (denied(result.code)) { this.clearAccess(); return; }
+                        if (denied(result.code)) { this.rejectRead(result.code); return; }
                         items.forEach(member => { member.status = 'pending'; });
                         const saveErrors = {
                             native_dirty: 'Najpierw zapisz ręczne zmiany w karcie pacjenta. Propozycja pozostaje do sprawdzenia; niczego nie nadpisano.',
@@ -436,7 +596,7 @@
                     // A failed refresh must not turn a confirmed save back into
                     // a retryable proposal (and risk a duplicate PATCH).
                     const read = await this.bridge.readRecord(pluginId).catch(() => null);
-                    if (read && !read.ok && denied(read.code)) { this.clearAccess(); return; }
+                    if (scope === this.scope && this.access && !read?.ok) { this.rejectRead(read?.code || 'network_error'); return; }
                     if (scope === this.scope && this.access && read?.ok) this.record = read.record;
                 } catch (_) {
                     if (scope !== this.scope || !this.access) return;

@@ -21,6 +21,8 @@
 .vision-assistant p, .vision-proposals p { max-width: none; white-space: normal; margin: 0; }
 .vision-assistant .clk-ui-check { font-weight: normal; line-height: 1.5; }
 .vision-assistant .va-player { gap: var(--clk-ui-space-2); }
+.vision-assistant .va-prerequisites { gap: var(--clk-ui-space-3); padding: var(--clk-ui-space-3); border: 1px solid var(--clk-ui-border); border-radius: var(--clk-ui-radius-button); background: var(--clk-ui-surface-muted); }
+.vision-assistant .va-prerequisite-actions { flex-wrap: wrap; gap: var(--clk-ui-space-2); }
 .vision-assistant .va-icon, .vision-proposals .va-icon { width: 36px; height: 36px; min-width: 36px; padding: 0; flex: 0 0 auto; font-size: 16px; background: var(--clk-ui-surface-card); }
 .vision-assistant .va-record:not(:disabled), .vision-proposals .va-reject:not(:disabled) { color: var(--clk-ui-error); border-color: var(--clk-ui-error); background: var(--clk-ui-error-bg); }
 .vision-assistant .va-pause:not(:disabled) { color: var(--clk-ui-warning); border-color: var(--clk-ui-warning); background: var(--clk-ui-warning-bg); }

@@ -1,5 +1,11 @@
 # Platform administrator: reviewed plugin installation
 
+## Clinic switch — public contract note, not partner installation authority
+
+Global approval/enable/grants remain platform-admin operations. Active local clinic administrators control **Ustawienia → Wtyczki** before **Ustawienia AI**, listing all healthy globally enabled exact-approved modules, including local OFF and AI-not-ready entries. Module ON is independent of AI opt-in, grants, licenses and credits; AI execution needs both module ON and independent consent plus existing authorization/policy. No-AI modules also honor the clinic switch. OFF retains AI consent/progress/data and denies subsequent operational UI/runtime/replay/new event or queue work; it does not promise cancelling in-flight dispatch or refunding charges.
+
+Compatibility defaults ON only for an absent row in an existing activation schema; missing schema/database state fails closed. Reviewed host migration 089 is an administrator prerequisite, never partner SQL. The guide preserves its first six steps and `clinic_admin:v1`, adds AI seventh/Wtyczki eighth, and uses the accessible „Pierwsze kroki” disclosure, open while incomplete and closed after all eight acknowledgments. Header launch compatibility may remain. Use [PLUGIN_UI_STYLE_GUIDE.md](PLUGIN_UI_STYLE_GUIDE.md); collapsing does not submit, generate or toggle activation. `/api/clinic-plugins` remains private host management, not a new partner SDK capability/export. No private host deployment files are copied by this documentation update; live SQL/browser verification remains separate.
+
 ## Sprawdzenie gotowości w istniejącej sekcji Vision
 
 Po rozwinięciu sekcji asystenta hostowy odczyt karty sprawdza bieżące uprawnienia, aktywny profil kliniczny i przypisanie pacjenta. `actor_denied` nie dowodzi samego braku przypisania — instrukcja obejmuje również aktywny profil; `capability_denied` wskazuje wymagane uprawnienie wtyczki. Nie omijamy autoryzacji i nie tworzymy osobnego panelu poza istniejącą sekcją.

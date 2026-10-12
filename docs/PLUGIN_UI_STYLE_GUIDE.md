@@ -43,6 +43,28 @@ Do not put `.clk-ui-card` only on the wrapper itself; the descendant rules need 
 
 ## Supported components
 
+### Collapsible section-card standard (Vision-compatible)
+
+Use one semantic `.clk-plugin-ui` wrapper and a descendant `.clk-ui-card` containing native `<details>/<summary>`, as in Vision. Summary is the compact Polish section title and accessible disclosure control; preserve keyboard Enter/Space, a visible focus indicator and the native marker (or an equally visible scoped chevron). Keep actions/inputs outside summary, in the padded body; do not add redundant `role="button"` or a static `aria-expanded` that can contradict native state. Keep the closed header compact, expanded content readable, wrapping naturally and using host theme/spacing tokens. No new UI Kit disclosure class, JS API or SDK package is required.
+
+```html
+<section class="clk-plugin-ui partner-interview" aria-label="Asystent wywiadu">
+  <div class="clk-ui-card clk-ui-p-0">
+    <details>
+      <summary class="clk-ui-card-title clk-ui-p-4">Asystent wywiadu z AI</summary>
+      <div class="clk-ui-card-body clk-ui-stack clk-ui-p-6">
+        <p class="clk-ui-help">Sprawdź dostęp przed rozpoczęciem wywiadu.</p>
+        <button type="button" class="clk-ui-button clk-ui-button--secondary">Sprawdź dostęp</button>
+      </div>
+    </details>
+  </div>
+</section>
+```
+
+This is a presentation example, not an exported component or functioning API client. Vision and the trichology summary start closed (no `open`); the clinic guide summary is **„Pierwsze kroki”**, replacing its standalone panel button. Guide loads open while any of its eight steps are unread and closes after all eight acknowledgments, not merely historic `status=completed`; the settings-header compatibility launcher may explicitly reopen it. The original six step IDs and `clinic_admin:v1` progress survive, with AI seventh/Wtyczki eighth. Preserve mounted controls, proposals and session/drafts on collapse; never submit/generate/activate or infer microphone stop from closing a disclosure. An explicit readiness check on expansion, as Vision implements, is not recording or paid generation. Independent clinic module OFF is different: host hides operational surfaces and gates subsequent work while preserving consent/progress, without promising in-flight cancellation.
+
+Verify closed/open states, keyboard focus, narrow widths, both themes and native form integrity. Patient read-only slots still prohibit input/form/submit controls; use only permitted visual content and `type="button"` actions there. Reuse this structure in partner reference sections; no standalone-launcher redesign, native-save interception or artifact regeneration belongs to a docs-only update.
+
 All names below include the `clk-ui-` prefix:
 
 | Category | Classes |
@@ -80,7 +102,8 @@ Aliases exist inside `.clk-plugin-ui`; names have `--clk-ui-` prefix:
 | surface / surface-card / surface-muted | --color-panel-bg / --color-card-bg / --color-border-subtle |
 | text / text-secondary / text-muted | --color-text-primary / --color-text-secondary / --color-text-muted |
 | border | --color-border-default |
-| primary-bg / accent / focus | --color-navy-signature / --color-mint-accent / --color-brand-teal-light |
+| primary-bg / primary-text / primary-border | --cta-bg / --cta-text / --cta-border (light: teal/white; dark: navy/mint) |
+| accent / focus | --color-mint-accent / --color-brand-teal-light |
 | success / success-bg | --success-color / --success-bg |
 | info / info-bg | --info-color / --info-bg |
 | warning / warning-bg | --warning-color / --warning-bg |

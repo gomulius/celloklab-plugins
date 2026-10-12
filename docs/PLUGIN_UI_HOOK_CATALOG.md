@@ -1,5 +1,11 @@
 # Plugin UI Hook Catalog
 
+## Clinic module visibility and disclosure standard
+
+Every mounted operational hook, widget, panel, modal/floating surface and registered page/navigation honors independent clinic module activation, including no-AI plugins. AI-requesting plugins additionally require independent clinic AI consent and existing policy/grant checks. The native **Wtyczki** management tab precedes **Ustawienia AI** and remains a catalog of all healthy globally enabled exact-approved modules even local OFF/AI-not-ready; it is not a new SDK hook. Missing row defaults module ON only in existing schema; schema/DB failure fails closed. Module OFF retains consent/guide progress and blocks subsequent runtime/replay/new queue/event work, without promising in-flight cancellation.
+
+Use [PLUGIN_UI_STYLE_GUIDE.md](PLUGIN_UI_STYLE_GUIDE.md)'s accessible Vision-compatible details/summary card. The guide's **„Pierwsze kroki”** summary replaces its standalone panel launcher; incomplete eight-step reading opens by default, all eight acknowledgments close it. Original six step IDs and `clinic_admin:v1` remain, followed by `ai`/`plugins`, linking `settings#tab-ai`/`settings#tab-wtyczki`. Settings-header compatibility launch remains possible. Disclosure preserves mounted state and never submits/generates/activates; private `/api/clinic-plugins` adds no partner hook, capability or SDK export.
+
 ## SDK 1.2.1, etap 2 — niezależny panel wywiadu
 
 Bez nowego hooka: niezależna wtyczka **`vision.visit-assistant` 2.0.0** korzysta z `global.panel.right`, `placement=global_panel`, `page_ids=('documentation_form',)`, `tab_id='tab-wywiad'`, `requires_doctor=True` i jawnych ról klinicznych. Host filtruje stronę/rolę/profil i ukrywa istniejący fragment poza aktywną zakładką, zachowując jego DOM/listenery; widoczność nie jest grantem do pacjenta. Zwinięcie nie wyłącza mikrofonu, nie usuwa natywnego formularza ani innych modułów. Wtyczkę można niezależnie enable/disable przez istniejący lifecycle hosta; cofnięcie dostępu blokuje kolejne autoryzowane operacje, ale nie cofa już wysłanych danych.
@@ -14,11 +20,11 @@ Autorytatywne granice etapu 2: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE
 
 ## Optional clinic guide at the existing right-panel mount
 
-`clinic.guided-setup` **1.0.0** registers `global.panel.right` with `placement=global_panel`, `fragment_id=clinic-guided-setup`, roles `tenant_admin`; no new hook, requested capability or AI. Enabled/exact-version-approved lifecycle and current host-verified local roles apply before rendering; no `/admin` mount or automatic enable. Old clinics retain the compact „Pierwsze kroki” launcher without rollout welcome; invitations use an immutable host cohort and user+clinic+`clinic_admin:v1` state, not a per-browser first visit.
+`clinic.guided-setup` **1.0.0** registers `global.panel.right` with `placement=global_panel`, `fragment_id=clinic-guided-setup`, roles `tenant_admin`; no new hook, requested capability or AI. Enabled/exact-version-approved lifecycle and current host-verified local roles apply before rendering; no `/admin` mount or automatic enable. Old clinics retain the „Pierwsze kroki” disclosure without rollout welcome; invitations use an immutable host cohort and user+clinic+`clinic_admin:v1` state, not a per-browser first visit.
 
 `host_page_id` selects employees/settings/documentation_form/schedule_appointment context; `celloklab:tab-change` with `page_id=settings` and actual `tab_id` handles same-page settings tabs. Neither authorizes access nor acknowledges reading. The guide is a Polish optional reading panel, not a wizard; legal is „W przygotowaniu” without a navigation target. Pure clinic administrators receive no patient/appointment links; the host requires active reception for those guide links.
 
-Only the guide subtree moves into its own mobile dialog, with an accessible live save-error message and „Wczytaj aktualny postęp” GET action inside. Preserve sibling modules, native unsaved-form guards and launcher focus; a collapsed/inactive guide alone must not reserve a blank desktop column. A guide collapse preference must not collapse another module. No automatic PATCH retries or browser storage of progress. Persistence is private host infrastructure, not a new SDK contract. See `tests/test_clinic_guided_setup_ui.py` and `tests/test_clinic_guided_setup_browser.py` for synthetic acceptance boundaries.
+The guide remains in the host's responsive right-panel layout; its separate welcome dialog is not a mobile reading drawer. Keep accessible live errors and „Wczytaj aktualny postęp” explicit GET in the card. Preserve sibling modules, native unsaved-form guards and summary/header-launch focus; collapse must not destroy controls or collapse another module. No automatic PATCH retries or browser storage of progress. Persistence is private host infrastructure, not a new SDK contract. Guide/UI/browser fixtures are synthetic; current-card live geometry/accessibility acceptance remains separate.
 
 Current mounts. Existing Case/medical functionality retained; further Case/external expansion is out of scope. Declaration alone does not install a slot.
 

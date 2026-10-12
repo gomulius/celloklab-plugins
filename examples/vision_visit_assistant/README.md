@@ -1,5 +1,9 @@
 # Vision — Asystent wywiadu, etap 2
 
+## SDK 1.2.3 — aktualny czat/RPL/UX
+
+Czat wymaga dostępu do karty, nie mikrofonu/zgody; bez zgody nie dostaje transkryptu. Jedna stała opłata, wspólny budżet pytań/czatu20 calls co10s, 2048tokens/45s. Historia/odpowiedzi/propozycje memory-only, replay bez treści, pending bez paid auto retry. SDK LiveChatContext/chat callbacks dostarczają tylko walidowane propozycje, nie writes. RPL oficjalni kandydaci: jawny wybór i osobna akceptacja; no-hit nazwa do potwierdzenia bez zmyślonego ID. STT słownik tylko wspierany bezpośredni OpenAI prompt, nie unsupported OpenRouter; fonetyczne warianty do potwierdzenia z raw evidence. Trzy zakładki, sticky composer, trzy najnowsze pytania/wzmianki plus wcześniejsze disclosure; timer/STOP bez fali. Kontrakt: [live](../../PLUGIN_LIVE_INTERVIEW_CONTRACT.md). SDK1.2.3, manifest SDK1.0/Vision2.0.0; przykład publikowany z rzeczywistych źródeł hosta bez ZIP/commit/push lub production tests.
+
 ## Zintegrowane zmiany R&D LIVE
 
 Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.

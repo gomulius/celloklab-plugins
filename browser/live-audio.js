@@ -55,10 +55,10 @@
         get state() { return this._state; }
         get active() { return Boolean(this._session && (!terminal.has(this._session.status) || this.processingFailed) && this._state !== 'stopped'); }
         get capturing() { return Boolean(this.stream || this._state === 'starting'); }
-        get restartable() { return this._state === 'stopped' && !this.startPending && !this.startSending && !this.activationSending && !this.activationPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
+        get restartable() { return this._state === 'stopped' && !this.chatSending && !this.chatUncertain && !this.startPending && !this.startSending && !this.activationSending && !this.activationPending && !this.sending && !this.uncertain && !this.questionsSending && !this.questionsKey; }
         revoke() { this.stopRequested = true; const error = new Error('access_revoked'); error.status = 403; return this._fail(error); }
         dispose() {
-            if (this.active || this.startPending || this.startSending || this.activationPending || this.activationSending || this.sending || this.questionsSending || this.questionsKey) throw new Error('session_unresolved');
+            if (this.active || this.chatSending || this.startPending || this.startSending || this.activationPending || this.activationSending || this.sending || this.questionsSending || this.questionsKey) throw new Error('session_unresolved');
             this._clearTimers();
             window.removeEventListener('pagehide', this.leave);
         }
@@ -136,7 +136,7 @@
             this.options.onSession?.(this.session, this._state);
             // Pending is the normal dispatch fence while our own packet is
             // in flight. Only an idle/recovered pending state implies uncertainty.
-            if (session.status === 'pending' && ((!this.sending && !this.questionsSending) || this.uncertain)) {
+            if (session.status === 'pending' && ((!this.sending && !this.questionsSending && !this.chatSending) || this.uncertain)) {
                 this.uncertain = true;
                 this._transport('pending');
                 if (!this.stream) this._set('retry');
@@ -163,6 +163,44 @@
             }
             if (diagnostics.has(session.error_code)) this._error(session.error_code);
             else if (session.status === 'failed') this._error('session_failed');
+        }
+        async startTextSession() {
+            if (this._state !== 'idle') {
+                if (this.active && !this.startPending && !this.uncertain) return this.session;
+                throw new Error('session_unresolved');
+            }
+            await this._bootstrap(true);
+            if (!this.active || this.startPending || this.uncertain) throw new Error('session_unresolved');
+            return this.session;
+        }
+        async sendChat(message, history = []) {
+            if (typeof message !== 'string' || !message.trim() || message.length > 4000 || this.chatSending || this.chatUncertain) throw new Error('chat_invalid');
+            this.chatSending = true;
+            let dispatched = false;
+            try {
+                await this.startTextSession();
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrf) throw new Error('csrf_required');
+                const sessionId = this._session.session_id;
+                // Chat is never retried automatically: an uncertain provider call may have completed.
+                dispatched = true;
+                const response = await fetch('/api/plugins/' + encodeURIComponent(this.options.pluginId) +
+                    '/live-interviews/' + encodeURIComponent(sessionId) + '/chat?tenant_slug=' + encodeURIComponent(this.context.tenantSlug), {
+                    method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                    headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'Idempotency-Key': crypto.randomUUID()},
+                    body: JSON.stringify({message, history})
+                });
+                if (forbidden.has(response.status)) { await this.revoke(); throw new Error('access_revoked'); }
+                if (!response.ok) throw new Error('chat_request_failed');
+                const result = await response.json();
+                if (!['completed', 'pending'].includes(result?.status) || typeof result.reply !== 'string' || !Array.isArray(result.suggestions)) throw new Error('chat_invalid_response');
+                if (this._session?.status === 'revoked' || this._session?.session_id !== sessionId) throw new Error('access_revoked');
+                if (result.status === 'pending' || result.replayed) this.chatUncertain = true;
+                return result;
+            } catch (error) {
+                if (dispatched) this.chatUncertain = true;
+                throw error;
+            } finally { this.chatSending = false; }
         }
         async start({recordingConsent} = {}) {
             if (recordingConsent !== true) throw new Error('recording_consent_required');

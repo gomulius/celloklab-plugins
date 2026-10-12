@@ -6,7 +6,7 @@ import tarfile
 import io
 import zipfile
 
-VERSION = '1.2.2'
+VERSION = '1.2.3'
 NAME = 'celloklab_plugin_sdk-' + VERSION
 ROOT = Path(__file__).resolve().parent
 PACKAGE = ROOT / 'celloklab_plugin_sdk'

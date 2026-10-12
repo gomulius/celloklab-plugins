@@ -28,7 +28,10 @@
     function registerSupplements(s) {
         const host = window.CelloklabPatientFormState;
         if (host?.supplementsWritable()) s.fields.set('supplements_list', {
-            kind: 'string', dynamic: true, controls: [], choices: null, choiceLabels: {}, label: 'Suplementy'
+            kind: 'string', dynamic: 'supplements', controls: [], choices: null, choiceLabels: {}, label: 'Suplementy'
+        });
+        if (host?.medicationsWritable?.()) s.fields.set('medication_list', {
+            kind: 'string', dynamic: 'medications', controls: [], choices: null, choiceLabels: {}, label: 'Leki (RPL)'
         });
         return s;
     }
@@ -63,7 +66,7 @@
         return registerSupplements(state);
     }
     function read(field) {
-        if (field.dynamic) return window.CelloklabPatientFormState.readSupplements();
+        if (field.dynamic) return field.dynamic === 'medications' ? window.CelloklabPatientFormState.readMedications() : window.CelloklabPatientFormState.readSupplements();
         const controls = field.controls;
         if (field.kind === 'string[]') return controls.filter(c => c.checked).map(c => c.value);
         if (field.kind === 'boolean') return controls[0].type === 'checkbox' ? controls[0].checked : controls[0].value === 'yes' ? true : controls[0].value === 'no' ? false : null;
@@ -83,7 +86,7 @@
         return true;
     }
     function valid(field, value, forWrite = false) {
-        if (field.dynamic) return window.CelloklabPatientFormState.decodeSupplements(value, forWrite) !== null;
+        if (field.dynamic) return field.dynamic === 'medications' ? window.CelloklabPatientFormState.decodeMedications(value, forWrite) !== null : window.CelloklabPatientFormState.decodeSupplements(value, forWrite) !== null;
         if (value === null) return !forWrite || !field.legacy;
         if (field.kind === 'boolean') return typeof value === 'boolean';
         if (field.kind === 'string[]') return Array.isArray(value) && value.length <= 200 && value.every(v => typeof v === 'string' && field.choices.includes(v)) && new Set(value).size === value.length;
@@ -98,7 +101,7 @@
         return true;
     }
     function writable(field) {
-        if (field.dynamic) return window.CelloklabPatientFormState.supplementsWritable();
+        if (field.dynamic) return field.dynamic === 'medications' ? window.CelloklabPatientFormState.medicationsWritable() : window.CelloklabPatientFormState.supplementsWritable();
         return field.controls.every(c => c.isConnected && !c.disabled && !c.readOnly);
     }
     function captureSnapshot() {
@@ -108,7 +111,7 @@
         s.fields.forEach((field, name) => { if (writable(field)) values[name] = read(field); });
         Object.values(values).forEach(value => { if (Array.isArray(value)) Object.freeze(value); });
         const snapshot = Object.freeze({context: s.context, values: Object.freeze(values)});
-        snapshots.set(snapshot, {state: s, consumed: false, supplementDraft: clone(window.CelloklabPatientFormState?.supplementDraft() ?? null)});
+        snapshots.set(snapshot, {state: s, consumed: false, supplementDraft: clone(window.CelloklabPatientFormState?.supplementDraft() ?? null), medicationDraft: clone(window.CelloklabPatientFormState?.medicationDraft?.() ?? null)});
         return snapshot;
     }
     function write(field, value) {
@@ -136,12 +139,14 @@
         }
         if (Object.prototype.hasOwnProperty.call(result.updated_values, 'supplements_list') &&
             (!window.CelloklabPatientFormState.isReady() || !document.getElementById('supplements-container'))) return {ok: false, code: 'form_unavailable'};
+        if (Object.prototype.hasOwnProperty.call(result.updated_values, 'medication_list') &&
+            (!window.CelloklabPatientFormState.isReady() || !document.getElementById('medications-container'))) return {ok: false, code: 'form_unavailable'};
         ticket.consumed = true;
         const applied = [], preserved = [], savedControls = new Map();
         for (const [name, value] of Object.entries(result.updated_values)) {
             const field = s.fields.get(name);
             if (field.dynamic) {
-                const synced = window.CelloklabPatientFormState.acceptSavedSupplements(value, ticket.supplementDraft);
+                const synced = field.dynamic === 'medications' ? window.CelloklabPatientFormState.acceptSavedMedications(value, ticket.medicationDraft) : window.CelloklabPatientFormState.acceptSavedSupplements(value, ticket.supplementDraft);
                 if (!synced.ok) return {ok: false, code: 'form_unavailable'};
                 (synced.preserved ? preserved : applied).push(name);
                 continue;
@@ -258,7 +263,11 @@
         return valid(field, value) ? {ok: true, value} : {ok: false};
     }
     function equivalent(field, a, b) {
-        if (field.dynamic) return same(window.CelloklabPatientFormState.decodeSupplements(a), window.CelloklabPatientFormState.decodeSupplements(b));
+        if (field.dynamic) {
+            const decode = field.dynamic === 'medications' ? window.CelloklabPatientFormState.decodeMedications : window.CelloklabPatientFormState.decodeSupplements;
+            const canonical = rows => rows?.map(row => Object.fromEntries(Object.entries(row).sort(([a], [b]) => a.localeCompare(b))));
+            return same(canonical(decode(a)), canonical(decode(b)));
+        }
         // Blank controls represent nullable SQL values. Multi-choice ordering
         // is not clinically meaningful, and null and [] are both empty groups.
         if (field.kind === 'string[]') return same([...(a || [])].sort(), [...(b || [])].sort());
@@ -295,6 +304,8 @@
             if (revisionConflict) return {ok: false, code: revisionConflict};
             if (names.includes('supplements_list') && (!writable(s.fields.get('supplements_list')) ||
                 !same(window.CelloklabPatientFormState.supplementDraft(), snapshots.get(snapshot).supplementDraft))) return {ok: false, code: 'draft_changed'};
+            if (names.includes('medication_list') && (!writable(s.fields.get('medication_list')) ||
+                !same(window.CelloklabPatientFormState.medicationDraft(), snapshots.get(snapshot).medicationDraft))) return {ok: false, code: 'draft_changed'};
             if (names.some(name => !same(read(s.fields.get(name)), snapshot.values[name]))) return {ok: false, code: 'draft_changed'};
             if (nativeDirty(s)) return {ok: false, code: 'native_dirty'};
             for (const name of names) {
@@ -322,6 +333,44 @@
         } catch (_) { return {ok: false, code: options.signal?.aborted ? 'aborted' : 'network_error'}; }
         finally { releaseSaveLock(token); }
     }
+    async function searchMedications(pluginId, query, options = {}) {
+        const s = init();
+        if (!s) return {ok: false, code: 'form_unavailable'};
+        if (!pluginValid(pluginId) || typeof query !== 'string' || Array.from(query).length > 100 || /[\x00-\x1f]/.test(query)) return {ok: false, code: 'invalid_request'};
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrf) return {ok: false, code: 'csrf_required'};
+        const url = '/api/plugins/' + encodeURIComponent(pluginId) + '/patients/' + encodeURIComponent(s.context.patientId) +
+            '/medication-candidates?tenant_slug=' + encodeURIComponent(s.context.tenantSlug) + '&q=' + encodeURIComponent(query.trim());
+        try {
+            const response = await fetch(url, {credentials: 'same-origin', cache: 'no-store', signal: options.signal,
+                headers: {'Accept': 'application/json', 'X-CSRF-Token': csrf}});
+            if (!response.ok) return {ok: false, code: statusCode(response.status)};
+            const dto = await response.json();
+            const decode = window.CelloklabPatientFormState?.decodeMedications;
+            if (typeof decode !== 'function' || !Array.isArray(dto?.candidates) || dto.candidates.length > 20 ||
+                dto.candidates.some(item => !item?.rpl_id || decode(JSON.stringify([item]), true) === null)) return {ok: false, code: 'invalid_record'};
+            return {ok: true, candidates: dto.candidates, ...(dto.candidates.length ? {} : {message: 'nazwa do potwierdzenia'})};
+        } catch (_) { return {ok: false, code: options.signal?.aborted ? 'aborted' : 'network_error'}; }
+    }
+    function getFieldMount(name) {
+        const s = init(), field = s?.fields.get(name);
+        if (!field || !writable(field)) return null;
+        if (field.dynamic) return document.getElementById(field.dynamic === 'medications' ? 'medications-container' : 'supplements-container');
+        const control = field.controls[0];
+        const target = control.closest('.form-group, fieldset') || control.parentElement;
+        return target && target !== s.form && target !== document.getElementById('tab-wywiad') &&
+            target.closest('#tab-wywiad') && !target.closest('[data-plugin-nonform]') ? target : null;
+    }
+    async function navigateSection(section) {
+        if (!init()) return false;
+        const tabs = {trichology: 'tab-wywiad', photos: 'tab-zalaczniki', visits: 'tab-historia',
+            trichoscopy: 'tab-trychoskopia', tests: 'tab-badania'};
+        if (!Object.prototype.hasOwnProperty.call(tabs, section)) return false;
+        const tab = tabs[section];
+        if (!document.getElementById(tab)?.classList?.contains('patient-tab-pane') ||
+            !document.querySelector('.patient-card-tab[data-tab="' + tab + '"]') || !window.CelloklabPatientTabs?.switchTab) return false;
+        return Boolean(await window.CelloklabPatientTabs.switchTab(tab));
+    }
     window.CelloklabTrichologyFormBridge = Object.freeze({
         version: 1,
         // Available in <head>, before synchronous plugin fragment scripts and
@@ -339,9 +388,9 @@
             const s = init();
             if (!s) return Object.freeze({});
             return Object.freeze(Object.fromEntries(Array.from(s.fields).filter(([, field]) => writable(field)).map(([name, field]) => [name, Object.freeze({type: field.kind, nullable: field.dynamic ? false : !field.legacy, label: field.label, choice_labels: Object.freeze({...field.choiceLabels}), choices: field.choices ? Object.freeze([...field.choices]) : null,
-                ...(field.dynamic ? {encoding: 'json', row_fields: Object.freeze(['name', 'dose', 'frequency', 'since', 'schedule']), max_rows: 200, max_row_text: 2000} : {})})])));
+                ...(field.dynamic ? {encoding: 'json', row_fields: Object.freeze(field.dynamic === 'medications' ? ['rpl_id', 'name', 'substance', 'strength', 'form', 'import_id', 'catalog_date', 'dose', 'frequency', 'since', 'schedule'] : ['name', 'dose', 'frequency', 'since', 'schedule']), max_rows: 200, max_row_text: field.dynamic === 'medications' ? 500 : 2000} : {})})])));
         },
-        captureSnapshot, applyConfirmedPatch, readRecord, savePatch,
+        captureSnapshot, applyConfirmedPatch, readRecord, savePatch, searchMedications, getFieldMount, navigateSection,
         isDirty() { const s = init(); return Boolean(s && nativeDirty(s)); },
         acquireSaveLock, releaseSaveLock,
         isSaveLocked() { return Boolean(lock); }

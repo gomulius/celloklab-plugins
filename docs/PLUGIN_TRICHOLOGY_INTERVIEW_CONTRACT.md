@@ -42,7 +42,7 @@ Host normalization checks shape first; the authorized repository then resolves s
 
 An existing name-only item may keep its exact name while its `dose`/`schedule`/`frequency`/`since` are edited. Matching is one-to-one: it does not permit duplicating a legacy exemption or renaming/adding free-text medication. Historical non-JSON medication text may be retained exactly, omitted or explicitly cleared, not introduced or changed. New items and changed names require an official selection; do not auto-map historical names. `""` or encoded `"[]"` clears the plugin list; legacy `null` remains rejected. `supplements_list` retains its separate legacy rules and does **not** gain RPL metadata or an automatic supplements catalog.
 
-There is **no generic plugin RPL search endpoint or capability**. Native `GET /api/rpl/products` is clinician-only host functionality, not an approved SDK route; partners must not bypass the facade or call core routes to obtain selection data. Existing supported clinical reads can preserve host-validated selection snapshots, and supported writes still undergo host validation. A new partner search/editor path requires separate explicit contract approval; this release does not provide it, expand SDK exports or add physician Case RPL functionality.
+The supported patient-scoped medication-candidates endpoint and bridge searchMedications return official candidates using existing read authorization, private/no-store. Explicit product selection creates a reviewable full-list proposal, not a write. No-hit requires name confirmation, never an invented ID. Native /api/rpl/products remains outside the SDK; no new RPL capability or physician Case expansion.
 
 ## Native interview placement and accessibility
 

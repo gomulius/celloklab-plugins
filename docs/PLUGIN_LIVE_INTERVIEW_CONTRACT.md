@@ -1,4 +1,21 @@
-# Wywiad na żywo — etap 2, SDK Python 1.2.1
+# Wywiad na żywo i czat — SDK Python 1.2.3
+
+Aktualny dodatek: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md). Sekcje SDK 1.2.2 poniżej opisują zachowaną podstawę natywnych pól, nie bieżące wymaganie instalacji.
+
+## Czat, RPL i aktualny UX — kontrakt 1.2.3
+
+Publiczny `LiveChatContext(task,message,history=(),segment_ids=())` zawiera host-redacted wejście, nie dowód z historii. `LiveInterviewRegistration` addytywnie ma opcjonalne `chat_prompt_builder(context)->TaskPrompt` i `chat_result_processor(context,raw)->Mapping`; procesor wymaga buildera, oba callable, stare rejestracje działają. SDK nie wykonuje sieci ani zapisów. Szczegóły ścieżek/body/envelope: [API reference](PLUGIN_API_REFERENCE.md), sekcja „Czat i kandydaci RPL”.
+
+Czat wymaga dostępu do karty, nie mikrofonu ani zgody na nagrywanie. Start tekstowy `{profile_id:"interview",questions_only:true}`; jawne `/recording` z `{recording_consent:true}` dodaje audio w tej samej sesji. Bez zgody host przekazuje pusty transkrypt/segment IDs. Jedna stała opłata efektywnej funkcji AI; czat i jawne pytania współdzielą **20 wywołań co najmniej co 10 s, 2048 output tokens i 45 s** na model-call. To nie 20 kredytów ani limit chunków STT. Pending bez paid auto retry, fresh-key bypass lub automatycznego refundu.
+
+Historia do 20 wpisów/20000 znaków i wiadomość do 4000 znaków, odpowiedzi i propozycje czatu są tylko w pamięci przeglądarki. Host zapisuje HMAC/klucz/czas i beztreściowy marker, nie chat PHI w state/ledger/audyt/logach; replay nie odtwarza rozmowy (`chat_replay_unavailable`). Bez localStorage/sessionStorage/IndexedDB. Nie zmienia to odrębnej szyfrowanej persystencji nagranych segmentów. Historia nie uzasadnia propozycji: source=message wymaga całej bieżącej wiadomości/segment_ids=[]; source=transcript całych rzeczywistych finalnych segmentów zgody. Host waliduje native types/pola, pełne dowody i revision/baseline; AI nie czyści ani nie zapisuje. Zapis wyłącznie po jawnej akceptacji przez istniejący PATCH/If-Match z dirty-form guard.
+
+Oficjalni kandydaci: `GET /api/plugins/{plugin_id}/patients/{patient_id}/medication-candidates?tenant_slug=...&q=...`, istniejąca autoryzacja patient.read_trichology_record, actor/clinic/patient i lifecycle/grants, private/no-store. `{candidates:[...]}`, q do100 znaków, prefix od2, max20. Bridge: `searchMedications(pluginId,query)`, `getFieldMount(field)`, `navigateSection(trichology|photos|visits)` z guardami. Specjalista wybiera oficjalny produkt, potem przegląda i akceptuje pełną propozycję listy, zachowując istniejące pozycje i pierwotny baseline. Moc produktu nie jest dawką. Brak trafienia/katalogu: potwierdzenie nazwy z pacjentem, nigdy fabrykowany lek/ID lub nowa sama nazwa. Bez nowej capability RPL, history auto-mapping lub supplements catalog.
+
+STT language=pl; słownik pisowni wyłącznie przez obsługiwany bezpośredni OpenAI prompt. OpenRouter nie otrzymuje nieobsługiwanego prompt/keyterms/provider options ani retry ze zmienionymi parametrami. Fonetyczne korekty są do potwierdzenia, oryginalny pełny raw evidence pozostaje. Ani wzmianka, ani słownik nie dowodzi diagnozy/tożsamości leku.
+
+Trzy zakładki **Konwersacja / Do akceptacji / Transkrypcja**, sticky composer z Pytania/Podsumowanie/Braki, status w nagłówku. Trzy najnowsze pytania/wzmianki na wierzchu, wcześniejsze w rozwijanych listach. Propozycje w sidebar oraz przy natywnych polach. Wskaźnik/timer/STOP bez widocznej fali; mikrofon/zgoda blokują tylko nagrywanie. Wyraźne zamknięcie kończy pewną sesję, samo zwinięcie nie zastępuje STOP/autoryzacji. Manifest SDK1.0, UI1.0.0, Vision2.0.0 bez zmian; brak nowych migracji/capabilities. Publiczne SDK/example/browser copies i wheel są wydawane bez ZIP/commit/push; realny provider/mic/MariaDB odbiór pozostaje osobny.
+
 
 ## Aktualny kontrakt: interpretacja semantyczna przez AI
 
@@ -38,7 +55,7 @@ Przejściowe kody STT/analizy/transportu trafiają do konsoli przeglądarki jako
 
 ## Stabilne pytania i niezależne propozycje
 
-Nowe pytania dopisują się na dole bez zastępowania istniejących pills; tekst identyczny nie jest duplikowany. Tylko operator usuwa pytanie ikoną X w aktywnej sesji. Wyjątki ochronne: cofnięcie dostępu usuwa dane, nowa sesja rozpoczyna nową listę.
+Trzy najnowsze pytania są na wierzchu, wcześniejsze pod „Starsze pytania”; tekst identyczny nie jest duplikowany. Operator usuwa pytanie ikoną X lokalnie dla sesji. Cofnięcie dostępu i nowa sesja czyszczą listę.
 
 Processor Vision uwzględnia sąsiednie segmenty jednej niedokończonej wypowiedzi tylko przy zgodnym mówcy, ciągłości czasu i źródłach cytujących każdy pełny segment. Nie skleja cytatów evidence ani nie wymyśla IDs. Błędna propozycja jednego pola nie usuwa poprawnej propozycji innego pola; odrzucenie jest jawne. Globalny nieprawidłowy schemat nadal odmawia. Pytania, hipotezy, negacje i historia rodzinna nie stają się faktami pacjenta.
 
@@ -73,7 +90,7 @@ Hostowe `CelloklabPatientFormState` współdzieli semantyczny baseline z bridge 
 
 ## Polski wywiad i układ roboczy
 
-- Sterowanie nagrywaniem, pauzą/wznowieniem i zakończeniem jest ikonowe z polskimi etykietami dostępności; nagrywanie czerwone, pauza ostrzegawcza. Sidebar pokazuje falę i pytania, nie karty propozycji.
+- Nagrywanie ma czerwony wskaźnik, timer i STOP bez fali. Sidebar ma Konwersację, Do akceptacji i Transkrypcję oraz sticky composer; propozycje są także przy natywnych polach.
 - Propozycje są w wąskich paskach w `patient.records.sections`, na górze `tab-wywiad`, z polskimi nazwami pól/opcji. Ikony akceptuj/odrzuć zamykają pasek; akceptuj zapisuje przez publiczny bridge z oryginalnym If-Match/baseline. Konflikt lub niezapisana ręczna zmiana pozostawia pasek i komunikat.
 - STT zawsze wysyła `language=pl`; tylko bezpośredni OpenAI ma dodatkowy polski prompt (OpenRouter nie deklaruje tego parametru). Fragmenty kończą się przy pauzie ≥400 ms po minimum 1,5 s lub po maksymalnie 5 s. Pomijana jest wyłącznie cisza cyfrowa ±8 PCM16, z krótkim pre-roll. To ogranicza cięcie słów, ale nie gwarantuje poprawności dostawcy ani reakcji w 2 s.
 - Przycisk pytania wywołuje jawny `POST .../{session_id}/questions` z `{}` i UUID. Klient najpierw pauzuje i potwierdza audio; pytania korzystają z istniejącej stałej opłaty sesji. Limit 20 wywołań i odstęp 10 s, brak automatycznych płatnych ponowień; niepewny dispatch pozostaje pending. Wznowienie mikrofonu jest jawne.
@@ -196,6 +213,6 @@ Addytywne `NATIVE_TRICHOLOGY_FIELDS`, `NATIVE_OPTIONS`, `NATIVE_MULTI_FIELDS`, `
 
 `supplements_list` ma string JSON z listą obiektów `name`, `dose`, `frequency`, `since`, `schedule` (stringi). Nieznane szczegóły to pusty string. Vision wymaga wszystkich kluczy, niepustej nazwy i nie proponuje czyszczenia. Propozycja obejmuje całą listę, zachowując istniejące pozycje. Host synchronizuje rzeczywiste wiersze oraz zapisany baseline; zmiany podczas PATCH pozostają widoczne. Historycznych list readonly nie zastępuje ukrytymi kontrolkami.
 
-**Granica farmakoterapii:** rozmowa uzupełnia `current_medications` i `medication_changes`; automatyczny wybór katalogowego produktu RPL nie jest zaimplementowany. Nie wolno fabrykować identyfikatorów leków. To ograniczenie, nie deklaracja pełnego automatycznego wypełnienia listy RPL.
+**Granica farmakoterapii:** rozmowa proponuje current_medications/medication_changes i wzmianki do potwierdzenia. Oficjalni kandydaci RPL wymagają jawnego wyboru produktu i osobnej akceptacji pełnej listy; nie wolno fabrykować identyfikatorów.
 
 Bez nowej migracji i bez automatycznego włączania pluginu. Wydanie wymaga zgodnego hosta, SDK 1.2.2 oraz aktualnego przykładu Vision. Testy syntetyczne potwierdzają kontrakt, zapis i UI; nie stanowią odbioru rzeczywistego STT/LLM ani produkcyjnej bazy.

@@ -1,67 +1,68 @@
-/* Vision geometry only; colors, typography and focus inherit the SDK theme. */
-.vision-assistant [data-status], .vision-assistant [data-audio-signal] { height: 24px; min-height: 24px; max-height: 24px; line-height: 24px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vision-assistant [data-consent-block] { height: 44px; min-height: 44px; }
-.vision-assistant [data-consent-block][hidden] { display: block !important; visibility: hidden; }
-
-.vision-assistant [data-tips] { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--clk-ui-space-3); }
-.vision-assistant .va-question-pill { display: flex; align-items: center; gap: var(--clk-ui-space-3); padding: var(--clk-ui-space-3) var(--clk-ui-space-4); border-radius: var(--clk-ui-space-5); border: 1px solid var(--clk-ui-border); background: var(--clk-ui-surface-muted); color: var(--clk-ui-text); line-height: 1.5; }
-.vision-assistant .va-question-pill > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.vision-assistant .va-question-remove { border: 0; background: transparent; color: var(--clk-ui-text-muted); min-width: 32px; width: 32px; height: 32px; }
-
-.vision-assistant, .vision-proposals { min-width: 0; }
-.vision-assistant [hidden], .vision-proposals [hidden] { display: none !important; }
-.vision-assistant .va-card { position: relative; margin-top: var(--clk-ui-space-3); padding: var(--clk-ui-space-4); background: var(--clk-ui-surface-card); }
-.vision-assistant .va-summary { padding-right: 48px; cursor: pointer; font-family: var(--clk-ui-font-heading); font-size: 18px; line-height: 1.4; min-height: 36px; }
-.vision-assistant .va-info { position: absolute; top: var(--clk-ui-space-4); right: var(--clk-ui-space-4); z-index: 2; }
-.vision-assistant .va-info-trigger { display: flex; align-items: center; justify-content: center; list-style: none; cursor: pointer; }
-.vision-assistant .va-info-trigger::-webkit-details-marker { display: none; }
-.vision-assistant .va-info-content { position: absolute; top: calc(100% + var(--clk-ui-space-2)); right: 0; width: min(340px, calc(100vw - 64px)); max-height: 60vh; overflow-y: auto; padding: var(--clk-ui-space-3); gap: var(--clk-ui-space-2); background: var(--clk-ui-surface-card); border: 1px solid var(--clk-ui-border); }
-.vision-assistant summary:focus-visible, .vision-proposals .va-icon:focus-visible { outline: 2px solid var(--clk-ui-focus); outline-offset: 3px; }
-.vision-assistant .va-body { margin-top: var(--clk-ui-space-3); padding-top: var(--clk-ui-space-3); border-top: 1px solid var(--clk-ui-border); gap: var(--clk-ui-space-3); }
-.vision-assistant p, .vision-proposals p { max-width: none; white-space: normal; margin: 0; }
-.vision-assistant .clk-ui-check { font-weight: normal; line-height: 1.5; }
-.vision-assistant .va-player { gap: var(--clk-ui-space-2); }
-.vision-assistant .va-prerequisites { gap: var(--clk-ui-space-3); padding: var(--clk-ui-space-3); border: 1px solid var(--clk-ui-border); border-radius: var(--clk-ui-radius-button); background: var(--clk-ui-surface-muted); }
-.vision-assistant .va-prerequisite-actions { flex-wrap: wrap; gap: var(--clk-ui-space-2); }
-.vision-assistant .va-icon, .vision-proposals .va-icon { width: 36px; height: 36px; min-width: 36px; padding: 0; flex: 0 0 auto; font-size: 16px; background: var(--clk-ui-surface-card); }
-.vision-assistant .va-record:not(:disabled), .vision-proposals .va-reject:not(:disabled) { color: var(--clk-ui-error); border-color: var(--clk-ui-error); background: var(--clk-ui-error-bg); }
-.vision-assistant .va-pause:not(:disabled) { color: var(--clk-ui-warning); border-color: var(--clk-ui-warning); background: var(--clk-ui-warning-bg); }
-.vision-assistant .va-stop:not(:disabled) { color: var(--clk-ui-error); border-color: var(--clk-ui-error); }
-.vision-assistant .va-resume:not(:disabled), .vision-proposals .va-accept:not(:disabled) { color: var(--clk-ui-success); border-color: var(--clk-ui-success); background: var(--clk-ui-success-bg); }
-.vision-assistant .va-audio { gap: var(--clk-ui-space-1); }
-.vision-assistant .va-wave { display: block; width: 100%; height: 48px; border-radius: var(--clk-ui-radius-button); background: var(--clk-ui-surface-muted); }
-.vision-assistant .va-wave path { fill: none; stroke: var(--clk-ui-focus); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.vision-assistant .va-label { font-size: 12px; color: var(--clk-ui-text); }
-.vision-assistant .va-meter { display: block; width: 100%; height: 12px; accent-color: var(--clk-ui-success); }
-.vision-assistant .va-meter::-webkit-meter-bar { background: var(--clk-ui-border); border: 0; border-radius: var(--clk-ui-radius-button); }
-.vision-assistant .va-meter::-webkit-meter-optimum-value, .vision-assistant .va-meter::-moz-meter-bar { background: var(--clk-ui-success); }
-
-.vision-assistant .va-transcript { list-style: none; padding: 0; margin: 0; max-height: 160px; overflow-y: auto; }
-.vision-assistant .va-transcript-segment { padding: var(--clk-ui-space-2) 0; border-bottom: 1px solid var(--clk-ui-border); }
-.vision-assistant .va-transcript-segment p { white-space: pre-wrap; overflow-wrap: anywhere; }
-/* Selectively ported R&D tabs/explanations; existing SDK tokens and gate geometry. */
-.vision-assistant .va-tabs { display: flex; flex-wrap: wrap; gap: var(--clk-ui-space-4); border-bottom: 1px solid var(--clk-ui-border); }
-.vision-assistant .va-tab { position: relative; display: inline-flex; align-items: center; gap: var(--clk-ui-space-2); padding: var(--clk-ui-space-2) 0; border: 0; background: transparent; color: var(--clk-ui-text-muted); font: inherit; cursor: pointer; }
-.vision-assistant .va-tab[aria-selected="true"] { color: var(--clk-ui-text); font-family: var(--clk-ui-font-heading); border-bottom: 2px solid var(--clk-ui-accent); }
-.vision-assistant .va-tab:focus-visible { outline: 2px solid var(--clk-ui-focus); outline-offset: 2px; }
-.vision-assistant .va-badge { padding: 0 var(--clk-ui-space-1); border-radius: var(--clk-ui-radius-button); background: var(--clk-ui-surface-muted); color: var(--clk-ui-text); }
-.vision-assistant .va-pane, .vision-assistant .va-insights { display: flex; flex-direction: column; gap: var(--clk-ui-space-3); }
-.vision-assistant .va-pane .va-transcript { max-height: 55vh; }
-.vision-assistant .va-insight { position: relative; display: flex; flex-direction: column; gap: var(--clk-ui-space-1); padding: var(--clk-ui-space-3); border-radius: var(--clk-ui-radius-input); background: var(--clk-ui-surface-muted); overflow-wrap: anywhere; }
-.vision-assistant .va-insight small { color: var(--clk-ui-text-muted); padding-right: 40px; }
-.vision-assistant .va-insight strong { font-family: var(--clk-ui-font-heading); padding-right: 40px; }
-.vision-assistant .va-insight .va-ask { color: var(--clk-ui-text-secondary); }
-.vision-assistant .va-insight-hide { position: absolute; right: var(--clk-ui-space-1); top: var(--clk-ui-space-1); }
-.vision-proposals { width: 100%; margin-bottom: var(--clk-ui-space-3); }
-.vision-proposals .va-proposals-slot { padding: 0; border: 0; background: transparent; }
-.vision-proposals .va-proposal { width: 100%; padding: var(--clk-ui-space-2) var(--clk-ui-space-3); background: var(--clk-ui-surface-card); }
-.vision-proposals .va-proposal-content { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--clk-ui-space-3); row-gap: var(--clk-ui-space-1); }
-.vision-proposals .va-proposal-content > :not(.va-proposal-actions) { grid-column: 1; overflow-wrap: anywhere; }
-.vision-proposals .va-proposal-content > strong { font-family: var(--clk-ui-font-heading); color: var(--clk-ui-text); }
-.vision-proposals .va-proposal-actions { grid-column: 2; grid-row: 1 / span 5; align-self: center; flex-wrap: nowrap; gap: var(--clk-ui-space-2); }
-.vision-proposals .va-source { margin: 0; padding: 0; border: 0; color: var(--clk-ui-text-muted); font-size: 12px; }
-.vision-proposals [role="status"]:empty { display: none; }
-@media (max-width: 767.98px), (pointer: coarse) {
-    .vision-assistant .va-icon, .vision-proposals .va-icon { width: 44px; height: 44px; min-width: 44px; }
-    .vision-assistant summary { min-height: 44px; }
-}
+/* Vision: compact, theme-token-only geometry. No host-private mutations. */
+.vision-assistant,.vision-proposals {min-width:0;font-size:13px;line-height:1.4;color:var(--clk-ui-text)}
+.vision-assistant [hidden],.vision-proposals [hidden] {display:none!important}
+.vision-assistant .va-card {position:relative;padding:10px;background:var(--clk-ui-surface-card)}
+.vision-assistant .va-summary {display:flex;align-items:center;gap:8px;padding-right:28px;cursor:pointer;font-family:var(--clk-ui-font-heading);font-size:15px;min-height:32px;list-style:none}
+.vision-assistant .va-summary::-webkit-details-marker {display:none}
+.vision-assistant .va-patient {font-size:11px;color:var(--clk-ui-text-muted);overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.vision-assistant .va-header-status {display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;white-space:nowrap}
+.vision-assistant .va-status-dot {display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--clk-ui-success)}
+.vision-assistant [data-state="recording"] .va-status-dot,.vision-assistant .va-recording-strip .va-status-dot {background:var(--clk-ui-error)}
+.vision-assistant [data-state="analyzing"] .va-status-dot {background:var(--clk-ui-warning)}
+.vision-assistant .va-close {position:absolute;right:7px;top:11px;border:0;padding:0;width:24px;height:24px;min-height:24px;background:transparent}
+.vision-assistant .va-body {display:flex;flex-direction:column;gap:8px;padding:8px 0 0;min-height:0;max-height:calc(100vh - 170px);max-height:calc(100dvh - 170px);overflow:hidden}
+.vision-assistant [data-ready-controls] {flex:1 1 auto;min-height:0;overflow:hidden}
+.vision-assistant .va-prerequisites,.vision-assistant .va-player,.vision-assistant [data-consent-block],.vision-assistant .va-tabs {flex-shrink:0}
+.vision-assistant p,.vision-proposals p {margin:0;max-width:none;overflow-wrap:anywhere}
+.vision-assistant .clk-ui-help,.vision-assistant small,.vision-assistant .va-label,.vision-proposals small {font-size:11px;line-height:1.35;color:var(--clk-ui-text-muted)}
+.vision-assistant .clk-ui-card-title {font-size:11px;margin:2px 0;font-family:var(--clk-ui-font-heading)}
+.vision-assistant .va-prerequisites {gap:5px;padding:7px;border:1px solid var(--clk-ui-border);border-radius:var(--clk-ui-radius-button);background:var(--clk-ui-surface-muted)}
+.vision-assistant .va-prerequisite-actions {flex-wrap:wrap;gap:5px}
+.vision-assistant .va-player {display:flex;align-items:center;gap:8px}
+.vision-assistant .va-icon,.vision-proposals .va-icon {width:30px;height:30px;min-width:30px;min-height:30px;padding:0;font-size:13px}
+.vision-assistant .va-recording-strip {display:flex;align-items:center;gap:6px;font-size:11px;flex:1;color:var(--clk-ui-error)}
+.vision-assistant [data-recording-timer] {font-variant-numeric:tabular-nums}
+.vision-assistant .va-stop {font-size:11px;color:var(--clk-ui-error);border-color:var(--clk-ui-error)}
+.vision-assistant [data-consent-block] {height:auto;min-height:0}
+.vision-assistant .clk-ui-check {font-size:11px;font-weight:normal}
+.vision-assistant .va-sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.vision-assistant .va-tabs {display:flex;flex-wrap:nowrap;gap:10px;border-bottom:1px solid var(--clk-ui-border)}
+.vision-assistant .va-tab {border:0;background:transparent;color:var(--clk-ui-text-muted);font:inherit;font-size:11px;white-space:nowrap;padding:8px 0;cursor:pointer}
+.vision-assistant .va-tab[aria-selected="true"] {color:var(--clk-ui-text);border-bottom:2px solid var(--clk-ui-accent)}
+.vision-assistant .va-tab:focus-visible,.vision-assistant summary:focus-visible {outline:2px solid var(--clk-ui-focus);outline-offset:2px}
+.vision-assistant .va-pane,.vision-assistant .va-insights {display:flex;flex-direction:column;gap:6px}
+.vision-assistant .va-pane {flex:1 1 auto;min-height:0;overflow:auto}
+.vision-assistant [data-tips],.vision-assistant [data-older-tips] {list-style:disc;margin:0;padding-left:17px}
+.vision-assistant .va-question-pill {position:relative;padding:3px 25px 3px 0;border:0;border-radius:0;background:transparent;line-height:1.35;font-size:13px}
+.vision-assistant .va-question-remove {position:absolute;right:0;top:0;border:0;width:22px;height:22px;min-width:22px;min-height:22px;background:transparent;color:var(--clk-ui-text-muted);font-size:11px}
+.vision-assistant [data-older-questions] summary {font-size:11px;color:var(--clk-ui-text-muted);cursor:pointer}
+.vision-assistant .va-insight {position:relative;display:flex;flex-direction:column;gap:3px;padding:7px 28px 7px 8px;background:var(--clk-ui-surface-muted);border-radius:var(--clk-ui-radius-input);overflow-wrap:anywhere}
+.vision-assistant .va-insight-new {border-left:3px solid var(--clk-ui-accent)}
+.vision-assistant .va-insight-hide {position:absolute;right:2px;top:2px;width:22px;height:22px;min-width:22px;min-height:22px;background:transparent;border:0;font-size:11px}
+.vision-assistant .va-ask {font-size:11px;color:var(--clk-ui-text-secondary)}
+.vision-assistant .va-conversation {display:flex;flex-direction:column;gap:7px;min-height:0;max-height:42vh;overflow:auto}
+.vision-assistant .va-message {padding:7px 9px;border-radius:var(--clk-ui-radius-input);max-width:92%;white-space:pre-wrap;font-size:13px}
+.vision-assistant .va-message-user {align-self:flex-end;background:var(--clk-ui-surface-muted)}
+.vision-assistant .va-message-assistant {align-self:flex-start;border:1px solid var(--clk-ui-border)}
+.vision-assistant .va-composer {position:sticky;bottom:0;z-index:2;margin-top:auto;padding:8px 0;background:var(--clk-ui-surface-card);border-top:1px solid var(--clk-ui-border);flex-shrink:0}
+.vision-assistant .va-quick-actions {display:flex;gap:4px;margin-bottom:5px}
+.vision-assistant .va-quick-actions button {font-size:11px;padding:3px 5px;min-height:26px}
+.vision-assistant .va-composer-row {display:flex;gap:5px}
+.vision-assistant [data-chat-input] {width:100%;min-width:0;resize:vertical;max-height:120px;padding:7px;font:inherit;color:var(--clk-ui-text);background:var(--clk-ui-surface-card);border:1px solid var(--clk-ui-border);border-radius:var(--clk-ui-radius-input)}
+.vision-assistant .va-transcript {list-style:none;margin:0;padding:0;max-height:52vh;overflow:auto}
+.vision-assistant .va-transcript-segment {padding:5px 0;border-bottom:1px solid var(--clk-ui-border)}
+.vision-assistant .va-transcript-segment p {white-space:pre-wrap}
+.vision-assistant .va-info {position:relative;margin-top:3px}
+.vision-assistant .va-info-trigger {list-style:none;cursor:pointer;width:22px;height:22px;min-height:22px;font-size:11px}
+.vision-assistant .va-info-content {padding:7px;gap:5px;max-height:35vh;overflow:auto}
+.vision-proposals .va-proposal-banner {display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px;border:1px solid var(--clk-ui-border);border-radius:var(--clk-ui-radius-input);background:var(--clk-ui-surface-muted)}
+.vision-proposals .va-proposal-banner button {font-size:11px;padding:4px 7px;min-height:26px}
+.vision-assistant .va-proposal,.vision-proposals .va-inline-proposal {padding:7px;margin:4px 0;border:1px solid var(--clk-ui-border);border-left:3px solid var(--clk-ui-accent);border-radius:var(--clk-ui-radius-input);background:var(--clk-ui-surface-card);font-size:13px}
+.vision-proposals .va-inline-proposal {display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.vision-proposals .va-inline-proposal blockquote {width:100%;font-size:11px;margin:0;color:var(--clk-ui-text-muted)}
+.vision-assistant .va-proposal-content {display:flex;flex-direction:column;gap:4px}
+.vision-assistant .va-source {font-size:11px;margin:0;color:var(--clk-ui-text-muted)}
+.vision-assistant .va-proposal-actions {display:flex;gap:5px}
+.vision-assistant .va-medication-candidate {display:flex;flex-direction:column;gap:5px;padding:7px;border:1px solid var(--clk-ui-border);border-radius:var(--clk-ui-radius-input)}
+.vision-assistant .va-medication-candidate input,.vision-assistant .va-medication-candidate select {width:100%;min-width:0;max-width:100%;font:inherit;font-size:13px;background:var(--clk-ui-surface-card);color:var(--clk-ui-text);border:1px solid var(--clk-ui-border)}
+@media (pointer:coarse) {.vision-assistant .va-icon,.vision-proposals .va-icon {width:40px;height:40px;min-width:40px}.vision-assistant .va-question-remove,.vision-assistant .va-insight-hide {width:28px;height:28px}}

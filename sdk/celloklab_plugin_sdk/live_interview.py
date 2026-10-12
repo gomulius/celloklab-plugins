@@ -19,6 +19,20 @@ LIVE_INTERVIEW_CAPABILITIES = frozenset({"AI", LIVE_INTERVIEW_CAPABILITY})
 
 
 @dataclass(frozen=True)
+class LiveChatContext:
+    """Ephemeral, host-redacted chat input; browser history is not evidence.
+
+    ``segment_ids`` corresponds to ``task.transcript`` (only consented audio).
+    Text proposals must cite the whole current ``message`` with source='message'
+    and segment_ids=[]; transcript proposals cite whole finalized segments.
+    """
+    task: TaskContext
+    message: str
+    history: Tuple[Mapping[str, str], ...] = ()
+    segment_ids: Tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class LiveInterviewRegistration:
     """Pure proposal prompt builder; one declaration does not start a session."""
     session_id: str
@@ -26,6 +40,8 @@ class LiveInterviewRegistration:
     prompt_builder: Callable[[TaskContext], TaskPrompt]
     inputs: TaskInputs = field(default_factory=lambda: TaskInputs(trichology_record=True, transcript=True))
     result_processor: Callable[[TaskContext, Any], Mapping[str, Any]] | None = None
+    chat_prompt_builder: Callable[[LiveChatContext], TaskPrompt] | None = None
+    chat_result_processor: Callable[[LiveChatContext, Any], Mapping[str, Any]] | None = None
 
     def __post_init__(self) -> None:
         self.validate()
@@ -49,6 +65,11 @@ class LiveInterviewRegistration:
             raise TypeError("Budowanie promptu sesji wymaga funkcji.")
         if self.result_processor is not None and not callable(self.result_processor):
             raise TypeError("Przetwarzanie wyniku sesji wymaga funkcji.")
+        for callback in (self.chat_prompt_builder, self.chat_result_processor):
+            if callback is not None and not callable(callback):
+                raise TypeError("Callback czatu wymaga funkcji.")
+        if self.chat_result_processor is not None and self.chat_prompt_builder is None:
+            raise ValueError("Procesor czatu wymaga buildera czatu.")
 
 
 @dataclass(frozen=True)
@@ -170,4 +191,4 @@ def register_live_interviews(registrar: Any, sessions: Tuple[LiveInterviewRegist
         register(item)
 
 
-__all__ = ["LIVE_INTERVIEW_CAPABILITY", "LIVE_INTERVIEW_CAPABILITIES", "LiveInterviewRegistration", "LiveSegmentEvent", "TranscriptSourceReference", "LiveProposalEvent", "register_live_interviews"]
+__all__ = ["LiveChatContext", "LIVE_INTERVIEW_CAPABILITY", "LIVE_INTERVIEW_CAPABILITIES", "LiveInterviewRegistration", "LiveSegmentEvent", "TranscriptSourceReference", "LiveProposalEvent", "register_live_interviews"]

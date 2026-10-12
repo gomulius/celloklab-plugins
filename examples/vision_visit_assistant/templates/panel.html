@@ -1,67 +1,48 @@
-<section class="clk-plugin-ui vision-assistant" data-vision-visit-assistant data-vision-context="interview" aria-label="Asystent wywiadu">
+<section class="clk-plugin-ui vision-assistant" data-vision-visit-assistant data-vision-context="interview" aria-label="AI Asystent">
   <div class="clk-ui-card va-card">
     <details class="va-main">
-      <summary class="va-summary">Asystent wywiadu z AI</summary>
+      <summary class="va-summary">AI Asystent <span class="va-patient" data-patient-name></span><span class="va-header-status" data-header-status><span class="va-status-dot"></span><span data-header-label>Gotowy</span></span></summary>
+      <button type="button" class="clk-ui-button va-close" data-close aria-label="Zamknij asystenta">×</button>
       <div class="clk-ui-card-body clk-ui-stack va-body">
-        <div class="clk-ui-stack va-prerequisites" data-prerequisites aria-label="Warunki uruchomienia asystenta">
-          <h3 class="clk-ui-card-title">Przed rozpoczęciem</h3>
-          <p class="clk-ui-help" data-access-status role="status" aria-live="polite">Rozwiń sekcję, aby sprawdzić dostęp do karty pacjenta.</p>
-          <p class="clk-ui-help" data-microphone-status role="status" aria-live="polite">Mikrofon sprawdzimy po potwierdzeniu dostępu. Nie uruchamiamy nagrywania automatycznie.</p>
-          <div class="clk-ui-row va-prerequisite-actions">
-            <button type="button" class="clk-ui-button" data-check-access>Ponów sprawdzenie</button>
-            <button type="button" class="clk-ui-button" data-check-microphone disabled>Sprawdź mikrofon</button>
-          </div>
-          <p class="clk-ui-help">Sprawdzenie mikrofonu tylko potwierdza dostęp do urządzenia i od razu je wyłącza. Nie wysyła audio, nie tworzy sesji AI i nie zużywa kredytów.</p>
+        <div class="clk-ui-stack va-prerequisites" data-prerequisites aria-label="Warunki uruchomienia mikrofonu">
+          <p class="clk-ui-help" data-access-status role="status" aria-live="polite">Rozwiń asystenta, aby sprawdzić dostęp do karty.</p>
+          <p class="clk-ui-help" data-microphone-status role="status" aria-live="polite">Sprawdzamy mikrofon bez automatycznej prośby o zgodę.</p>
+          <div class="clk-ui-row va-prerequisite-actions"><button type="button" class="clk-ui-button" data-check-access>Ponów sprawdzenie</button><button type="button" class="clk-ui-button" data-check-microphone disabled>Sprawdź mikrofon</button></div>
         </div>
         <div class="clk-ui-stack" data-ready-controls hidden>
-        <div class="clk-ui-row va-player" role="group" aria-label="Sterowanie wywiadem">
-          <button type="button" class="clk-ui-button va-icon va-record" data-action="start" aria-label="Rozpocznij wywiad z AI" title="Rozpocznij wywiad z AI" aria-describedby="vision-interview-status" disabled><i class="fa-solid fa-circle" aria-hidden="true"></i></button>
-          <button type="button" class="clk-ui-button va-icon va-pause" data-action="pause" aria-label="Wstrzymaj wywiad" title="Wstrzymaj wywiad" disabled><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
-          <button type="button" class="clk-ui-button va-icon va-resume" data-action="resume" aria-label="Wznów mikrofon" title="Wznów mikrofon" disabled><i class="fa-solid fa-play" aria-hidden="true"></i></button>
-          <button type="button" class="clk-ui-button va-icon va-stop" data-action="stop" aria-label="Zakończ wywiad" title="Zakończ wywiad" disabled><i class="fa-solid fa-stop" aria-hidden="true"></i></button>
-          <button type="button" class="clk-ui-button va-icon va-questions" data-action="questions" aria-label="Zaproponuj pytania do wywiadu" title="Zaproponuj pytania do wywiadu" aria-describedby="vision-interview-status"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></button>
-          <button type="button" class="clk-ui-button va-icon" data-action="retry" aria-label="Ponów oczekujące żądanie" title="Ponów oczekujące żądanie" hidden><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
+          <div class="clk-ui-row va-player" role="group" aria-label="Sterowanie wywiadem">
+            <button type="button" class="clk-ui-button va-icon va-record" data-action="start" aria-label="Rozpocznij nagrywanie" title="Rozpocznij nagrywanie" disabled><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
+            <button type="button" class="clk-ui-button va-icon" data-action="pause" aria-label="Wstrzymaj wywiad" disabled hidden><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
+            <button type="button" class="clk-ui-button va-icon" data-action="resume" aria-label="Wznów mikrofon" disabled hidden><i class="fa-solid fa-play" aria-hidden="true"></i></button>
+            <div class="va-recording-strip" data-recording-strip hidden><span class="va-status-dot"></span> Nagrywanie <span data-recording-timer>00:00</span></div>
+            <button type="button" class="clk-ui-button va-stop" data-action="stop" disabled hidden>STOP</button>
+            <button type="button" class="clk-ui-button va-icon" data-action="questions" aria-label="Zaproponuj pytania" hidden><i class="fa-solid fa-circle-question" aria-hidden="true"></i></button>
+            <button type="button" class="clk-ui-button va-icon" data-action="retry" aria-label="Ponów oczekujące żądanie audio" hidden><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
+          </div>
+          <div class="clk-ui-field" data-consent-block><label class="clk-ui-check"><input type="checkbox" class="clk-ui-checkbox" data-consent data-plugin-nonform> Mam zgodę pacjenta na nagrywanie.</label></div>
+          <p data-status class="va-sr-only" role="status" aria-live="polite">Gotowy.</p>
+          <nav class="va-tabs" role="tablist" aria-label="Widok asystenta">
+            <button type="button" class="va-tab" role="tab" id="vision-tab-chat" aria-controls="vision-pane-chat" data-va-tab="chat" aria-selected="true">Konwersacja</button>
+            <button type="button" class="va-tab" role="tab" id="vision-tab-review" aria-controls="vision-pane-review" data-va-tab="review" aria-selected="false" tabindex="-1">Do akceptacji <span data-proposal-count>0</span></button>
+            <button type="button" class="va-tab" role="tab" id="vision-tab-transcript" aria-controls="vision-pane-transcript" data-va-tab="transcript" aria-selected="false" tabindex="-1">Transkrypcja <span class="va-badge" data-segment-count hidden>0</span></button>
+          </nav>
+          <div class="va-pane" role="tabpanel" id="vision-pane-chat" aria-labelledby="vision-tab-chat" data-va-pane="chat">
+            <div class="va-conversation" data-conversation role="log" aria-live="polite"></div>
+            <h3 class="clk-ui-card-title">O co dopytać</h3><ul data-tips></ul>
+            <details data-older-questions hidden><summary>Starsze pytania</summary><ul data-older-tips></ul></details>
+            <section class="clk-ui-stack" data-insights-box aria-label="Objaśnienia pojęć" hidden>
+              <h3 class="clk-ui-card-title">Wzmianki</h3><p class="clk-ui-help" data-knowledge-notice>Tylko wzmianka, nie rozpoznanie. Może dotyczyć negacji, pytania lub innej osoby. Warianty STT: do potwierdzenia. Leczenie i przygotowanie do badań omów z lekarzem i laboratorium.</p><div class="va-insights" data-insights></div><details data-older-insights hidden><summary>Starsze wzmianki</summary><div class="va-insights" data-older-insights-list></div></details>
+            </section>
+          </div>
+          <div class="va-pane" role="tabpanel" id="vision-pane-review" aria-labelledby="vision-tab-review" data-va-pane="review" hidden><p class="clk-ui-help">Sprawdź wartości i źródła. Akceptacja zapisuje tylko wybrane pola.</p><div data-sidebar-proposals></div><div data-medication-candidates></div></div>
+          <div class="va-pane" role="tabpanel" id="vision-pane-transcript" aria-labelledby="vision-tab-transcript" data-va-pane="transcript" hidden><p class="clk-ui-help" data-transcript-empty>Brak transkrypcji.</p><ol class="va-transcript" data-transcript></ol></div>
         </div>
-        <div class="clk-ui-field" data-consent-block>
-          <label class="clk-ui-check"><input type="checkbox" class="clk-ui-checkbox" data-consent data-plugin-nonform> Mam zgodę pacjenta na nagrywanie.</label>
-        </div>
-        <p id="vision-interview-status" data-status role="status" aria-live="polite">Zgoda wymagana do nagrywania.</p>
-        <div class="va-audio clk-ui-stack" aria-label="Sygnał z mikrofonu">
-          <svg class="va-wave" viewBox="0 0 240 48" preserveAspectRatio="none" aria-label="Fala poziomu sygnału mikrofonu" role="img"><path data-audio-wave d="M0 24 L240 24"></path></svg>
-          <meter class="va-meter" data-audio-meter min="0" max="1" value="0" aria-label="Poziom rzeczywistego sygnału mikrofonu"></meter>
-          <p class="clk-ui-help" data-audio-signal>Mikrofon wyłączony.</p>
-        </div>
-        <nav class="va-tabs" role="tablist" aria-label="Widok asystenta">
-          <button type="button" class="va-tab" role="tab" id="vision-tab-chat" aria-controls="vision-pane-chat" data-va-tab="chat" aria-selected="true">Konwersacja</button>
-          <button type="button" class="va-tab" role="tab" id="vision-tab-transcript" aria-controls="vision-pane-transcript" data-va-tab="transcript" aria-selected="false" tabindex="-1">Transkrypcja <span class="va-badge" data-segment-count hidden>0</span></button>
-        </nav>
-        <div class="va-pane" role="tabpanel" id="vision-pane-chat" aria-labelledby="vision-tab-chat" data-va-pane="chat">
-          <h3 class="clk-ui-card-title">O co dopytać</h3>
-          <ul data-tips></ul>
-          <section class="clk-ui-stack" data-insights-box aria-label="Objaśnienia pojęć" hidden>
-            <h3 class="clk-ui-card-title">Wzmianki — objaśnienia pojęć</h3>
-            <p class="clk-ui-help" data-knowledge-notice>Dopasowanie słów z lokalnej bazy, bez AI i opłat. To tylko wzmianka, nie rozpoznanie ani potwierdzenie stosowania leku. Może dotyczyć negacji, pytania lub innej osoby. Zweryfikuj kontekst. Nie zmieniaj leczenia ani suplementacji na tej podstawie; przygotowanie do badań omów z lekarzem i laboratorium.</p>
-            <div class="va-insights" data-insights></div>
-          </section>
-        </div>
-        <div class="va-pane" role="tabpanel" id="vision-pane-transcript" aria-labelledby="vision-tab-transcript" data-va-pane="transcript" hidden>
-          <p class="clk-ui-help" data-transcript-empty>Brak transkrypcji — oczekiwanie na wynik dostawcy AI.</p>
-          <ol class="va-transcript" data-transcript aria-label="Transkrypcja rozmowy (do 300 ostatnich fragmentów)"></ol>
-        </div>
-        </div>
+        <footer class="va-composer" data-plugin-nonform>
+          <div class="va-quick-actions"><button type="button" class="clk-ui-button" data-chat-quick="Zaproponuj trzy pytania do pacjenta.">Pytania</button><button type="button" class="clk-ui-button" data-chat-quick="Podsumuj potwierdzone informacje z karty i dostępnej rozmowy.">Podsumowanie</button><button type="button" class="clk-ui-button" data-chat-quick="Jakich najważniejszych danych brakuje w wywiadzie?">Braki</button></div>
+          <div class="va-composer-row"><textarea data-chat-input data-plugin-nonform maxlength="4000" rows="2" aria-label="Wiadomość do asystenta" placeholder="Napisz do asystenta…" disabled></textarea><button type="button" class="clk-ui-button" data-chat-send disabled aria-label="Wyślij wiadomość">↑</button></div><p class="clk-ui-help" data-chat-wait role="status" aria-live="polite"></p>
+        </footer>
       </div>
     </details>
-    <details class="va-info" data-info hidden>
-      <summary class="clk-ui-button va-icon va-info-trigger" aria-label="Informacje o asystencie wywiadu" title="Informacje o asystencie wywiadu"><i class="fa-solid fa-info" aria-hidden="true"></i></summary>
-      <div class="clk-ui-card clk-ui-stack va-info-content">
-        <p class="clk-ui-help">Po sprawdzeniu dostępu do karty i mikrofonu pytania możesz uzyskać bez nagrywania i bez zgody pacjenta na nagrywanie, na podstawie karty pacjenta albo jako ogólne pytania do wywiadu.</p>
-        <p class="clk-ui-help">Po potwierdzeniu zgody dźwięk rozmowy jest wysyłany do dostawcy AI w celu transkrypcji i propozycji do dokumentacji. Nowa sesja nagrywania wymaga ponownego potwierdzenia zgody.</p>
-        <p class="clk-ui-help">AI nie zapisuje karty bez zatwierdzenia. Propozycje sprawdzisz nad sekcjami dokumentacji. Opłata jest stała za sesję, także za sesję samych pytań.</p>
-        <p data-budget class="clk-ui-help"></p>
-        <p class="clk-ui-help" data-audio-accepted>Fragmenty audio potwierdzone przez serwer: 0.</p>
-        <p class="clk-ui-help">Ruch fali oznacza sygnał wejściowy, nie potwierdzenie transkrypcji. Audio jest przesyłane przy pauzie w wypowiedzi, najpóźniej po 5 sekundach.</p>
-
-      </div>
-    </details>
+    <details class="va-info" data-info hidden><summary class="clk-ui-button va-icon va-info-trigger" aria-label="Informacje o asystencie"><i class="fa-solid fa-info" aria-hidden="true"></i></summary><div class="clk-ui-card clk-ui-stack va-info-content"><p class="clk-ui-help">Czat wymaga dostępu do karty, ale nie zgody na nagrywanie ani mikrofonu. Bez zgody host nie przekazuje transkryptu. AI tworzy propozycje do sprawdzenia, nie diagnozuje i nie zapisuje samodzielnie. Stała opłata dotyczy także sesji tekstowej.</p><p data-budget class="clk-ui-help"></p><p data-audio-accepted class="clk-ui-help"></p></div></details>
   </div>
 </section>

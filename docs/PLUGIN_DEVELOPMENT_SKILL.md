@@ -1,12 +1,18 @@
 # Celloklab partner plugin development
 
+Aktualny, zwięzły dodatek: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md).
+
+## Wydanie SDK 1.2.3 — czat, RPL i UX
+
+Czat działa po autoryzacji karty bez mikrofonu; bez zgody nie otrzymuje transkryptu. Jedna stała opłata sesji, wspólny limit czatu/pytań 20 wywołań co najmniej co 10 s, maksimum 2048 output tokens i 45 s. Historia i odpowiedzi są memory-only; replay metadata-only i pending bez płatnego auto retry. Tylko walidowane propozycje z pełnym źródłem/revision/baseline, bez AI writes. Oficjalni kandydaci RPL wymagają wyboru użytkownika oraz osobnej akceptacji; brak trafienia wymaga potwierdzenia nazwy, nigdy wymyślonego ID. STT słownik tylko przez obsługiwany bezpośredni OpenAI prompt, bez nieobsługiwanych parametrów OpenRouter. Korekty fonetyczne są do potwierdzenia, raw evidence pozostaje. Trzy zakładki, sticky composer, trzy najnowsze pytania/wzmianki i wcześniejsze w disclosure; timer/STOP bez fali. SDK dodaje LiveChatContext/chat_prompt_builder/chat_result_processor. Pełny kontrakt: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md), ścieżki w API reference. Bez nowych capabilities/migracji, ZIP, commit/push lub produkcyjnego odbioru.
+
 ## Zintegrowane zmiany R&D LIVE
 
 Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.
 
 Nowe funkcje: zakładki Konwersacja/Transkrypcja (do 300 ostatnich fragmentów), lokalna baza objaśnień wzmianek `knowledge.js`, ukrywanie pojedynczych objaśnień oraz pytania doprecyzowujące choroby, leki, wyniki i chronologię. `knowledge.js` ładuje się przed `assistant.js`; nie korzysta z AI, sieci ani utrwalania treści w przeglądarce. Dopasowanie regex nie ustala diagnozy, przyjmowania leku ani negacji — UI jawnie ostrzega o kontekście. Objaśnienia nie wypełniają i nie zapisują karty. Nie zalecają odstawiania biotyny; przygotowanie do badań należy uzgodnić z prowadzącym i laboratorium.
 
-Nowe elementy są wewnątrz istniejącej `va-main` i ukryte do przejścia sprawdzeń. Poprzednie UI R&D bez bramki i z szerszymi rolami nie jest przejmowane. Manifest nadal ma wersję 2.0.0; ta integracja nie dodaje nowych capabilities, API, migracji ani wymagań SDK ponad 1.2.2. Aktywacja, produkcyjny mikrofon i jakość dostawcy pozostają odrębnym odbiorem.
+Aktualne UI R&D jest zaadaptowane w istniejącej `va-main`, z zachowaniem roli specialist i przypisania pacjenta. Dostęp do karty odblokowuje czat niezależnie od mikrofonu i zgody na nagrywanie. Manifest Vision pozostaje 2.0.0; addytywne SDK 1.2.3 dodaje LiveChatContext i opcjonalne callbacki czatu, a host udostępnia czat i odczyt kandydatów RPL bez nowych capabilities ani migracji. Produkcyjny mikrofon i jakość dostawcy wymagają osobnego odbioru.
 
 
 ## Clinic module activation — host-owned, not a new SDK API
@@ -23,7 +29,7 @@ Use the accessible collapsible-card standard in [PLUGIN_UI_STYLE_GUIDE.md](PLUGI
 
 Po rozwinięciu sekcji asystenta hostowy odczyt karty sprawdza bieżące uprawnienia, aktywny profil kliniczny i przypisanie pacjenta. `actor_denied` nie dowodzi samego braku przypisania — instrukcja obejmuje również aktywny profil; `capability_denied` wskazuje wymagane uprawnienie wtyczki. Nie omijamy autoryzacji i nie tworzymy osobnego panelu poza istniejącą sekcją.
 
-Kontrolki nagrywania, fala i wskazówki pozostają zamontowane, ale ukryte do potwierdzenia dostępu do karty i mikrofonu. Sprawdzenie Permissions API nie wywołuje prośby o zgodę. Przy braku potwierdzenia użytkownik klika „Sprawdź mikrofon” wewnątrz tej samej sekcji: test używa `getUserMedia({audio: true})` i natychmiast zatrzymuje ścieżki, bez przesyłania audio, tworzenia sesji AI lub naliczania kredytów. Komunikaty rozróżniają brak HTTPS, blokadę uprawnień, brak urządzenia oraz zajęty mikrofon. Cofnięcie dostępu ukrywa kontrolki; uruchomienie wywiadu ponownie sprawdza kartę. Pytania bez nagrywania pozostają dostępne po przejściu bramki gotowości.
+Czat, pytania i zakładki wymagają potwierdzonego dostępu do karty, nie mikrofonu. Tylko nagrywanie wymaga osobnego sprawdzenia mikrofonu oraz zgody. Permissions API nie wywołuje prośby; jawne „Sprawdź mikrofon” używa getUserMedia i natychmiast zatrzymuje ścieżki, bez sesji, audio do dostawcy ani opłaty. Brak HTTPS, odmowa, brak/zajętość urządzenia są rozróżniane. Cofnięcie dostępu czyści treści i blokuje operacje. Nie ma widocznej fali: nagrywanie pokazuje czerwony wskaźnik, timer i STOP.
 
 
 ## Aktualny kontrakt: interpretacja semantyczna przez AI
@@ -186,7 +192,7 @@ Use Polish labels/errors and native UI Kit, no nested forms or native-save inter
 
 Treat `medication_list` as the existing legacy **encoded JSON string** on plugin GET/PATCH, not a new array DTO. Its structured items permit `rpl_id`, `import_id`, `catalog_date`, `strength`, `form`, `substance` alongside `name` and regimen strings. Preserve server-confirmed canonical string metadata; only the authorized host resolver establishes product identity/current import and keeps existing trusted historical snapshots. Existing exact name-only records may retain their names while regimen fields change, but new/renamed medications require an official selection. Never infer IDs, auto-map old names or create an automatic supplements catalog. See the medication section in `PLUGIN_TRICHOLOGY_INTERVIEW_CONTRACT.md` for limits, clears and historical text handling.
 
-No generic plugin RPL search API/capability is implemented. Clinician-only native `GET /api/rpl/products` is **not SDK**; do not call it or private core services to work around that boundary. Preserve host-validated selection data through existing approved clinical operations; a new partner picker/search interface needs separate explicit approval. No SDK package/version/export or physician Case expansion is part of this rollout.
+Use the supported patient-scoped medication-candidates route and searchMedications bridge for official candidates and explicit selection/review. Native /api/rpl/products remains outside the SDK; never bypass the facade. No new RPL capability or physician Case expansion.
 
 Fragments stay above the native interview. Sections 1–10 progress from complaint/history through scalp, care, medication, hormonal state, treatment, allergies, lifestyle and scales, followed by family, recommendations and separate `notes`. Native keyboard-accessible disclosures open only section 1 initially; expand/collapse-all includes the note. Reuse host styles and Polish UI, without nested forms, native-submit interception or save-on-toggle. Native RPL catalog operations need only missing reviewed migration 086, while confirmed 084 must not be repeated; consult [RPL operations](docs/RPL_CATALOG_OPERATIONS.md). This documentation rollout creates no ZIP and publishes no code.
 

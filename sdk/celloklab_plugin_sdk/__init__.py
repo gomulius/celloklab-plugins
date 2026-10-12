@@ -23,11 +23,11 @@ from .clinical_tasks import (TaskInputs, TaskAttachmentText, TranscriptSegment, 
                              TRANSCRIPTION_CAPABILITY, MODEL_CLASSES, OUTPUTS)
 from .clinical_tasks import __all__ as _task_exports
 from .live_interview import (LIVE_INTERVIEW_CAPABILITY, LIVE_INTERVIEW_CAPABILITIES,
-                             LiveInterviewRegistration, LiveSegmentEvent,
+                             LiveChatContext, LiveInterviewRegistration, LiveSegmentEvent,
                              TranscriptSourceReference, LiveProposalEvent, register_live_interviews)
 from .live_interview import __all__ as _live_exports
 
 SDK_VERSION = "1.0"
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 __all__ = ["PluginContext", "PluginRegistrar", "UIFragment", "UIHook", "PluginPage", "plugin_page_id", "SDK_VERSION",
            "AI_CAPABILITY", "AIProtocol", "AIResult", "PluginAIProtocol", "PluginAIResult", "plugin_ai_feature_id", "BookingsProtocol", "BOOKING_CAPABILITIES"] + _clinical_exports + _trichology_exports + _task_exports + _live_exports

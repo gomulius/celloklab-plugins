@@ -1,4 +1,10 @@
-# Standalone SDK release — Python 1.2.1 / etap 2 live
+# Standalone SDK release — Python 1.2.3 / live chat i RPL
+
+Bieżący changelog i kontrakt: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md). Sekcja 1.2.2 poniżej jest historyczna; aktualny RPL wymaga jawnego wyboru oficjalnego produktu, nie automatycznego dopasowania.
+
+## Wydanie 1.2.3
+
+Addytywne LiveChatContext i opcjonalne chat_prompt_builder/chat_result_processor; manifest SDK1.0 i Vision2.0.0 pozostają. SDK sources, rzeczywisty przykład Vision i browser assets są synchronizowane do istniejącego celloklab-plugins/main z zachowaniem niezależnych dokumentów i historycznych wheels. Nowy wheel celloklab_plugin_sdk-1.2.3-py3-none-any.whl jest budowany i weryfikowany izolowanym importem/callbackami oraz zgodnością bajtów źródeł. Pełny kontrakt czatu, limitów 20calls/10s/2048tokens/45s, memory-only historii, zgody, pending bez paid retry, RPL wyborów i UX: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md). Bez ZIP, commit/push, SQL, wdrożenia lub produkcyjnych testów. Polecenia niżej dotyczą wcześniejszego etapu i muszą używać aktualnego wheel 1.2.3.
 
 ## Polish UI and independent clinic approval
 
@@ -6,9 +12,9 @@ All new or maintained plugin UI must be Polish for all user-facing labels, error
 
 ## Wersje i granica wydania
 
-Docelowa dystrybucja Python: **`celloklab-plugin-sdk` 1.2.1**. Manifesty nadal używają **`sdk_version="1.0"`**, UI Kit **1.0.0**; wersja pluginu to odrębny manifest, nie wersja SDK. Właściciel integracji finalizuje zgodność `__version__`, `partner_sdk/pyproject.toml`, build backendu i metadanych wheel oraz dołącza tożsamość/wyniki izolowanej instalacji. Dokumentacja nie potwierdza artefaktu na podstawie samej planowanej wersji.
+Docelowa dystrybucja Python: **`celloklab-plugin-sdk` 1.2.3**. Manifesty nadal używają **`sdk_version="1.0"`**, UI Kit **1.0.0**; wersja pluginu to odrębny manifest, nie wersja SDK. Właściciel integracji finalizuje zgodność `__version__`, `partner_sdk/pyproject.toml`, build backendu i metadanych wheel oraz dołącza tożsamość/wyniki izolowanej instalacji. Dokumentacja nie potwierdza artefaktu na podstawie samej planowanej wersji.
 
-Ten etap aktualizuje lokalne autorytatywne dokumenty i opisuje implementację w źródłach hosta. **Nie tworzy ani nie obiecuje nowego ZIP**, nie synchronizuje publicznego repozytorium SDK, nie wykonuje commit/push, SQL, konfiguracji ani wdrożenia. Publiczne zatwierdzone sources/docs mogą zostać zsynchronizowane osobno przez release owner. Partner nie potrzebuje prywatnego host source ani sekretów; sam wheel nie dostarcza hostowego runtime/mikrofonu/dostawcy.
+Wydanie synchronizuje zatwierdzone SDK/example/browser copies i punktowo poprawia istniejące publiczne docs. Nie wykonuje ZIP, commit/push, SQL, konfiguracji lub wdrożenia. Partner nie potrzebuje prywatnego host source ani sekretów; wheel nie zawiera hostowego runtime.
 
 ## Wywiad na żywo: z FOUNDATION do etapu 2
 
@@ -16,7 +22,7 @@ Pełny kontrakt: **[PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CON
 
 | Dostarczona implementacja źródłowa | Nadal niepotwierdzony odbiór |
 | --- | --- |
-| Publiczne `TaskInputs`, `TaskContext`, `TaskPrompt`, `LiveInterviewRegistration` z opcjonalnym `result_processor(context, raw)`, registrar oraz DTO źródeł/propozycji | Finalna zgodność wersji/identity wheel 1.2.1 i niezależna instalacja po końcowych zmianach — raport release owner |
+| SDK 1.2.3: świeże identyczne wheels host/public, izolowana instalacja/importy/callbacki oraz source bytes/RECORD zweryfikowane; [tożsamość artefaktu](../wheels/SDK_1.2.3_VERIFICATION.json) | Testy partner SDK: 52 wykonane, 3 failures i 1 error poza zakresem release; brak deklaracji pełnej zielonej regresji |
 | Host REST start/GET/PCM/stop, autoryzacja przed body/decrypt/provider/publication, STT adapter i analiza tekstowa, szyfrowany stan i trwały chunk fence | Reprezentatywna MariaDB schema/migracja/transakcje/concurrency/deletion |
 | Wspólny AudioWorklet/client, polski panel niezależnej `vision.visit-assistant`, typed audio settings w panelu administratora | Rzeczywisty mikrofon/uprawnienia/HTTPS/browser UX i rzeczywisty STT+text provider |
 | Jedna rezerwacja istniejącego kosztu funkcji na ograniczoną sesję; pewne consumption/refund i pending bez redispatch | Realne koszty dostawcy, jakość polskiej rozmowy, legal/retention acceptance i wynik w 2 s — bez SLA |
@@ -57,18 +63,17 @@ Host nie utrwala PCM, ale **persistuje zaszyfrowane** source/transcript/proposal
 Przykładowe polecenia do rzeczywistego wykonania po finalnych zmianach (nie deklaracja ich uruchomienia przez tę aktualizację):
 
 ```sh
-python -m pip wheel ./partner_sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
+python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
 python -m venv /tmp/celloklab-partner
-/tmp/celloklab-partner/bin/python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.1-py3-none-any.whl
-python -m unittest discover -s partner_sdk/tests -v
-python -m celloklab_plugin_sdk.validation plugins/vision_visit_assistant
-python -m celloklab_plugin_sdk.validation plugins/example_live_interview
+/tmp/celloklab-partner/bin/python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.3-py3-none-any.whl
+/tmp/celloklab-partner/bin/celloklab-plugin-validate examples/vision_visit_assistant
+/tmp/celloklab-partner/bin/celloklab-plugin-validate examples/example_live_interview
 git diff --check
 ```
 
 Wheel/sdist muszą zawierać aktualny `live_interview.py` z result_processor oraz jego publiczne exports/registrar, bez private host imports. Izoluj instalację od host checkout/PYTHONPATH; sprawdź source version, wheel metadata i zarejestrowany rzeczywisty partner example. Walidator nie wykonuje entrypointu/Jinja ani autoryzacji; statyczne `live-interviews.json` i `ui-declarations.json` nie są runtime config. Preview nie ma rzeczywistego API/auth/upload/email/mic i nie jest production UI parity; fonts pozostają osobną granicą licencyjną.
 
-Nowy ZIP nie jest deliverable tego etapu. Jeżeli przyszłe public sources/example/docs są zatwierdzane, użyj jawnej allowlisty; private host/admin/maintenance guides, AGENTS, migrations, secrets/env/logs/audit/patient data nie należą do partner release. **`PLATFORM_ADMIN_PLUGIN_INSTALLATION_SKILL.md` i `PLUGIN_SYSTEM_MAINTENANCE.md` pozostają prywatne.** Publiczny sync wymaga odrębnej zgody, nie wykonuj go z tego dokumentu.
+Nowy ZIP nie jest deliverable tego etapu. Synchronizuj wyłącznie zatwierdzone SDK/example/browser assets i punktowe docs. AGENTS, private host source, migrations, secrets/env/logs/audit/patient data nie należą do partner release. Opublikowane tutaj przewodniki administratora i utrzymania są dokumentacją, nie dostępem do prywatnego runtime ani dodatkowymi uprawnieniami partnera.
 
 Dołącz wyłącznie aktualne executed commands/results/blockers, source/wheel identity i ewentualne failures. Usunięto historyczne liczniki testów/plików: nie są dowodem bieżącego etapu. Fake/SQLite/QuickJS/unit/static checks nie potwierdzają produkcyjnej MariaDB, live provider, mikrofonu, klinicznej jakości, legal acceptance, native-form integrity w autoryzowanej przeglądarce ani wyniku w2 s. Te bramki muszą być jawnie raportowane przed wdrożeniem.
 

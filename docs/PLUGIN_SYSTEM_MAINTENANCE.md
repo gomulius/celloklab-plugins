@@ -1,12 +1,18 @@
 # Plugin system host maintenance
 
+Aktualny kontrakt limitów, persystencji i RPL: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md).
+
+## Utrzymanie SDK 1.2.3 — czat, RPL i UX
+
+Czat współdzieli z pytaniami limit 20 wywołań co najmniej co 10 s, 2048 output tokens i timeout45 s w jednej stałej opłacie sesji. Pending zachowuje fence/rezerwację bez paid auto retry. Historia/odpowiedzi/propozycje czatu są memory-only, durable marker/HMAC/klucz/czas bez treści; replay nie odtwarza odpowiedzi. Bez zgody host nie przekazuje transkryptu, mikrofon nie blokuje czatu po autoryzacji karty. Host waliduje propozycje i źródła, AI nie zapisuje; accept używa istniejącego guarded PATCH. Patient-scoped RPL candidates są autoryzowane/no-store; użytkownik wybiera produkt i osobno akceptuje listę, no-hit wymaga potwierdzenia nazwy bez zmyślonego ID. STT słownik tylko w obsługiwanym bezpośrednim OpenAI prompt, bez nieobsługiwanych OpenRouter options/retry; fonetyczne korekty do potwierdzenia z raw evidence. Trzy zakładki, sticky composer, trzy najnowsze pytania/wzmianki plus wcześniejsze disclosure; timer/STOP bez fali. Zachowaj niezależne domeny AI, natywne szkice, grants i stare wheels. Pełny kontrakt: [PLUGIN_LIVE_INTERVIEW_CONTRACT.md](PLUGIN_LIVE_INTERVIEW_CONTRACT.md). SDK1.2.3 addytywne chat callbacks bez nowych migracji/grantów/workera; rzeczywisty provider/mic/MariaDB odbiór osobny.
+
 ## Zintegrowane zmiany R&D LIVE
 
 Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.
 
 Nowe funkcje: zakładki Konwersacja/Transkrypcja (do 300 ostatnich fragmentów), lokalna baza objaśnień wzmianek `knowledge.js`, ukrywanie pojedynczych objaśnień oraz pytania doprecyzowujące choroby, leki, wyniki i chronologię. `knowledge.js` ładuje się przed `assistant.js`; nie korzysta z AI, sieci ani utrwalania treści w przeglądarce. Dopasowanie regex nie ustala diagnozy, przyjmowania leku ani negacji — UI jawnie ostrzega o kontekście. Objaśnienia nie wypełniają i nie zapisują karty. Nie zalecają odstawiania biotyny; przygotowanie do badań należy uzgodnić z prowadzącym i laboratorium.
 
-Nowe elementy są wewnątrz istniejącej `va-main` i ukryte do przejścia sprawdzeń. Poprzednie UI R&D bez bramki i z szerszymi rolami nie jest przejmowane. Manifest nadal ma wersję 2.0.0; ta integracja nie dodaje nowych capabilities, API, migracji ani wymagań SDK ponad 1.2.2. Aktywacja, produkcyjny mikrofon i jakość dostawcy pozostają odrębnym odbiorem.
+Aktualne UI R&D jest zaadaptowane w istniejącej `va-main`, z zachowaniem roli specialist i przypisania pacjenta. Dostęp do karty odblokowuje czat niezależnie od mikrofonu i zgody na nagrywanie. Manifest Vision pozostaje 2.0.0; addytywne SDK 1.2.3 dodaje LiveChatContext i opcjonalne callbacki czatu, a host udostępnia czat i odczyt kandydatów RPL bez nowych capabilities ani migracji. Produkcyjny mikrofon i jakość dostawcy wymagają osobnego odbioru.
 
 
 ## Clinic activation contract — established documentation copy
@@ -19,7 +25,7 @@ OFF retains AI consent, guide progress and stored data, hides operational UI and
 
 Po rozwinięciu sekcji Vision hostowy odczyt karty sprawdza aktywnego użytkownika, aktywną lokalną rolę `specialist` i przypisanie konkretnego pacjenta przez `patient_clinic_records.assigned_specialist_id = users.id` (UUID użytkownika). Nie wymaga `doctors` ani `doctor_clinic_assignments` (DCA). `actor_denied` wymaga sprawdzenia aktywności użytkownika/roli i przypisania; `capability_denied` wskazuje wymagany grant wtyczki. Obie deklaracje UI mają `roles: ["specialist"]`, `requires_doctor: false`; zestaw ról zawierający `specialist` jest dopuszczony, sam lekarz/recepcja/administrator nie. Wyjątek obejmuje tylko `patient.read_trichology_record` / `patient.write_trichology_record` w zakresie tego pacjenta, nie dokumentację medyczną, wizyty ani Case. Nie omijamy autoryzacji i nie tworzymy osobnego panelu.
 
-Kontrolki nagrywania, fala i wskazówki pozostają zamontowane, ale ukryte do potwierdzenia dostępu do karty i mikrofonu. Sprawdzenie Permissions API nie wywołuje prośby o zgodę. Przy braku potwierdzenia użytkownik klika „Sprawdź mikrofon” wewnątrz tej samej sekcji: test używa `getUserMedia({audio: true})` i natychmiast zatrzymuje ścieżki, bez przesyłania audio, tworzenia sesji AI lub naliczania kredytów. Komunikaty rozróżniają brak HTTPS, blokadę uprawnień, brak urządzenia oraz zajęty mikrofon. Cofnięcie dostępu ukrywa kontrolki; uruchomienie wywiadu ponownie sprawdza kartę. Pytania bez nagrywania pozostają dostępne po przejściu bramki gotowości.
+Czat, pytania i zakładki wymagają potwierdzonego dostępu do karty, nie mikrofonu. Tylko nagrywanie wymaga osobnego sprawdzenia mikrofonu oraz zgody. Permissions API nie wywołuje prośby; jawne „Sprawdź mikrofon” używa getUserMedia i natychmiast zatrzymuje ścieżki, bez sesji, audio do dostawcy ani opłaty. Brak HTTPS, odmowa, brak/zajętość urządzenia są rozróżniane. Cofnięcie dostępu czyści treści i blokuje operacje. Nie ma widocznej fali: nagrywanie pokazuje czerwony wskaźnik, timer i STOP.
 
 
 ## Opis i zwijane karty pluginów

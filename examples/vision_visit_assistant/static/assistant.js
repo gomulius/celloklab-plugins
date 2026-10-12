@@ -55,7 +55,8 @@
     function termsIn(text) {
         const found = new Map();
         if (typeof text !== 'string' || !text.trim()) return found;
-        for (const item of compiled) if (item.re.test(text)) found.set(item.term, item);
+        const mentions = compiled.map(item => ({item, index: text.search(item.re)})).filter(entry => entry.index >= 0).sort((a, b) => a.index - b.index);
+        for (const {item} of mentions) found.set(item.term, item);
         if (found.has('niedoczynnosc_tarczycy') || found.has('nadczynnosc_tarczycy') || found.has('hashimoto') || found.has('lewotyroksyna')) found.delete('choroba_tarczycy');
         return found;
     }
@@ -86,6 +87,7 @@
             this.preflightVersion = 0;
             this.accessChecked = false;
             this.disclosure = root.querySelector('.va-main');
+            this.chatHistory = [];
             this.gate = root.querySelector('[data-prerequisites]');
             this.readyControls = root.querySelector('[data-ready-controls]');
             this.info = root.querySelector('[data-info]');
@@ -112,7 +114,17 @@
                 return;
             }
             this.makeClient();
+            this.setupChat();
+            this.setupReviewBanner();
+            root.querySelector('[data-close]')?.addEventListener('click', () => this.closeSafely());
+            root.querySelector('.va-summary')?.addEventListener('click', event => {
+                if (this.disclosure.open && (this.chatPending || this.client.capturing || this.client.active || this.client.startPending)) {
+                    event.preventDefault(); this.closeSafely();
+                }
+            });
             this.consent.addEventListener('change', () => {
+                if (!this.consent.checked && this.client.capturing) Promise.resolve(this.client.stop()).catch(() => {});
+                this.refreshChatControls();
                 this.root.querySelector('[data-consent-block]').hidden = this.consent.checked;
                 this.refreshControls();
                 if (!this.errorMessage) this.status.textContent = this.consent.checked ? 'Gotowy.' : 'Zgoda wymagana do nagrywania.';
@@ -126,21 +138,21 @@
                 return false;
             });
             this.buttons.start.addEventListener('click', () => this.run(async () => {
-                if (!this.access || !this.canStart()) return;
+                if (!this.accessChecked || !this.access || !this.ready || !this.canStart()) return;
                 if (!this.consent.checked) { this.status.textContent = 'Zgoda wymagana do nagrywania.'; return; }
                 this.prepareClient();
                 const scope = this.scope;
                 let read;
                 try { read = await this.bridge.readRecord(pluginId); }
                 catch (error) { if (scope === this.scope) this.rejectRead('network_error'); throw error; }
-                if (scope !== this.scope || !this.access || !this.ready) return;
+                if (scope !== this.scope || !this.access || !this.ready || !this.consent.checked) return;
                 if (!read.ok) { this.rejectRead(read.code); throw new Error('record_unavailable'); }
                 this.record = read.record;
                 this.cardInsights(this.record);
                 await this.client.start({recordingConsent: true});
             }));
             for (const action of ['pause', 'resume', 'stop', 'retry']) this.buttons[action].addEventListener('click', () => this.run(() => {
-                if (action === 'resume' && (!this.consent.checked || this.questionsOnly())) return;
+                if (action === 'resume' && (!this.ready || !this.consent.checked || this.questionsOnly())) return;
                 return this.client[action === 'retry' ? 'retryPending' : action]();
             }));
             this.buttons.questions.addEventListener('click', () => this.run(async () => {
@@ -164,15 +176,12 @@
             if (this.disclosure.open) this.checkPrerequisites();
         }
         setReady(ready, stopCapture = true) {
-            const wasReady = this.ready;
             this.ready = ready;
-            this.readyControls.hidden = !ready;
-            this.info.hidden = !ready;
-            if (!ready) this.info.open = false;
+            this.readyControls.hidden = !this.accessChecked;
+            this.info.hidden = !this.accessChecked;
+            if (!this.accessChecked) this.info.open = false;
             this.gate.hidden = ready;
-            if (!ready && wasReady) {
-                this.scope++;
-            }
+
             // Public stop releases capture, including an in-flight start.
             if (!ready && stopCapture && (this.client?.capturing || this.client?.state === 'starting')) {
                 Promise.resolve(this.client.stop()).catch(() => {});
@@ -182,6 +191,7 @@
         }
         rejectRead(code) {
             this.accessChecked = false;
+            if (!denied(code)) this.scope++;
             // A denial uses revoke (no audio flush), not a normal session stop.
             this.setReady(false, !denied(code));
             this.checkMicrophoneButton.disabled = true;
@@ -212,6 +222,10 @@
                 this.access = true;
                 this.accessChecked = true;
                 this.record = read.record;
+                this.readyControls.hidden = false;
+                this.refreshChatControls();
+                this.patientName();
+                this.cardInsights(this.record);
                 this.accessStatus.textContent = 'Dostęp do karty pacjenta potwierdzony.';
                 if (window.isSecureContext !== true) {
                     this.setReady(false);
@@ -296,7 +310,7 @@
             const tabs = Array.from(this.root.querySelectorAll('[data-va-tab]'));
             const panes = Array.from(this.root.querySelectorAll('[data-va-pane]'));
             const show = name => {
-                if (!this.ready || !this.access || !tabs.some(tab => tab.dataset.vaTab === name)) return;
+                if (!this.accessChecked || !this.access || !tabs.some(tab => tab.dataset.vaTab === name)) return;
                 for (const tab of tabs) {
                     const selected = tab.dataset.vaTab === name;
                     tab.setAttribute('aria-selected', String(selected));
@@ -307,7 +321,7 @@
             tabs.forEach((tab, index) => {
                 tab.addEventListener('click', () => show(tab.dataset.vaTab));
                 tab.addEventListener('keydown', event => {
-                    if (!this.ready || !this.access) return;
+                    if (!this.accessChecked || !this.access) return;
                     const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
                         event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length :
                         event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
@@ -318,7 +332,7 @@
             this.showTab = show;
         }
         cardInsights(record) {
-            if (!this.access || !this.ready) return;
+            if (!this.access || !this.accessChecked) return;
             const values = {...(record?.interview_values || {}), ...(record?.native_values || {})};
             const terms = new Map();
             for (const code of Array.isArray(values.chronic_diseases) ? values.chronic_diseases : []) {
@@ -334,29 +348,32 @@
             this.renderInsights();
         }
         renderInsights(conversation = this.conversationTerms) {
-            if (!this.access || !this.ready) return;
+            if (!this.access || !this.accessChecked) return;
             this.conversationTerms = conversation;
             const box = this.root.querySelector('[data-insights]');
-            const merged = new Map([...conversation].map(([term, item]) => [term, {item, where: 'Wzmianka w rozmowie'}]));
-            for (const [term, item] of this.cardTerms) if (!merged.has(term)) merged.set(term, {item, where: 'Wzmianka w karcie'});
+            const older = this.root.querySelector('[data-older-insights-list]');
+            older?.replaceChildren();
+            const merged = new Map([...this.cardTerms].map(([term, item]) => [term, {item, where: 'Wzmianka w karcie'}]));
+            for (const [term, item] of conversation) { merged.delete(term); merged.set(term, {item, where: 'Wzmianka w rozmowie'}); }
             box.replaceChildren();
             let visible = 0;
-            for (const [term, {item, where}] of merged) {
+            for (const [term, {item, where}] of [...merged].reverse()) {
                 if (this.dismissedInsights.has(term)) continue;
                 visible++;
-                const card = element('article', undefined, 'va-insight');
+                const card = element('article', undefined, visible === 1 ? 'va-insight va-insight-new' : 'va-insight');
                 card.appendChild(element('small', where + ' · ' + (CATEGORY[item.category] || 'pojęcie')));
                 card.appendChild(element('strong', item.title));
                 card.appendChild(element('p', item.summary));
                 if (item.ask) card.appendChild(element('p', 'Warto dopytać: ' + item.ask, 'va-ask'));
                 const hide = this.iconButton('Ukryj objaśnienie: ' + item.title, 'fa-xmark', 'va-insight-hide');
                 hide.addEventListener('click', () => {
-                    if (!this.access || !this.ready) return;
+                    if (!this.access || !this.accessChecked) return;
                     this.dismissedInsights.add(term); this.renderInsights();
                 });
                 card.appendChild(hide);
-                box.appendChild(card);
+                (visible > 3 && older ? older : box).appendChild(card);
             }
+            const disclosure = this.root.querySelector('[data-older-insights]'); if (disclosure) disclosure.hidden = visible <= 3;
             this.root.querySelector('[data-insights-box]').hidden = visible === 0;
         }
         questionsOnly() {
@@ -372,11 +389,14 @@
             this.renderInsights();
             this.resetAudioView();
             this.root.querySelector('[data-tips]').replaceChildren();
+            this.root.querySelector('[data-older-tips]')?.replaceChildren();
+            this.chatHistory = [];
+            this.root.querySelector('[data-conversation]')?.replaceChildren();
             this.makeClient();
         }
         refreshControls() {
             const state = this.client.state;
-            const pending = this.operationPending || this.questionsPending || this.client.startPending ||
+            const pending = this.operationPending || this.questionsPending || this.chatPending || this.client.startPending ||
                 this.client.questionsSending || ['starting', 'stopping', 'retry'].includes(state);
             const canStart = this.canStart();
             this.buttons.start.disabled = !this.access || !canStart || !this.consent.checked || Boolean(pending);
@@ -391,6 +411,9 @@
                 for (const button of Object.values(this.buttons)) button.disabled = true;
                 this.consent.disabled = true;
             }
+            this.buttons.stop.disabled = !this.accessChecked || !this.access || !this.client.session || ['idle', 'stopped', 'stopping'].includes(state) || Boolean(this.operationPending);
+            this.refreshChatControls();
+            this.headerState();
         }
         makeClient() {
             this.client = window.CelloklabLiveAudio.create({pluginId, profileId: 'interview',
@@ -429,11 +452,20 @@
             this.setReady(false, false);
             this.cardTerms.clear(); this.conversationTerms.clear(); this.dismissedInsights.clear();
             this.root.querySelector('[data-insights]').replaceChildren();
+            this.root.querySelector('[data-older-insights-list]')?.replaceChildren();
             this.root.querySelector('[data-insights-box]').hidden = true;
             this.checkMicrophoneButton.disabled = true;
             if (code === 'access_revoked') this.accessStatus.textContent = 'Dostęp do karty został cofnięty. Sprawdź aktywną rolę specjalisty w tej klinice i przypisanie pacjenta.';
             if (!this.access) return;
             this.access = false; this.scope++;
+            this.chatHistory = [];
+            this.root.querySelector('[data-conversation]')?.replaceChildren();
+            this.root.querySelector('[data-medication-candidates]')?.replaceChildren();
+            this.root.querySelector('[data-sidebar-proposals]')?.replaceChildren();
+            const name = this.root.querySelector('[data-patient-name]'); if (name) name.textContent = '';
+            const input = this.root.querySelector('[data-chat-input]'); if (input) input.value = '';
+            this.refreshChatControls();
+            for (const group of this.groups) for (const node of group.inlineNodes || []) node.remove?.();
             if ((this.client.active || this.client.startPending || this.client.capturing) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});
             for (const item of this.proposals.values()) {
                 item.status = 'revoked';
@@ -443,13 +475,15 @@
             this.proposalRoot?.querySelector('[data-proposals]').replaceChildren();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.resetAudioView();
+            this.root.querySelector('[data-older-tips]')?.replaceChildren();
+            const wait = this.root.querySelector('[data-chat-wait]'); if (wait) wait.textContent = '';
             this.root.querySelector('[data-budget]').textContent = '';
             if (this.proposalRoot) this.proposalRoot.querySelector('[data-proposals-empty]').hidden = false;
             for (const button of Object.values(this.buttons)) button.disabled = true;
             this.root.querySelector('[data-consent]').disabled = true;
         }
         async run(action) {
-            if (!this.access || !this.ready || this.operationPending) return;
+            if (!this.access || !this.accessChecked || this.operationPending) return;
             this.operationPending = true;
             this.errorMessage = '';
             this.status.textContent = 'Trwa operacja…';
@@ -479,8 +513,10 @@
             const wave = this.root.querySelector('[data-audio-wave]');
             if (wave) wave.setAttribute('d', this.levelHistory.map((value, i) => (i ? 'L' : 'M') + (i * 240 / 31).toFixed(1) + ' ' + (24 + (i % 2 ? -1 : 1) * value * 21).toFixed(1)).join(' '));
             // Logarithmic meter aids quiet speech.
-            this.root.querySelector('[data-audio-meter]').value = rms > 0 ? Math.max(0, Math.min(1, (20 * Math.log10(rms) + 60) / 60)) : 0;
-            this.root.querySelector('[data-audio-signal]').textContent = !active ? 'Mikrofon wyłączony.' :
+            const meter = this.root.querySelector('[data-audio-meter]');
+            if (meter) meter.value = rms > 0 ? Math.max(0, Math.min(1, (20 * Math.log10(rms) + 60) / 60)) : 0;
+            const signal = this.root.querySelector('[data-audio-signal]');
+            if (signal) signal.textContent = !active ? 'Mikrofon wyłączony.' :
                 rms > 0.001 ? 'Mikrofon odbiera sygnał.' : 'Mikrofon włączony — cisza lub bardzo słaby sygnał.';
         }
         transcript(session) {
@@ -499,7 +535,11 @@
             if (atBottom) list.scrollTop = list.scrollHeight;
             const badge = this.root.querySelector('[data-segment-count]');
             badge.textContent = String(all.length); badge.hidden = !all.length;
-            if (this.ready) this.renderInsights(termsIn(all.map(s => s.text).join('\n')));
+            if (this.accessChecked) {
+                const mentions = new Map();
+                for (const segment of all) for (const [term, item] of termsIn(segment.text)) { mentions.delete(term); mentions.set(term, item); }
+                this.renderInsights(mentions);
+            }
             const empty = this.root.querySelector('[data-transcript-empty]');
             empty.hidden = segments.length > 0;
             empty.textContent = session.next_sequence > 0 ? 'Serwer potwierdził audio, ale nie zwrócił jeszcze transkrypcji. To nie jest potwierdzenie rozpoznania mowy.' : 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
@@ -508,6 +548,16 @@
         }
         proposalState() {
             if (this.proposalRoot) this.proposalRoot.querySelector('[data-proposals-empty]').hidden = Array.from(this.proposals.values()).some(item => ['pending', 'saving'].includes(item.status));
+            const items = [...this.proposals.values()].filter(item => ['pending', 'saving'].includes(item.status));
+            const count = this.root.querySelector('[data-proposal-count]'); if (count) count.textContent = String(items.length);
+            const banner = this.proposalRoot?.querySelector('[data-banner-count]'); if (banner) banner.textContent = items.length ? items.length + ' pól do sprawdzenia' : '';
+            for (const action of ['accept', 'reject']) {
+                const button = this.proposalRoot?.querySelector('[data-' + action + '-all]');
+                if (button) button.disabled = !this.accessChecked || !items.length || items.some(item => item.status !== 'pending');
+            }
+            for (const group of this.groups) if (group.items.every(item => ['accepted', 'rejected', 'revoked'].includes(item.status))) {
+                for (const node of group.inlineNodes || []) node.hidden = true;
+            }
         }
         sessionState(session, state) {
             if (session?.status === 'revoked') this.clearAccess();
@@ -526,8 +576,9 @@
         }
         update(session) {
             if (session.status === 'revoked') { this.clearAccess(); return; }
-            if (!this.access) return;
+            if (!this.access || !this.accessChecked) return;
             if (this.sessionId && this.sessionId !== session.session_id) return;
+            if (Number.isInteger(session.revision) && Number.isInteger(this.latest?.revision) && session.revision < this.latest.revision) return;
             this.sessionId = session.session_id;
             this.latest = session;
             this.transcript(session);
@@ -546,10 +597,12 @@
                         if (!this.access) return;
                         this.dismissedTips.add(tip);
                         pill.hidden = true;
+                        this.compactQuestions();
                     });
                     pill.appendChild(remove);
-                    tips.appendChild(pill);
+                    tips.insertBefore ? tips.insertBefore(pill, tips.firstChild) : tips.appendChild(pill);
                 }
+                this.compactQuestions();
             }
             const suggestions = Array.isArray(session.suggestions) ? session.suggestions : [];
             const diagnostic = [suggestions.length, (session.segments || []).length, session.error_code || 'none'].join('_');
@@ -578,6 +631,7 @@
                 if (this.proposals.has(key)) continue;
                 if (!own(schema, field)) { this.diagnose('proposal_field_unavailable'); continue; }
                 const descriptor = schema[field];
+                if (['chronic_diseases_other', 'other_conditions'].includes(field) && typeof value === 'string' && /(?:łysieni\w*|lysieni\w*|wysienie)\s+androgenow/iu.test(value)) { this.diagnose('proposal_value_invalid'); continue; }
                 if (!this.valid(descriptor, value)) { this.diagnose('proposal_value_invalid'); continue; }
                 // Revision MUST be captured at the proposal's source. Never
                 // substitute the latest record revision just to make PATCH work.
@@ -588,12 +642,15 @@
                 if (typeof revision !== 'string' || !hasBaseline || (current !== null && !this.valid(descriptor, current))) { this.diagnose('proposal_baseline_invalid'); continue; }
                 let refs = proposal.sources?.[field] || proposal.evidence || proposal.sources;
                 if (Array.isArray(refs) && refs.every(ref => typeof ref === 'string')) {
-                    refs = refs.map(quote => {
-                        const segment = (session.segments || []).find(s => s.text === quote && (proposal.segment_ids || []).includes(s.segment_id));
-                        return segment ? {quote, start: segment.start, end: segment.end, speaker: segment.speaker} : null;
+                    refs = refs.map((quote, index) => {
+                        const segment = (session.segments || []).find(s => s.text === quote && (proposal.segment_ids || []).includes(s.segment_id)) ||
+                            (proposal.source === 'transcript' && refs.length === (proposal.segment_ids || []).length ? (session.segments || []).find(s => s.segment_id === proposal.segment_ids[index]) : null);
+                        return segment ? {quote: segment.text, start: segment.start, end: segment.end, speaker: segment.speaker} :
+                            proposal.source === 'message' && !(proposal.segment_ids || []).length ? {quote} : null;
                     });
                 }
                 if (!Array.isArray(refs) || !refs.length || !refs.every(ref => ref && typeof ref.quote === 'string' && ref.quote.trim())) { this.diagnose('proposal_evidence_invalid'); continue; }
+                if (field === 'current_medications' && this.medicationMentions(value, refs) === null) { this.diagnose('proposal_medication_details_invalid'); continue; }
                 // AI adds checkbox selections; it must not silently remove a
                 // clinician's persisted selections. The exact union is shown
                 // before acceptance, not appended invisibly during saving.
@@ -609,11 +666,12 @@
                 const sourceKey = JSON.stringify([session.session_id, revision,
                     [...(proposal.segment_ids || [])].sort(), refs.map(ref =>
                         [ref.quote, ref.start ?? null, ref.end ?? null, ref.speaker ?? null]).sort()]);
-                let group = this.groups.find(g => g.sourceKey === sourceKey &&
+                let group = !proposal.vision_rpl_addition && this.groups.find(g => g.sourceKey === sourceKey &&
                     g.items.every(member => member.status === 'pending') && !g.items.some(member => member.field === field));
                 if (!group) { group = {sourceKey, items: []}; this.groups.push(group); }
                 group.items.push(item);
                 this.render(group);
+                if (field === 'current_medications') this.medicationHints(item, session);
             }
         }
         valid(schema, value) {
@@ -628,6 +686,8 @@
             const firstRender = !group.card;
             group.card = card;
             card.replaceChildren();
+            for (const node of group.inlineNodes || []) node.remove?.();
+            group.inlineNodes = [];
             const body = element('div', undefined, 'clk-ui-card-body va-proposal-content');
             card.appendChild(body);
             if (items.length > 1) body.appendChild(element('strong', 'Jedna wypowiedź · ' + items.length + ' pól'));
@@ -635,6 +695,7 @@
                 body.appendChild(element('strong', this.record?.native_field_labels?.[member.field] || this.record?.field_labels?.[member.field] || member.descriptor.label || member.field));
                 body.appendChild(element('p', 'Było: ' + this.fieldDisplay(member, member.current), 'va-baseline clk-ui-help'));
                 body.appendChild(element('p', 'Propozycja: ' + this.fieldDisplay(member, member.value), 'va-proposed'));
+                for (const ref of member.refs) if (this.phonetic(ref.quote)) body.appendChild(element('small', 'Korekta STT — do potwierdzenia: „' + this.correctedPhonetic(ref.quote) + '”. Cytat źródłowy pozostaje oryginalny.'));
             }
             for (const ref of item.refs) body.appendChild(element('blockquote', 'Źródło' +
                 (Number.isFinite(ref.start) && Number.isFinite(ref.end) ? ' (' + ref.start + '–' + ref.end + ' s)' : '') + ': „' + ref.quote + '”', 'va-source clk-ui-help'));
@@ -648,17 +709,19 @@
             items.forEach(member => { member.controls = [accept, reject]; });
             for (const button of item.controls) actions.appendChild(button);
             reject.addEventListener('click', () => {
-                if (!this.access || items.some(member => member.status !== 'pending') || group.card !== card || group.items.length !== items.length) return;
+                if (!this.accessChecked || !this.access || this.batchPending || items.some(member => member.status !== 'pending') || group.card !== card || group.items.length !== items.length) return;
                 items.forEach(member => { member.status = 'rejected'; }); card.hidden = true;
                 this.proposalState();
                 // Tombstone retained for this proposal only: later independent
                 // proposals for the same field remain reviewable.
             });
             accept.addEventListener('click', async () => {
-                if (!this.access || items.some(member => member.status !== 'pending') || group.items.length !== items.length) return;
+                if (!this.accessChecked || !this.access || this.batchPending || items.some(member => member.status !== 'pending') || group.items.length !== items.length) return;
                 const scope = this.scope;
                 if (items.some(member => !this.valid(member.descriptor, member.value))) { note.textContent = 'Wybierz poprawną wartość pola.'; return; }
                 items.forEach(member => { member.status = 'saving'; });
+                for (const member of items) for (const control of member.controls) control.disabled = true;
+                this.proposalState();
                 accept.disabled = reject.disabled = true;
                 try {
                     const result = await this.bridge.savePatch(pluginId, Object.fromEntries(items.map(member => [member.field, member.value])),
@@ -705,15 +768,314 @@
                     if (scope !== this.scope || !this.access) return;
                     items.forEach(member => { member.status = 'pending'; }); accept.disabled = reject.disabled = false;
                     note.textContent = 'Nie potwierdzono zapisu. Sprawdź kartę przed ponowieniem.';
+                } finally {
+                    if (scope === this.scope && this.access) for (const member of items) for (const control of member.controls) control.disabled = member.status !== 'pending';
+                    this.proposalState();
                 }
             });
-            if (firstRender) this.proposalRoot.querySelector('[data-proposals]').appendChild(card);
+            if (firstRender) (this.root.querySelector('[data-sidebar-proposals]') || this.proposalRoot.querySelector('[data-proposals]')).appendChild(card);
+            for (const member of items) {
+                const mount = this.bridge.getFieldMount?.(member.field);
+                if (!mount?.appendChild) continue;
+                const inline = element('aside', undefined, 'clk-plugin-ui vision-proposals va-inline-proposal');
+                inline.setAttribute('data-plugin-nonform', '');
+                inline.appendChild(element('strong', 'AI · ' + this.fieldDisplay(member, member.value)));
+                inline.appendChild(element('small', 'Było: ' + this.fieldDisplay(member, member.current)));
+                for (const ref of member.refs) if (this.phonetic(ref.quote)) inline.appendChild(element('small', 'Do potwierdzenia: „' + this.correctedPhonetic(ref.quote) + '”'));
+                for (const ref of member.refs) inline.appendChild(element('blockquote', '„' + ref.quote + '”'));
+                const yes = this.iconButton('Akceptuj sprawdzoną propozycję', 'fa-check', 'va-accept');
+                const no = this.iconButton('Odrzuć propozycję', 'fa-xmark', 'va-reject');
+                yes.addEventListener('click', () => accept.click()); no.addEventListener('click', () => reject.click());
+                member.controls.push(yes, no); inline.appendChild(yes); inline.appendChild(no);
+                mount.appendChild(inline); group.inlineNodes.push(inline);
+            }
+        }
+        phonetic(text) { return /\bdu\s+(?:testeret|das\s+teret)\b|\bwysienie\s+androgenowe\b/iu.test(text); }
+        correctedPhonetic(text) { return text.replace(/\bdu\s+(?:testeret|das\s+teret)\b/giu, 'dutasteryd').replace(/\bwysienie\s+androgenowe\b/giu, 'łysienie androgenowe'); }
+        patientName() {
+            if (!this.accessChecked || !this.access) return;
+            const target = this.root.querySelector('[data-patient-name]');
+            const context = this.bridge.getContext();
+            const identity = document.querySelector?.('[id="patient-data"]');
+            if (!target || identity?.dataset.patientId !== context?.patientId || identity?.dataset.tenantSlug !== context?.tenantSlug) return;
+            const first = document.querySelector?.('#patientForm [name="first_name"]')?.value || '';
+            const last = document.querySelector?.('#patientForm [name="last_name"]')?.value || '';
+            target.textContent = (first + ' ' + last).trim().slice(0, 160);
+        }
+        headerState() {
+            const active = this.client?.capturing && this.client?.state === 'recording';
+            const analyzing = this.chatPending || ['starting', 'stopping'].includes(this.client?.state);
+            const label = this.root.querySelector('[data-header-label]');
+            if (label) label.textContent = active ? 'Nagrywanie' : analyzing ? 'Analizuję…' : 'Gotowy';
+            const header = this.root.querySelector('[data-header-status]');
+            if (header) header.dataset.state = active ? 'recording' : analyzing ? 'analyzing' : 'ready';
+            const strip = this.root.querySelector('[data-recording-strip]'); if (strip) strip.hidden = !active;
+            if (this.buttons?.start) this.buttons.start.hidden = active;
+            if (this.buttons?.stop) this.buttons.stop.hidden = !this.client?.active;
+            if (active && !this.recordingSince) {
+                this.recordingSince = Date.now();
+                const timer = this.root.querySelector('[data-recording-timer]'); if (timer) timer.textContent = '00:00';
+            }
+            if (!active) { this.recordingSince = null; if (typeof clearInterval === 'function') clearInterval(this.recordingTimer); this.recordingTimer = null; }
+            else if (!this.recordingTimer && typeof setInterval === 'function') this.recordingTimer = setInterval(() => {
+                const seconds = Math.floor((Date.now() - this.recordingSince) / 1000);
+                const timer = this.root.querySelector('[data-recording-timer]');
+                if (timer) timer.textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+            }, 1000);
+        }
+        async closeSafely() {
+            if (this.closing) return;
+            if (this.chatPending) { this.status.textContent = 'Zaczekaj na zakończenie wiadomości przed zamknięciem asystenta.'; return; }
+            this.closing = true;
+            this.refreshChatControls();
+            try {
+                if (this.client.capturing || this.client.active || this.client.startPending) await this.client.stop();
+                if (this.client.capturing || this.client.startPending || this.client.state === 'retry') {
+                    this.status.textContent = 'Nie potwierdzono zatrzymania. Mikrofon wyłączony; sprawdź stan sesji przed zamknięciem.';
+                    return;
+                }
+                this.disclosure.open = false;
+            } catch (_) { this.status.textContent = 'Nie potwierdzono zatrzymania sesji. Asystent pozostaje otwarty.'; }
+            finally { this.closing = false; this.refreshChatControls(); this.headerState(); }
+        }
+        setupChat() {
+            const input = this.root.querySelector('[data-chat-input]');
+            this.root.querySelector('[data-chat-send]')?.addEventListener('click', () => this.sendChat(input?.value));
+            input?.addEventListener('keydown', event => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); this.sendChat(input.value); }
+            });
+            for (const button of this.root.querySelectorAll('[data-chat-quick]')) button.addEventListener('click', () => this.sendChat(button.dataset.chatQuick));
+            this.refreshChatControls();
+        }
+        refreshChatControls() {
+            const disabled = !this.accessChecked || !this.access || this.chatPending || this.chatUncertain || this.closing || this.operationPending;
+            for (const selector of ['[data-chat-input]', '[data-chat-send]']) {
+                const node = this.root.querySelector(selector); if (node) node.disabled = Boolean(disabled);
+            }
+            for (const node of this.root.querySelectorAll('[data-chat-quick]')) node.disabled = Boolean(disabled);
+        }
+        chatBubble(role, text) {
+            const list = this.root.querySelector('[data-conversation]'); if (!list) return;
+            const node = element('p', (role === 'assistant' ? '✦ ' : '') + text, 'va-message va-message-' + role);
+            list.appendChild(node); while (list.children.length > 60) list.removeChild(list.firstChild);
+            list.scrollTop = list.scrollHeight;
+        }
+        async sendChat(message) {
+            if (!this.accessChecked || !this.access || this.closing || this.operationPending || this.chatPending || this.chatUncertain || typeof message !== 'string' || !message.trim() || message.length > 4000) return;
+            const scope = this.scope;
+            this.chatPending = true; this.refreshControls();
+            const wait = this.root.querySelector('[data-chat-wait]'); if (wait) wait.textContent = 'Analizuję wiadomość…';
+            try {
+                const read = await this.bridge.readRecord(pluginId);
+                if (scope !== this.scope || !this.access) return;
+                if (!read.ok) { this.rejectRead(read.code); return; }
+                this.record = read.record;
+                this.cardInsights(this.record);
+                this.prepareClient();
+                const history = []; let size = 0;
+                for (const entry of [...this.chatHistory].reverse().slice(0, 20)) {
+                    if (size + entry.content.length > 20000) break;
+                    size += entry.content.length; history.unshift(entry);
+                }
+                this.chatBubble('user', message);
+                const result = await this.client.sendChat(message, history);
+                if (scope !== this.scope || !this.access) return;
+                if (result.status !== 'completed' || result.replayed) {
+                    this.chatUncertain = true;
+                    if (wait) wait.textContent = 'Wynik oczekuje na potwierdzenie lub nie jest dostępny do odtworzenia. Nie ponawiamy automatycznie.';
+                    return;
+                }
+                this.chatHistory.push({role: 'user', content: message});
+                if (result.reply) { this.chatBubble('assistant', result.reply); this.chatHistory.push({role: 'assistant', content: result.reply.slice(0, 4000)}); }
+                this.chatHistory = this.chatHistory.slice(-20);
+                const input = this.root.querySelector('[data-chat-input]'); if (input) input.value = '';
+                const session = this.client.session || this.latest;
+                if (session) for (const proposal of result.suggestions) this.addProposal(proposal, session);
+                this.proposalState();
+                if (['trichology', 'photos', 'visits'].includes(result.navigation)) {
+                    const navigated = await this.bridge.navigateSection?.(result.navigation);
+                    if (scope !== this.scope || !this.access) return;
+                    if (navigated !== true) { if (wait) wait.textContent = 'Nie zmieniono sekcji — zakończ nagrywanie lub otwórz sekcję ręcznie.'; return; }
+                }
+                if (wait) wait.textContent = '';
+            } catch (error) {
+                if (scope !== this.scope || !this.access) return;
+                if (error.message === 'access_revoked') { this.rejectRead('access_revoked'); return; }
+                this.chatUncertain = true;
+                if (wait) wait.textContent = 'Nie potwierdzono odpowiedzi. Nie wysyłamy ponownie — operacja mogła zostać rozliczona.';
+            } finally { this.chatPending = false; this.refreshControls(); }
+        }
+        compactQuestions() {
+            const tips = this.root.querySelector('[data-tips]');
+            const older = this.root.querySelector('[data-older-tips]');
+            if (!older) return;
+            const visible = [...Array.from(tips.children), ...Array.from(older.children)].filter(node => !node.hidden);
+            tips.replaceChildren(); older.replaceChildren();
+            visible.forEach((node, index) => (index < 3 ? tips : older).appendChild(node));
+            const disclosure = this.root.querySelector('[data-older-questions]'); if (disclosure) disclosure.hidden = !older.children.length;
+        }
+        setupReviewBanner() {
+            this.proposalRoot?.querySelector('[data-open-assistant]')?.addEventListener('click', () => {
+                this.disclosure.open = true;
+                this.checkPrerequisites();
+            });
+            this.proposalRoot?.querySelector('[data-reject-all]')?.addEventListener('click', () => {
+                if (!this.accessChecked || !this.access) return;
+                for (const group of this.groups) if (group.items.every(item => item.status === 'pending')) {
+                    group.items.forEach(item => { item.status = 'rejected'; }); group.card.hidden = true;
+                }
+                this.proposalState();
+            });
+            this.proposalRoot?.querySelector('[data-accept-all]')?.addEventListener('click', () => this.acceptAll());
+        }
+        async acceptAll() {
+            const note = this.proposalRoot?.querySelector('[data-batch-status]');
+            const items = [...this.proposals.values()].filter(item => item.status === 'pending');
+            if (!this.accessChecked || !this.access || this.batchPending || !items.length || [...this.proposals.values()].some(item => item.status === 'saving')) return;
+            const revision = items[0].revision, patch = {}, baselines = {};
+            for (const item of items) {
+                if (item.revision !== revision || !this.valid(item.descriptor, item.value) ||
+                    (own(patch, item.field) && (JSON.stringify(patch[item.field]) !== JSON.stringify(item.value) || JSON.stringify(baselines[item.field]) !== JSON.stringify(item.current)))) {
+                    if (note) note.textContent = 'Propozycje mają różne wersje lub sprzeczne wartości. Akceptuj je osobno; niczego nie zapisano.';
+                    return;
+                }
+                patch[item.field] = item.value; baselines[item.field] = item.current;
+            }
+            if (!window.confirm('Zapisz wszystkie ' + items.length + ' sprawdzone pola? Sprawdź wcześniej propozycje i oryginalne cytaty.')) return;
+            const scope = this.scope;
+            this.batchPending = true; items.forEach(item => { item.status = 'saving'; for (const control of item.controls) control.disabled = true; }); this.proposalState();
+            try {
+                const result = await this.bridge.savePatch(pluginId, patch, {revision, expected_values: baselines});
+                if (scope !== this.scope || !this.access) return;
+                if (!result.ok) {
+                    if (denied(result.code)) { this.rejectRead(result.code); return; }
+                    if (note) note.textContent = 'Nie zapisano: konflikt, ręczne zmiany lub niepotwierdzony zapis. Nie zmieniono wersji propozycji. Sprawdź kartę.';
+                    items.forEach(item => { item.status = 'pending'; }); return;
+                }
+                items.forEach(item => { item.status = 'accepted'; });
+                for (const group of this.groups) if (group.items.every(item => item.status === 'accepted')) group.card.hidden = true;
+                if (note) note.textContent = 'Zapisano jeden zatwierdzony PATCH. Nie uruchomiono podsumowania.';
+                const read = await this.bridge.readRecord(pluginId).catch(() => null);
+                if (scope === this.scope && this.access) {
+                    if (!read?.ok) this.rejectRead(read?.code || 'network_error');
+                    else { this.record = read.record; this.cardInsights(this.record); }
+                }
+            } catch (_) {
+                if (scope !== this.scope || !this.access) return;
+                items.forEach(item => { item.status = 'pending'; });
+                if (note) note.textContent = 'Nie potwierdzono zapisu. Sprawdź kartę przed ponowieniem.';
+            } finally {
+                this.batchPending = false;
+                if (scope === this.scope && this.access) for (const item of items) for (const control of item.controls) control.disabled = item.status !== 'pending';
+                this.proposalState();
+            }
+        }
+        async searchMedications(query) {
+            if (!this.accessChecked || !this.access) throw new Error('access_revoked');
+            if (!this.bridge.searchMedications) throw new Error('catalog_unavailable');
+            return this.bridge.searchMedications(pluginId, query);
+        }
+        async medicationHints(item, session) {
+            const slot = this.root.querySelector('[data-medication-candidates]');
+            if (!slot || !this.accessChecked || !this.access) return;
+            const mentions = this.medicationMentions(item.value, item.refs);
+            if (mentions === null) { this.diagnose('proposal_medication_details_invalid'); return; }
+            const terms = mentions ? mentions.map(mention => [mention.name.replace(/\s*\(do potwierdzenia[^)]*\)/iu, ''), {title: mention.name, mention}]) : [...termsIn(item.value)].filter(([, term]) => term.category === 'drug').slice(0, 8);
+            if (!terms.length && typeof item.value === 'string' && item.value.trim()) terms.push([item.value.slice(0, 100), {title: 'Nazwa do wyszukania'}]);
+            // Capture this original list with the source proposal, not at selection
+            // time. Subsequent reads must never silently rebase the addition.
+            const values = {...(this.record?.interview_values || {}), ...(this.record?.native_values || {})};
+            const baseline = own(values, 'medication_list') ? values.medication_list : this.record?.medication_list ?? null;
+            const sourceRevision = this.record?.revision;
+            const scope = this.scope;
+            for (const [term, knowledge] of terms) {
+                if (slot.children.length >= 30) slot.removeChild(slot.firstChild);
+                const row = element('article', undefined, 'va-medication-candidate'); row.setAttribute('data-plugin-nonform', '');
+                row.appendChild(element('strong', 'RPL · ' + knowledge.title + ' — wybór specjalisty'));
+                if (knowledge.mention) {
+                    row.appendChild(element('small', 'Nazwa źródłowa: „' + knowledge.mention.raw_name + '” · ' + [knowledge.mention.dose, knowledge.mention.frequency, knowledge.mention.since, knowledge.mention.schedule].filter(Boolean).join(' · ')));
+                }
+                if (item.refs.some(ref => this.phonetic(ref.quote))) row.appendChild(element('small', 'Nazwa rozpoznana fonetycznie — do potwierdzenia.'));
+                const query = element('input'); query.value = term.replace(/_/g, ' '); query.maxLength = 100; query.setAttribute('aria-label', 'Nazwa leku do wyszukania w RPL'); query.setAttribute('data-plugin-nonform', ''); row.appendChild(query);
+                const search = element('button', 'Szukaj RPL', 'clk-ui-button'); search.type = 'button'; row.appendChild(search);
+                const results = element('div'); row.appendChild(results); slot.appendChild(row);
+                let lookupVersion = 0;
+                const lookup = async () => {
+                    if (scope !== this.scope || !this.access || !this.accessChecked || !query.value.trim() || query.value.length > 100) return;
+                    search.disabled = true; results.replaceChildren();
+                    const version = ++lookupVersion;
+                    try {
+                        const result = await this.searchMedications(query.value.trim());
+                        if (scope !== this.scope || !this.access || version !== lookupVersion) return;
+                        if (result?.ok === false) { if (denied(result.code)) this.rejectRead(result.code); throw new Error('catalog_unavailable'); }
+                        const validCandidate = p => p && typeof p.rpl_id === 'string' && /^\d{1,64}$/.test(p.rpl_id) &&
+                            Number.isSafeInteger(p.import_id) && p.import_id > 0 &&
+                            typeof p.catalog_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.catalog_date) &&
+                            typeof p.name === 'string' && p.name.trim() && p.name === p.name.trim() && p.name.length <= 2000 &&
+                            ['strength', 'form', 'substance'].every(key => typeof p[key] === 'string');
+                        const candidates = (result.candidates || []).filter(validCandidate).slice(0, 20);
+                        if (!candidates.length) { results.appendChild(element('p', 'Brak dopasowania RPL. Potwierdź nazwę z pacjentem; wskazówka tekstowa pozostaje do sprawdzenia. Nie utworzono leku ani ID.')); return; }
+                        const select = element('select'); select.setAttribute('data-plugin-nonform', ''); select.setAttribute('aria-label', 'Wybierz oficjalny produkt RPL');
+                        const placeholder = element('option', 'Wybierz produkt…'); placeholder.value = ''; select.appendChild(placeholder);
+                        candidates.forEach((candidate, i) => { const option = element('option', [candidate.name, candidate.strength, candidate.form, candidate.substance].filter(Boolean).join(' · ')); option.value = String(i); select.appendChild(option); });
+                        const choose = element('button', 'Dodaj propozycję wybranego leku', 'clk-ui-button'); choose.type = 'button'; choose.disabled = true;
+                        select.addEventListener('change', () => { choose.disabled = select.value === ''; });
+                        choose.addEventListener('click', () => {
+                            if (scope !== this.scope || !this.access || !this.accessChecked || this.batchPending || version !== lookupVersion || select.value === '') return;
+                            const candidate = candidates[Number(select.value)]; if (!candidate) return;
+                            const schema = this.bridge.getSchema();
+                            if (!schema.medication_list) { results.appendChild(element('p', 'Host nie udostępnia edytowalnej listy leków. Niczego nie zapisano.')); return; }
+                            if (sourceRevision !== item.revision || this.record?.revision !== item.revision || item.status !== 'pending') { results.appendChild(element('p', 'Karta lub propozycja ma inny stan niż wypowiedź. Zaczekaj na nową propozycję.')); return; }
+                            const additions = [...this.proposals.values()].filter(p => p.field === 'medication_list' && p.proposal.vision_rpl_addition && p.proposal.vision_session === session.session_id && p.revision === item.revision && p.current === baseline);
+                            if (additions.some(p => p.status !== 'pending')) { results.appendChild(element('p', 'Lista została już zatwierdzona, odrzucona lub jest zapisywana. Zaczekaj na nową analizę.')); return; }
+                            const merged = additions[0];
+                            let rows = [];
+                            try { rows = merged ? JSON.parse(merged.value) : baseline == null || baseline === '' ? [] : typeof baseline === 'string' ? JSON.parse(baseline) : baseline; } catch (_) { rows = null; }
+                            if (!Array.isArray(rows)) { results.appendChild(element('p', 'Istniejąca lista ma historyczny format. Sprawdź ją ręcznie; niczego nie zastąpiono.')); return; }
+                            if (rows.some(row => row?.rpl_id === candidate.rpl_id)) { results.appendChild(element('p', 'Ten produkt jest już na liście. Sprawdź istniejący wiersz.')); return; }
+                            const medication = {name: candidate.name, rpl_id: candidate.rpl_id, import_id: candidate.import_id};
+                            for (const key of ['catalog_date', 'strength', 'form', 'substance']) medication[key] = candidate[key];
+                            for (const key of ['dose', 'frequency', 'since', 'schedule']) medication[key] = knowledge.mention?.[key] || '';
+                            const newRows = [...rows, medication];
+                            if (merged) {
+                                // Merge BEFORE review/save and redraw the entire target list
+                                // plus all original evidence. No hidden merge inside PATCH.
+                                merged.value = JSON.stringify(newRows);
+                                for (const ref of item.refs) if (!merged.refs.some(r => JSON.stringify(r) === JSON.stringify(ref))) merged.refs.push({...ref});
+                                merged.proposal = {...merged.proposal, value: merged.value, evidence: merged.refs.map(ref => ({...ref}))};
+                                this.render(this.groups.find(g => g.items.includes(merged)));
+                            } else {
+                                const proposal = {...item.proposal, vision_rpl_addition: true, vision_session: session.session_id, proposal_id: (item.proposal.proposal_id || item.proposal.id) + ':rpl:' + candidate.rpl_id, field: 'medication_list', value: JSON.stringify(newRows), current_value: baseline, revision: item.revision, evidence: item.refs.map(ref => ({...ref}))};
+                                this.addProposal(proposal, session);
+                            }
+                            this.proposalState(); choose.disabled = true;
+                        });
+                        results.appendChild(select); results.appendChild(choose);
+                    } catch (_) { if (scope === this.scope && this.access && version === lookupVersion) results.appendChild(element('p', 'Wyszukiwanie RPL niedostępne. Potwierdź nazwę; nie utworzono ID.')); }
+                    finally { if (scope === this.scope && this.access && version === lookupVersion) search.disabled = false; }
+                };
+                search.addEventListener('click', lookup);
+                await lookup();
+            }
+        }
+        medicationMentions(value, refs) {
+            if (typeof value !== 'string' || !value.trimStart().startsWith('{')) return undefined;
+            try {
+                const data = JSON.parse(value), keys = ['name', 'raw_name', 'dose', 'frequency', 'since', 'schedule'];
+                if (Object.keys(data).sort().join(',') !== 'medication_mentions,summary' || typeof data.summary !== 'string' || !data.summary.trim() || !Array.isArray(data.medication_mentions) || !data.medication_mentions.length || data.medication_mentions.length > 8) return null;
+                if (!data.medication_mentions.every(row => row && Object.keys(row).sort().join(',') === [...keys].sort().join(',') && keys.every(k => typeof row[k] === 'string' && row[k].length <= 200 && row[k] === row[k].trim()) && row.name && row.raw_name && keys.filter(k => k !== 'name').every(k => !row[k] || refs.some(ref => ref.quote.includes(row[k]))) && (row.name === row.raw_name || row.name.toLowerCase().includes('do potwierdzenia')))) return null;
+                return data.medication_mentions;
+            } catch (_) { return null; }
         }
         fieldDisplay(item, value) {
-            if (item.field === 'supplements_list' && typeof value === 'string') {
+            if (item.field === 'current_medications' && typeof value === 'string') {
+                const mentions = this.medicationMentions(value, item.refs);
+                if (mentions) return JSON.parse(value).summary + ' · ' + mentions.map(row => [row.name, 'źródłowo: „' + row.raw_name + '”', row.dose, row.frequency, row.since, row.schedule].filter(Boolean).join(' · ')).join('; ');
+            }
+            if (['supplements_list', 'medication_list'].includes(item.field) && typeof value === 'string') {
                 try {
                     const rows = JSON.parse(value);
-                    if (Array.isArray(rows)) return rows.map(row => [row.name, row.dose, row.frequency, row.since ? 'od ' + row.since : '', row.schedule].filter(Boolean).join(' · ')).join('; ') || '(brak)';
+                    if (Array.isArray(rows)) return rows.map(row => [row.name, row.strength, row.form, row.dose, row.frequency, row.since ? (/^od\s/iu.test(row.since) ? row.since : 'od ' + row.since) : '', row.schedule].filter(Boolean).join(' · ')).join('; ') || '(brak)';
                 } catch (_) { /* Historical plain text remains visible. */ }
             }
             const labels = {...(item.descriptor.choice_labels || {}), ...(this.record?.interview_options?.[item.field] || {}), ...(this.record?.native_options?.[item.field] || {})};

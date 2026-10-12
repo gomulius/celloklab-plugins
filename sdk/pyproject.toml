@@ -5,7 +5,7 @@ backend-path = ["."]
 
 [project]
 name = "celloklab-plugin-sdk"
-version = "1.2.2"
+version = "1.2.3"
 description = "Standalone Celloklab partner plugin contracts and offline tooling"
 requires-python = ">=3.10"
 dependencies = []

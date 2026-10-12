@@ -1,8 +1,12 @@
-# Celloklab partner SDK 1.2.2 — stage 2
+# Celloklab partner SDK 1.2.3 — live chat
+
+Concise current contract and handoff: [SDK 1.2.3 — chat, RPL and UI](../docs/PLUGIN_CHAT_RPL_UI_1_2_3.md).
+
+Current release additively exports LiveChatContext and optional chat_prompt_builder/chat_result_processor; old declarations remain valid. Build from public root: `python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w wheels`. Install wheels/celloklab_plugin_sdk-1.2.3-py3-none-any.whl in an isolated environment. Older wheels remain historical. Actual Vision and browser assets are synchronized; no ZIP, commit/push or production tests. Current chat/RPL/consent/ephemeral-history/limits and three-tab sticky UX: [live contract](../docs/PLUGIN_LIVE_INTERVIEW_CONTRACT.md). The stage2 commands below are host-oriented historical context; public users use sdk/ and starter/.
 
 ## Version and publication boundary
 
-The standalone public Python source is **1.2.2**, including `trichology.py`, `bookings.py`, `clinical_tasks.py` and `live_interview.py`, public catalogs and offline validation. Manifest `SDK_VERSION` remains **1.0**, browser UI Kit remains **1.0.0**; independent **`vision.visit-assistant` is 2.0.0**. The release owner publishes the public source/examples and builds/verifies the 1.2.2 wheel separately. Retained 1.2.0 FOUNDATION and 1.0.0 wheels install historical snapshots, not the current SDK.
+The standalone public Python source is **1.2.3**, including `trichology.py`, `bookings.py`, `clinical_tasks.py` and `live_interview.py`, public catalogs and offline validation. Manifest `SDK_VERSION` remains **1.0**, browser UI Kit remains **1.0.0**; independent **`vision.visit-assistant` is 2.0.0**. The release owner publishes the public source/examples and builds/verifies the 1.2.3 wheel separately. Retained 1.2.0 FOUNDATION and 1.0.0 wheels install historical snapshots, not the current SDK.
 
 Stage 2 host source implements REST sessions, microphone capture, incremental PCM/STT and text analysis, authorization, provider adapters and one fixed credit fee per bounded session. Vision supplies domain callbacks and a Polish proposal panel as an independent enable/disable plugin, not hard-coded core clinical logic. The standalone package contains contracts, **not private host runtime modules**. Source publication does not establish production installation, real microphone/provider acceptance or measured latency. Private application modules, migrations, credentials and clinical data are not included in the standalone package. **No ZIP is generated**; this README edit does not build wheels, configure providers, execute migrations or deploy.
 
@@ -20,18 +24,18 @@ Partner authors must deliver **Polish for all new or maintained module/plugin us
 
 Every plugin requesting literal `AI` is hidden on all clinic-facing surfaces until platform-global activation plus explicit opt-in by that clinic's local administrator, including non-AI content. Authorized management consoles remain available for setup. No-AI plugins keep existing role/page/plugin rules in all eligible clinics without AI settings/license/activation dependencies. Manual migration **080** adds default-off `tenant_plugin_ai_activations` alongside ledger migration 079; no automatic backfill. Existing `tenant_ai_feature_settings` is not approval: local administrators must explicitly re-enable each AI-requesting plugin. Generation still enforces grants/licensing/settings/credits, and pending/replay/CSRF/idempotency safeguards remain independent.
 
-The Python distribution contains **only** `celloklab_plugin_sdk` contracts, public JSON catalogs, and offline validation. It has no third-party runtime or build dependencies, database configuration, private Request object, or `app` imports. Python distribution version is `1.2.2`, manifest SDK is `1.0`, and UI Kit is `1.0.0`. Host legacy imports are shims to the same classes, not extra public host modules.
+The Python distribution contains **only** `celloklab_plugin_sdk` contracts, public JSON catalogs, and offline validation. It has no third-party runtime or build dependencies, database configuration, private Request object, or `app` imports. Python distribution version is `1.2.3`, manifest SDK is `1.0`, and UI Kit is `1.0.0`. Host legacy imports are shims to the same classes, not extra public host modules.
 
 ## Build and install offline
 
-For maintainers, from this host repository root (public partners use `./sdk` and `starter` in the public checkout):
+From the public repository root:
 
 ```sh
-python -m pip wheel ./partner_sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
+python -m pip wheel ./sdk --no-deps --no-build-isolation --no-index -w /tmp/celloklab-wheels
 python -m venv /tmp/celloklab-partner
-/tmp/celloklab-partner/bin/python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.2-py3-none-any.whl
-/tmp/celloklab-partner/bin/celloklab-plugin-validate partner_sdk/starter
-python -m unittest discover -s partner_sdk/tests -v
+/tmp/celloklab-partner/bin/python -m pip install --no-index --no-deps /tmp/celloklab-wheels/celloklab_plugin_sdk-1.2.3-py3-none-any.whl
+/tmp/celloklab-partner/bin/celloklab-plugin-validate starter
+/tmp/celloklab-partner/bin/celloklab-plugin-validate examples/vision_visit_assistant
 ```
 
 The PEP 517 backend is stdlib-only and selects the public module, never the host. Its sdist embeds that module so it can be rebuilt without this checkout. Wheel release verification belongs to the release owner; no ZIP build is part of this delivery. Historical bundle-tool descriptions do not assert a newly generated archive.

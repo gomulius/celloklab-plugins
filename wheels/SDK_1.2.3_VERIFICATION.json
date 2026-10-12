@@ -1,0 +1,40 @@
+{
+  "version": "1.2.3",
+  "wheel": "celloklab_plugin_sdk-1.2.3-py3-none-any.whl",
+  "bytes": 34161,
+  "sha256": "c6a898c3511aae8a6f88ee406400c36f1b2575bca96600611d915f8dcd846f25",
+  "build": "python -m pip wheel ./partner_sdk (host) or ./sdk (public) --no-deps --no-build-isolation --no-index",
+  "verified": [
+    "fresh host and public builds are byte-identical",
+    "isolated Python 3.12 venv installation and python -I import of all wheel modules",
+    "package version and installed distribution metadata are 1.2.3",
+    "LiveChatContext and optional chat callbacks execute without host imports",
+    "legacy registration remains valid; processor without builder rejected",
+    "all packaged source/catalog bytes match host and public sources",
+    "every hashed RECORD entry has correct SHA-256 and byte length",
+    "archive contains only explicit public package and distribution metadata"
+  ],
+  "retained_1_2_2_sha256": "bf1587a037956c5b3124f3005826fe541666c3e19b07d3ed5731e7d27a8e4cde",
+  "partner_sdk_suite": {
+    "command": "python -m unittest discover -s partner_sdk/tests -v",
+    "run": 52,
+    "failures": 3,
+    "errors": 1,
+    "issues": [
+      "test_read_ui_runtime_pending_bound_stale_xss_missing_identity: summary fixture lacks new request control (addEventListener undefined)",
+      "test_ui_nonform_safe_read_only_native_identity_and_no_medical_storage: old no-POST assertion conflicts with existing explicit summary request",
+      "test_capabilities_actual_host_facades: catalog/host capability parity mismatch",
+      "test_catalogs_exact_host_parity: design token parity mismatch"
+    ],
+    "tests_or_unowned_sources_modified": false
+  },
+  "static_validation": {
+    "example_live_interview": "passed with advisory warnings",
+    "vision_visit_assistant": "five CSS policy diagnostics; byte-identical error list reproduced against public HEAD baseline",
+    "javascript": "QuickJS syntax-only passed for live-audio.js, trichology-form-bridge.js, assistant.js and knowledge.js; Node unavailable",
+    "diff_whitespace": "both repositories passed git diff --check",
+    "supplement_links": "all local links resolved in both repositories"
+  },
+  "not_verified": ["real microphone", "authenticated browser UI", "live STT/LLM provider", "production MariaDB", "clinical quality", "latency SLA"],
+  "commit_push_sql_deployment": false
+}

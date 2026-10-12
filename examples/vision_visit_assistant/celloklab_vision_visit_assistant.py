@@ -58,7 +58,15 @@ SYSTEM_PROMPT = (
     "i nie poprawiaj pisowni dowodu. Interpretuj łącznie fragmenty przeciętej wypowiedzi, ale cytuj "
     "każdy fragment osobno z jego oryginalnym czasem, w tym fragment pytania lub negacji potrzebny "
     "do zrozumienia odpowiedzi. Nie wymyślaj IDs ani rewizji. Nie zwracaj suggestions/evidence. "
-    "Tips to od 1 do 4 polskich pytań na podstawie braków karty i rozmowy. "
+    "Tips to od 1 do 4 krótkich, konkretnych polskich pytań do pacjenta, które specjalista może zadać TERAZ. "
+    "Najpierw doprecyzuj wzmianki z rozmowy: przy chorobie zapytaj o potwierdzenie, leczenie, nazwy leków, "
+    "dawki, od kiedy i ostatnie wyniki (np. cukrzyca — HbA1c; tarczyca — TSH; niedobór żelaza — ferrytyna). "
+    "Przy leku pytaj o wskazanie, dawkę, od kiedy i zmiany w ostatnich 12 miesiącach; przy wypadaniu "
+    "o zdarzenia 2–4 miesiące wcześniej (gorączka, poród, dieta, stres, nowy lek); przy zabiegach "
+    "o preparat, liczbę sesji i efekt. Potem pytaj o braki karty. Nie powtarzaj już wyjaśnionych pytań. "
+    "Uwzględniaj negację i hipotetyczny kontekst. Pytanie nie jest rozpoznaniem ani zaleceniem leczenia. "
+    "Nie zalecaj rozpoczynania, zmiany ani odstawiania leków lub suplementów. Wpływ biotyny na badania "
+    "i przygotowanie do testów należy omówić z lekarzem i laboratorium. "
     "Nie pozostawiaj tips pustego; dla pustej karty podaj ogólne pytania wywiadu. "
 )
 
@@ -170,11 +178,11 @@ def register(registrar):
     registrar.register_fragment("global.panel.right", UIFragment(
         template="templates/panel.html", hook="global.panel.right", placement="global_panel",
         fragment_id="vision-visit-assistant", page_ids=("documentation_form",), tab_id="tab-wywiad",
-        roles=VISION_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("assistant.js",),
+        roles=VISION_ROLES, requires_doctor=False, css_assets=("assistant.css",), js_assets=("knowledge.js", "assistant.js"),
     ))
     registrar.register_fragment("patient.records.sections", UIFragment(
         template="templates/proposals.html", hook="patient.records.sections",
         fragment_id="vision-proposals", page_ids=("documentation_form",), tab_id="tab-wywiad",
         roles=VISION_ROLES, priority=10, requires_doctor=False,
-        css_assets=("assistant.css",), js_assets=("assistant.js",),
+        css_assets=("assistant.css",), js_assets=("knowledge.js", "assistant.js"),
     ))

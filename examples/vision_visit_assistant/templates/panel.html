@@ -31,8 +31,23 @@
           <meter class="va-meter" data-audio-meter min="0" max="1" value="0" aria-label="Poziom rzeczywistego sygnału mikrofonu"></meter>
           <p class="clk-ui-help" data-audio-signal>Mikrofon wyłączony.</p>
         </div>
-        <h3 class="clk-ui-card-title">Wskazówki</h3>
-        <ul data-tips></ul>
+        <nav class="va-tabs" role="tablist" aria-label="Widok asystenta">
+          <button type="button" class="va-tab" role="tab" id="vision-tab-chat" aria-controls="vision-pane-chat" data-va-tab="chat" aria-selected="true">Konwersacja</button>
+          <button type="button" class="va-tab" role="tab" id="vision-tab-transcript" aria-controls="vision-pane-transcript" data-va-tab="transcript" aria-selected="false" tabindex="-1">Transkrypcja <span class="va-badge" data-segment-count hidden>0</span></button>
+        </nav>
+        <div class="va-pane" role="tabpanel" id="vision-pane-chat" aria-labelledby="vision-tab-chat" data-va-pane="chat">
+          <h3 class="clk-ui-card-title">O co dopytać</h3>
+          <ul data-tips></ul>
+          <section class="clk-ui-stack" data-insights-box aria-label="Objaśnienia pojęć" hidden>
+            <h3 class="clk-ui-card-title">Wzmianki — objaśnienia pojęć</h3>
+            <p class="clk-ui-help" data-knowledge-notice>Dopasowanie słów z lokalnej bazy, bez AI i opłat. To tylko wzmianka, nie rozpoznanie ani potwierdzenie stosowania leku. Może dotyczyć negacji, pytania lub innej osoby. Zweryfikuj kontekst. Nie zmieniaj leczenia ani suplementacji na tej podstawie; przygotowanie do badań omów z lekarzem i laboratorium.</p>
+            <div class="va-insights" data-insights></div>
+          </section>
+        </div>
+        <div class="va-pane" role="tabpanel" id="vision-pane-transcript" aria-labelledby="vision-tab-transcript" data-va-pane="transcript" hidden>
+          <p class="clk-ui-help" data-transcript-empty>Brak transkrypcji — oczekiwanie na wynik dostawcy AI.</p>
+          <ol class="va-transcript" data-transcript aria-label="Transkrypcja rozmowy (do 300 ostatnich fragmentów)"></ol>
+        </div>
         </div>
       </div>
     </details>
@@ -45,8 +60,7 @@
         <p data-budget class="clk-ui-help"></p>
         <p class="clk-ui-help" data-audio-accepted>Fragmenty audio potwierdzone przez serwer: 0.</p>
         <p class="clk-ui-help">Ruch fali oznacza sygnał wejściowy, nie potwierdzenie transkrypcji. Audio jest przesyłane przy pauzie w wypowiedzi, najpóźniej po 5 sekundach.</p>
-        <p class="clk-ui-help" data-transcript-empty>Brak transkrypcji — oczekiwanie na wynik dostawcy AI.</p>
-        <ol class="va-transcript" data-transcript aria-label="Ostatnie cztery fragmenty transkrypcji"></ol>
+
       </div>
     </details>
   </div>

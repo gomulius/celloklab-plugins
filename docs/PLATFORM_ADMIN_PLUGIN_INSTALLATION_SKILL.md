@@ -1,5 +1,14 @@
 # Platform administrator: reviewed plugin installation
 
+## Zintegrowane zmiany R&D LIVE
+
+Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.
+
+Nowe funkcje: zakładki Konwersacja/Transkrypcja (do 300 ostatnich fragmentów), lokalna baza objaśnień wzmianek `knowledge.js`, ukrywanie pojedynczych objaśnień oraz pytania doprecyzowujące choroby, leki, wyniki i chronologię. `knowledge.js` ładuje się przed `assistant.js`; nie korzysta z AI, sieci ani utrwalania treści w przeglądarce. Dopasowanie regex nie ustala diagnozy, przyjmowania leku ani negacji — UI jawnie ostrzega o kontekście. Objaśnienia nie wypełniają i nie zapisują karty. Nie zalecają odstawiania biotyny; przygotowanie do badań należy uzgodnić z prowadzącym i laboratorium.
+
+Nowe elementy są wewnątrz istniejącej `va-main` i ukryte do przejścia sprawdzeń. Poprzednie UI R&D bez bramki i z szerszymi rolami nie jest przejmowane. Manifest nadal ma wersję 2.0.0; ta integracja nie dodaje nowych capabilities, API, migracji ani wymagań SDK ponad 1.2.2. Aktywacja, produkcyjny mikrofon i jakość dostawcy pozostają odrębnym odbiorem.
+
+
 ## Clinic switch — public contract note, not partner installation authority
 
 Global approval/enable/grants remain platform-admin operations. Active local clinic administrators control **Ustawienia → Wtyczki** before **Ustawienia AI**, listing all healthy globally enabled exact-approved modules, including local OFF and AI-not-ready entries. Module ON is independent of AI opt-in, grants, licenses and credits; AI execution needs both module ON and independent consent plus existing authorization/policy. No-AI modules also honor the clinic switch. OFF retains AI consent/progress/data and denies subsequent operational UI/runtime/replay/new event or queue work; it does not promise cancelling in-flight dispatch or refunding charges.

@@ -45,6 +45,20 @@
         if (className) node.className = className;
         return node;
     }
+    const KNOWLEDGE = Array.isArray(window.CelloklabVisionKnowledge) ? window.CelloklabVisionKnowledge : [];
+    const KNOWLEDGE_CODES = window.CelloklabVisionKnowledgeCodes || {};
+    const CATEGORY = {disease: 'pojęcie', drug: 'lek', substance: 'substancja', procedure: 'zabieg'};
+    const compiled = KNOWLEDGE.map(item => {
+        try { return {...item, re: new RegExp(item.pattern, 'iu')}; } catch (_) { return null; }
+    }).filter(Boolean);
+    // Lexical mentions only: intentionally NOT a diagnosis/negation classifier.
+    function termsIn(text) {
+        const found = new Map();
+        if (typeof text !== 'string' || !text.trim()) return found;
+        for (const item of compiled) if (item.re.test(text)) found.set(item.term, item);
+        if (found.has('niedoczynnosc_tarczycy') || found.has('nadczynnosc_tarczycy') || found.has('hashimoto') || found.has('lewotyroksyna')) found.delete('choroba_tarczycy');
+        return found;
+    }
     function display(value) { return value == null || value === '' ? '(brak)' : Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? value ? 'Tak' : 'Nie' : String(value); }
     class Assistant {
         constructor(root) {
@@ -64,6 +78,10 @@
             this.latest = null;
             this.access = true;
             this.scope = 0;
+            this.cardTerms = new Map();
+            this.conversationTerms = new Map();
+            this.dismissedInsights = new Set();
+            this.setupTabs();
             this.ready = false;
             this.preflightVersion = 0;
             this.accessChecked = false;
@@ -118,6 +136,7 @@
                 if (scope !== this.scope || !this.access || !this.ready) return;
                 if (!read.ok) { this.rejectRead(read.code); throw new Error('record_unavailable'); }
                 this.record = read.record;
+                this.cardInsights(this.record);
                 await this.client.start({recordingConsent: true});
             }));
             for (const action of ['pause', 'resume', 'stop', 'retry']) this.buttons[action].addEventListener('click', () => this.run(() => {
@@ -159,6 +178,7 @@
                 Promise.resolve(this.client.stop()).catch(() => {});
             }
             if (this.client) this.refreshControls();
+            if (ready) this.cardInsights(this.record);
         }
         rejectRead(code) {
             this.accessChecked = false;
@@ -272,6 +292,73 @@
         canStart() {
             return this.client.state === 'idle' || this.client.restartable || (this.questionsOnly() && this.client.state === 'paused');
         }
+        setupTabs() {
+            const tabs = Array.from(this.root.querySelectorAll('[data-va-tab]'));
+            const panes = Array.from(this.root.querySelectorAll('[data-va-pane]'));
+            const show = name => {
+                if (!this.ready || !this.access || !tabs.some(tab => tab.dataset.vaTab === name)) return;
+                for (const tab of tabs) {
+                    const selected = tab.dataset.vaTab === name;
+                    tab.setAttribute('aria-selected', String(selected));
+                    tab.setAttribute('tabindex', selected ? '0' : '-1');
+                }
+                for (const pane of panes) pane.hidden = pane.dataset.vaPane !== name;
+            };
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => show(tab.dataset.vaTab));
+                tab.addEventListener('keydown', event => {
+                    if (!this.ready || !this.access) return;
+                    const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
+                        event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length :
+                        event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+                    if (next === null) return;
+                    event.preventDefault(); show(tabs[next].dataset.vaTab); tabs[next].focus();
+                });
+            });
+            this.showTab = show;
+        }
+        cardInsights(record) {
+            if (!this.access || !this.ready) return;
+            const values = {...(record?.interview_values || {}), ...(record?.native_values || {})};
+            const terms = new Map();
+            for (const code of Array.isArray(values.chronic_diseases) ? values.chronic_diseases : []) {
+                const item = compiled.find(entry => entry.term === KNOWLEDGE_CODES[code]);
+                if (item) terms.set(item.term, item);
+            }
+            const texts = ['chronic_diseases_other', 'other_conditions', 'current_medications', 'medication_changes', 'medication_list',
+                'supplements_list', 'trichology_treatments', 'previous_treatments', 'hormonal_status', 'contraception', 'trt_status']
+                .map(field => values[field] ?? record?.[field]).filter(value => typeof value === 'string');
+            for (const [term, item] of termsIn(texts.join('\n'))) terms.set(term, item);
+            if (terms.has('niedoczynnosc_tarczycy') || terms.has('nadczynnosc_tarczycy') || terms.has('hashimoto') || terms.has('lewotyroksyna')) terms.delete('choroba_tarczycy');
+            this.cardTerms = terms;
+            this.renderInsights();
+        }
+        renderInsights(conversation = this.conversationTerms) {
+            if (!this.access || !this.ready) return;
+            this.conversationTerms = conversation;
+            const box = this.root.querySelector('[data-insights]');
+            const merged = new Map([...conversation].map(([term, item]) => [term, {item, where: 'Wzmianka w rozmowie'}]));
+            for (const [term, item] of this.cardTerms) if (!merged.has(term)) merged.set(term, {item, where: 'Wzmianka w karcie'});
+            box.replaceChildren();
+            let visible = 0;
+            for (const [term, {item, where}] of merged) {
+                if (this.dismissedInsights.has(term)) continue;
+                visible++;
+                const card = element('article', undefined, 'va-insight');
+                card.appendChild(element('small', where + ' · ' + (CATEGORY[item.category] || 'pojęcie')));
+                card.appendChild(element('strong', item.title));
+                card.appendChild(element('p', item.summary));
+                if (item.ask) card.appendChild(element('p', 'Warto dopytać: ' + item.ask, 'va-ask'));
+                const hide = this.iconButton('Ukryj objaśnienie: ' + item.title, 'fa-xmark', 'va-insight-hide');
+                hide.addEventListener('click', () => {
+                    if (!this.access || !this.ready) return;
+                    this.dismissedInsights.add(term); this.renderInsights();
+                });
+                card.appendChild(hide);
+                box.appendChild(card);
+            }
+            this.root.querySelector('[data-insights-box]').hidden = visible === 0;
+        }
         questionsOnly() {
             return this.client.questionsOnly === true || this.client.session?.recording_consent === false;
         }
@@ -281,6 +368,8 @@
             this.client.dispose();
             this.sessionId = null; this.latest = null;
             this.dismissedTips.clear(); this.shownTips.clear();
+            this.dismissedInsights.clear(); this.conversationTerms.clear();
+            this.renderInsights();
             this.resetAudioView();
             this.root.querySelector('[data-tips]').replaceChildren();
             this.makeClient();
@@ -338,6 +427,9 @@
             this.preflightVersion++;
             this.accessChecked = false;
             this.setReady(false, false);
+            this.cardTerms.clear(); this.conversationTerms.clear(); this.dismissedInsights.clear();
+            this.root.querySelector('[data-insights]').replaceChildren();
+            this.root.querySelector('[data-insights-box]').hidden = true;
             this.checkMicrophoneButton.disabled = true;
             if (code === 'access_revoked') this.accessStatus.textContent = 'Dostęp do karty został cofnięty. Sprawdź aktywną rolę specjalisty w tej klinice i przypisanie pacjenta.';
             if (!this.access) return;
@@ -375,6 +467,8 @@
             this.root.querySelector('[data-transcript]').replaceChildren();
             this.root.querySelector('[data-transcript-empty]').hidden = false;
             this.root.querySelector('[data-transcript-empty]').textContent = 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
+            const badge = this.root.querySelector('[data-segment-count]');
+            badge.textContent = '0'; badge.hidden = true;
         }
         audioLevel(level) {
             const active = this.access && level?.active === true;
@@ -391,8 +485,10 @@
         }
         transcript(session) {
             const list = this.root.querySelector('[data-transcript]');
+            const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
             list.replaceChildren();
-            const segments = (Array.isArray(session.segments) ? session.segments : []).filter(s => typeof s?.text === 'string' && s.text.trim()).slice(-4);
+            const all = (Array.isArray(session.segments) ? session.segments : []).filter(s => typeof s?.text === 'string' && s.text.trim());
+            const segments = all.slice(-300);
             for (const segment of segments) {
                 const row = element('li', undefined, 'va-transcript-segment');
                 const timing = Number.isFinite(segment.start) && Number.isFinite(segment.end) ? segment.start.toFixed(1) + '–' + segment.end.toFixed(1) + ' s' : 'Fragment';
@@ -400,6 +496,10 @@
                 row.appendChild(element('p', segment.text.slice(0, 2000)));
                 list.appendChild(row);
             }
+            if (atBottom) list.scrollTop = list.scrollHeight;
+            const badge = this.root.querySelector('[data-segment-count]');
+            badge.textContent = String(all.length); badge.hidden = !all.length;
+            if (this.ready) this.renderInsights(termsIn(all.map(s => s.text).join('\n')));
             const empty = this.root.querySelector('[data-transcript-empty]');
             empty.hidden = segments.length > 0;
             empty.textContent = session.next_sequence > 0 ? 'Serwer potwierdził audio, ale nie zwrócił jeszcze transkrypcji. To nie jest potwierdzenie rozpoznania mowy.' : 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
@@ -597,7 +697,10 @@
                     // a retryable proposal (and risk a duplicate PATCH).
                     const read = await this.bridge.readRecord(pluginId).catch(() => null);
                     if (scope === this.scope && this.access && !read?.ok) { this.rejectRead(read?.code || 'network_error'); return; }
-                    if (scope === this.scope && this.access && read?.ok) this.record = read.record;
+                    if (scope === this.scope && this.access && read?.ok) {
+                        this.record = read.record;
+                        this.cardInsights(this.record);
+                    }
                 } catch (_) {
                     if (scope !== this.scope || !this.access) return;
                     items.forEach(member => { member.status = 'pending'; }); accept.disabled = reject.disabled = false;

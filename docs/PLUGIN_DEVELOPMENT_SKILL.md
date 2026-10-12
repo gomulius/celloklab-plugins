@@ -1,5 +1,14 @@
 # Celloklab partner plugin development
 
+## Zintegrowane zmiany R&D LIVE
+
+Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.
+
+Nowe funkcje: zakładki Konwersacja/Transkrypcja (do 300 ostatnich fragmentów), lokalna baza objaśnień wzmianek `knowledge.js`, ukrywanie pojedynczych objaśnień oraz pytania doprecyzowujące choroby, leki, wyniki i chronologię. `knowledge.js` ładuje się przed `assistant.js`; nie korzysta z AI, sieci ani utrwalania treści w przeglądarce. Dopasowanie regex nie ustala diagnozy, przyjmowania leku ani negacji — UI jawnie ostrzega o kontekście. Objaśnienia nie wypełniają i nie zapisują karty. Nie zalecają odstawiania biotyny; przygotowanie do badań należy uzgodnić z prowadzącym i laboratorium.
+
+Nowe elementy są wewnątrz istniejącej `va-main` i ukryte do przejścia sprawdzeń. Poprzednie UI R&D bez bramki i z szerszymi rolami nie jest przejmowane. Manifest nadal ma wersję 2.0.0; ta integracja nie dodaje nowych capabilities, API, migracji ani wymagań SDK ponad 1.2.2. Aktywacja, produkcyjny mikrofon i jakość dostawcy pozostają odrębnym odbiorem.
+
+
 ## Clinic module activation — host-owned, not a new SDK API
 
 The local clinic administrator manages **Ustawienia → Wtyczki** (`tab-wtyczki`, before **Ustawienia AI**). The catalog includes all healthy, exact-version-approved, globally enabled modules, including locally disabled modules and AI modules whose AI setup/consent/license is not ready. Discovered, globally disabled, failed or incompatible entries are not available here. Global installation/approval/grants remain platform-admin responsibilities; the clinic switch changes only this clinic's module availability.

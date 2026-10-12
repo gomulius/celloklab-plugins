@@ -17,6 +17,7 @@
       "assistant.css"
     ],
     "js_assets": [
+      "knowledge.js",
       "assistant.js"
     ]
   },
@@ -38,6 +39,7 @@
       "assistant.css"
     ],
     "js_assets": [
+      "knowledge.js",
       "assistant.js"
     ]
   }

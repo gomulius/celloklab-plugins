@@ -1,5 +1,14 @@
 # Plugin system host maintenance
 
+## Zintegrowane zmiany R&D LIVE
+
+Źródło: `celloklab-vision`, gałąź `wtyczki`, `plugins/LIVE/vision_visit_assistant`, rewizja `cbb00655dd3655172ea5b3ab23c01c6e5783f710`. Host instaluje przejrzaną adaptację, nie nadpisanie 1:1: zachowuje rolę `specialist`, przypisanie pacjenta, preflight w istniejącej rozwijanej sekcji, obsługę odmów i zapis wyłącznie po akceptacji z rewizją.
+
+Nowe funkcje: zakładki Konwersacja/Transkrypcja (do 300 ostatnich fragmentów), lokalna baza objaśnień wzmianek `knowledge.js`, ukrywanie pojedynczych objaśnień oraz pytania doprecyzowujące choroby, leki, wyniki i chronologię. `knowledge.js` ładuje się przed `assistant.js`; nie korzysta z AI, sieci ani utrwalania treści w przeglądarce. Dopasowanie regex nie ustala diagnozy, przyjmowania leku ani negacji — UI jawnie ostrzega o kontekście. Objaśnienia nie wypełniają i nie zapisują karty. Nie zalecają odstawiania biotyny; przygotowanie do badań należy uzgodnić z prowadzącym i laboratorium.
+
+Nowe elementy są wewnątrz istniejącej `va-main` i ukryte do przejścia sprawdzeń. Poprzednie UI R&D bez bramki i z szerszymi rolami nie jest przejmowane. Manifest nadal ma wersję 2.0.0; ta integracja nie dodaje nowych capabilities, API, migracji ani wymagań SDK ponad 1.2.2. Aktywacja, produkcyjny mikrofon i jakość dostawcy pozostają odrębnym odbiorem.
+
+
 ## Clinic activation contract — established documentation copy
 
 **Ustawienia → Wtyczki** precedes **Ustawienia AI**. Active local clinic administrators see all healthy, globally enabled exact-approved modules, including local OFF and AI-not-ready entries. The independent clinic module gate applies to no-AI and AI plugins across operational UI/runtime/replay and new queue/event work. AI plugins additionally need explicit clinic AI consent and existing grants/configuration/entitlement/credit checks; module activation grants none of these. Missing rows default ON only in an existing activation schema; missing schema/DB state fails closed. The host administrator reviews only missing migration 089; partners do not execute host SQL or import private gates.

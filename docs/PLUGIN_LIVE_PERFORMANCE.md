@@ -12,6 +12,7 @@ Klient publikuje STT niezależnie, monitoruje analizę oraz zachowuje niewysłan
 Okna energii 20 ms, adaptacja poziomu szumu i histereza poprawiają wykrywanie pauz. Zachowana cicha mowa, pre/post-roll, maksymalnie 5 sekund pakietu i dokładne próbki bez sztucznego paddingu. Rzeczywisty overlap audio jest WYŁĄCZONY: nie wdrożono powtórnego STT ogona ani rewizji już związanych dowodów. Metadane granic nie oznaczają powtórnego audio. Bezpośrednie OpenAI otrzymuje słownik i maksymalnie 600 znaków zredagowanej poprzedniej transkrypcji; redakcja poprzedza skracanie. OpenRouter i nierozpoznane endpointy nie dostają niezweryfikowanych parametrów prompt/context. Nie gwarantujemy anonimowości tekstu swobodnego.
 
 ## Konfiguracja bezpośredniego OpenAI
+Lista STT pokazuje zarejestrowanych dostawców niezależnie od obecności modeli. Dostawca bez modelu STT pozostaje widoczny z instrukcją dodania modelu; zapis jest zablokowany. Jeśli OpenAI nie jest zarejestrowane, informacyjna opcja „OpenAI · nieskonfigurowany” nie jest prawdziwym dostawcą i nie może być zapisana. Nie tworzy klucza ani konfiguracji automatycznie.
 1. Administrator: `/admin/ai-credits/providers` — zarejestrowany dostawca OpenAI z `https://api.openai.com/v1`, klucz przechowywany po stronie serwera.
 2. Modele AI: dodaj `gpt-4o-mini-transcribe` pod tym dostawcą.
 3. `/admin/plugins` → Vision → Audio wywiadu na żywo → wczytaj konfigurację → wybierz bezpośrednie OpenAI, model mowy i limit sesji → zapisz.

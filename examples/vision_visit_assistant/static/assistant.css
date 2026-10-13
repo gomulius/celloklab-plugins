@@ -26,9 +26,12 @@
 .vision-assistant [data-consent-block] {height:auto;min-height:0}
 .vision-assistant .clk-ui-check {font-size:11px;font-weight:normal}
 .vision-assistant .va-sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.clk-plugin-ui.vision-assistant .va-tabs {display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:8px;min-height:32px;max-height:34px;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid var(--clk-ui-border)}
-.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab {display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none;height:32px!important;min-height:32px!important;margin:0!important;border:0;background:transparent;color:var(--clk-ui-text-muted);font:inherit;font-size:11px;line-height:1.2;white-space:nowrap!important;word-break:normal;padding:0 3px!important;gap:3px;cursor:pointer}
-.vision-assistant .va-tab[aria-selected="true"] {color:var(--clk-ui-text);border-bottom:2px solid var(--clk-ui-accent)}
+/* Let the row grow for a native scrollbar; never steal height from the labels. */
+.clk-plugin-ui.vision-assistant .va-tabs {display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:stretch;flex:0 0 auto;gap:4px;margin:0;padding:0;min-height:36px;max-height:none;overflow-x:auto;overflow-y:hidden;scrollbar-color:var(--clk-ui-text-muted) transparent;border-bottom:1px solid var(--clk-ui-border)}
+.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab {box-sizing:border-box;display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none;height:auto!important;min-height:36px!important;margin:0!important;border:0;border-bottom:3px solid transparent;border-radius:var(--clk-ui-radius-button) var(--clk-ui-radius-button) 0 0;background:transparent;color:var(--clk-ui-text-secondary);font:inherit;font-size:13px;font-weight:500;line-height:1.5;white-space:nowrap!important;overflow-wrap:normal;word-break:normal;padding:6px 8px!important;gap:4px;cursor:pointer}
+.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab[aria-selected="true"] {color:var(--clk-ui-text);background:var(--clk-ui-surface-muted);border-bottom-color:var(--clk-ui-accent);font-weight:700}
+.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab:hover {background:var(--clk-ui-surface-muted)}
+.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab:focus-visible {outline:2px solid var(--clk-ui-focus);outline-offset:-2px}
 .vision-assistant .va-tab:focus-visible,.vision-assistant summary:focus-visible {outline:2px solid var(--clk-ui-focus);outline-offset:2px}
 .vision-assistant .va-pane,.vision-assistant .va-insights {display:flex;flex-direction:column;gap:6px}
 .vision-assistant .va-pane {flex:1 1 auto;min-height:0;overflow:auto}

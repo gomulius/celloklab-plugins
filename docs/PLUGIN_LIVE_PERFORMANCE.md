@@ -14,7 +14,7 @@ Okna energii 20 ms, adaptacja poziomu szumu i histereza poprawiają wykrywanie p
 ## Konfiguracja bezpośredniego OpenAI
 Lista STT pokazuje zarejestrowanych dostawców niezależnie od obecności modeli. Dostawca bez modelu STT pozostaje widoczny z instrukcją dodania modelu; zapis jest zablokowany. Jeśli OpenAI nie jest zarejestrowane, informacyjna opcja „OpenAI · nieskonfigurowany” nie jest prawdziwym dostawcą i nie może być zapisana. Nie tworzy klucza ani konfiguracji automatycznie.
 1. Administrator: `/admin/ai-credits/providers` — zarejestrowany dostawca OpenAI z `https://api.openai.com/v1`, klucz przechowywany po stronie serwera.
-2. Modele AI: dodaj `gpt-4o-mini-transcribe` pod tym dostawcą.
+2. W sekcji audio Vision wybierz OpenAI i kliknij „Dodaj model transkrypcji OpenAI”. Jawna akcja rejestruje `gpt-4o-mini-transcribe` w katalogu pod wybranym dostawcą, bez wywołania API OpenAI, bez zmiany klucza i bez zapisu ustawień audio. Można też dodać model przez istniejący panel modeli. Nieaktywny istniejący model lub identyfikator zajęty przez innego dostawcę powoduje bezpieczny komunikat, nie nadpisanie.
 3. `/admin/plugins` → Vision → Audio wywiadu na żywo → wczytaj konfigurację → wybierz bezpośrednie OpenAI, model mowy i limit sesji → zapisz.
 4. Funkcje AI → Konfiguruj dla Vision: wybierz model analizy przypisany do OpenAI. Może pozostać inny dostawca analizy; wybory mowy i analizy są niezależne.
 Nie zmieniono produkcyjnych kluczy, modeli, aktywacji ani zgód klinik. OpenRouter pozostaje obsługiwany. API administratora zwraca wyłącznie dozwolone metadane, bez kluczy.

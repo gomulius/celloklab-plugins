@@ -466,7 +466,7 @@
             const input = this.root.querySelector('[data-chat-input]'); if (input) input.value = '';
             this.refreshChatControls();
             for (const group of this.groups) for (const node of group.inlineNodes || []) node.remove?.();
-            if ((this.client.active || this.client.startPending || this.client.capturing) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});
+            if ((this.client.session || this.client.startPending || this.client.capturing) && this.client.session?.status !== 'revoked') this.client.revoke?.().catch(() => {});
             for (const item of this.proposals.values()) {
                 item.status = 'revoked';
                 for (const control of item.controls || []) control.disabled = true;
@@ -567,7 +567,10 @@
                 this.root.querySelector('[data-consent-block]').hidden = false;
             }
             this.previousState = state;
+            const finalAnalysis = state === 'stopped' && (this.client.analysisSending || this.client.analysisUncertain ||
+                ['waiting', 'pending'].includes(session?.analysis?.status));
             this.status.textContent = this.errorMessage || (this.questionsPending ? 'Przygotowywanie pytań…' :
+                finalAnalysis ? 'Mikrofon wyłączony. Oczekiwanie na końcową analizę…' :
                 state === 'idle' && !this.consent.checked ? 'Zgoda wymagana do nagrywania.' : states[state] || 'Sprawdzanie sesji…');
             if (state !== 'recording') this.audioLevel({active: false});
             this.refreshControls();

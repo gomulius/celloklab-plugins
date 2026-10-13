@@ -1,5 +1,7 @@
 # Plugin system host maintenance
 
+Aktualny przepływ STT/analizy i konfiguracja bezpośredniego OpenAI: [PLUGIN_LIVE_PERFORMANCE.md](PLUGIN_LIVE_PERFORMANCE.md).
+
 Aktualny kontrakt limitów, persystencji i RPL: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md).
 
 ## Utrzymanie SDK 1.2.3 — czat, RPL i UX

@@ -1,5 +1,7 @@
 # Celloklab partner plugin development
 
+Aktualny przepływ STT/analizy i konfiguracja bezpośredniego OpenAI: [PLUGIN_LIVE_PERFORMANCE.md](PLUGIN_LIVE_PERFORMANCE.md).
+
 Aktualny, zwięzły dodatek: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md).
 
 ## Wydanie SDK 1.2.3 — czat, RPL i UX

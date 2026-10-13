@@ -26,8 +26,8 @@
 .vision-assistant [data-consent-block] {height:auto;min-height:0}
 .vision-assistant .clk-ui-check {font-size:11px;font-weight:normal}
 .vision-assistant .va-sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.vision-assistant .va-tabs {display:flex;flex-wrap:nowrap;gap:10px;border-bottom:1px solid var(--clk-ui-border)}
-.vision-assistant .va-tab {border:0;background:transparent;color:var(--clk-ui-text-muted);font:inherit;font-size:11px;white-space:nowrap;padding:8px 0;cursor:pointer}
+.clk-plugin-ui.vision-assistant .va-tabs {display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:8px;min-height:32px;max-height:34px;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid var(--clk-ui-border)}
+.clk-plugin-ui.vision-assistant .va-tabs > button.va-tab {display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none;height:32px!important;min-height:32px!important;margin:0!important;border:0;background:transparent;color:var(--clk-ui-text-muted);font:inherit;font-size:11px;line-height:1.2;white-space:nowrap!important;word-break:normal;padding:0 3px!important;gap:3px;cursor:pointer}
 .vision-assistant .va-tab[aria-selected="true"] {color:var(--clk-ui-text);border-bottom:2px solid var(--clk-ui-accent)}
 .vision-assistant .va-tab:focus-visible,.vision-assistant summary:focus-visible {outline:2px solid var(--clk-ui-focus);outline-offset:2px}
 .vision-assistant .va-pane,.vision-assistant .va-insights {display:flex;flex-direction:column;gap:6px}
@@ -65,4 +65,18 @@
 .vision-assistant .va-proposal-actions {display:flex;gap:5px}
 .vision-assistant .va-medication-candidate {display:flex;flex-direction:column;gap:5px;padding:7px;border:1px solid var(--clk-ui-border);border-radius:var(--clk-ui-radius-input)}
 .vision-assistant .va-medication-candidate input,.vision-assistant .va-medication-candidate select {width:100%;min-width:0;max-width:100%;font:inherit;font-size:13px;background:var(--clk-ui-surface-card);color:var(--clk-ui-text);border:1px solid var(--clk-ui-border)}
+.clk-plugin-ui.vision-assistant [data-ready-controls] {display:flex;flex-direction:column;gap:6px}
+.clk-plugin-ui.vision-assistant .va-player {flex-wrap:nowrap;min-height:30px}
+.clk-plugin-ui.vision-assistant .va-capture-row {display:flex;flex-direction:row;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
+.clk-plugin-ui.vision-assistant .va-player > button,.clk-plugin-ui.vision-assistant .va-quick-actions > button,.clk-plugin-ui.vision-assistant .va-composer-row > button {display:inline-flex!important;width:auto!important;flex:0 0 auto;align-items:center;justify-content:center;margin:0!important}
+.clk-plugin-ui.vision-assistant .va-player > .va-icon {width:30px!important;height:30px!important;min-height:30px!important;min-width:30px!important}
+.clk-plugin-ui.vision-assistant [data-ready-controls] > .va-player {display:inline-flex;align-self:flex-start}
+.clk-plugin-ui.vision-assistant [data-consent-block] {margin:0;padding:0;flex:0 0 auto}
+.clk-plugin-ui.vision-assistant [data-consent-block] .clk-ui-check {display:flex!important;flex-direction:row!important;align-items:center;gap:5px;margin:0;min-height:24px;font-size:11px}
+.clk-plugin-ui.vision-assistant [data-consent] {width:14px!important;height:14px!important;min-width:14px!important;flex:0 0 14px;margin:0!important}
+.clk-plugin-ui.vision-assistant .va-composer {position:sticky!important;bottom:0;flex:0 0 auto;max-height:none}
+.clk-plugin-ui.vision-assistant .va-quick-actions {flex-wrap:nowrap;overflow-x:auto}
+.clk-plugin-ui.vision-assistant .va-composer-row > [data-chat-send] {width:32px!important;min-width:32px;align-self:stretch}
+.vision-assistant .va-raw-segments {font-size:11px;color:var(--clk-ui-text-muted)}
+.vision-assistant .va-reconcile {font-size:11px;min-height:28px}
 @media (pointer:coarse) {.vision-assistant .va-icon,.vision-proposals .va-icon {width:40px;height:40px;min-width:40px}.vision-assistant .va-question-remove,.vision-assistant .va-insight-hide {width:28px;height:28px}}

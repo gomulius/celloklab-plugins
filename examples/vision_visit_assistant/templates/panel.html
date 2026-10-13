@@ -10,6 +10,7 @@
           <div class="clk-ui-row va-prerequisite-actions"><button type="button" class="clk-ui-button" data-check-access>Ponów sprawdzenie</button><button type="button" class="clk-ui-button" data-check-microphone disabled>Sprawdź mikrofon</button></div>
         </div>
         <div class="clk-ui-stack" data-ready-controls hidden>
+          <div class="va-capture-row">
           <div class="clk-ui-row va-player" role="group" aria-label="Sterowanie wywiadem">
             <button type="button" class="clk-ui-button va-icon va-record" data-action="start" aria-label="Rozpocznij nagrywanie" title="Rozpocznij nagrywanie" disabled><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
             <button type="button" class="clk-ui-button va-icon" data-action="pause" aria-label="Wstrzymaj wywiad" disabled hidden><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
@@ -20,6 +21,7 @@
             <button type="button" class="clk-ui-button va-icon" data-action="retry" aria-label="Ponów oczekujące żądanie audio" hidden><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
           </div>
           <div class="clk-ui-field" data-consent-block><label class="clk-ui-check"><input type="checkbox" class="clk-ui-checkbox" data-consent data-plugin-nonform> Mam zgodę pacjenta na nagrywanie.</label></div>
+          </div>
           <p data-status class="va-sr-only" role="status" aria-live="polite">Gotowy.</p>
           <nav class="va-tabs" role="tablist" aria-label="Widok asystenta">
             <button type="button" class="va-tab" role="tab" id="vision-tab-chat" aria-controls="vision-pane-chat" data-va-tab="chat" aria-selected="true">Konwersacja</button>
@@ -28,18 +30,19 @@
           </nav>
           <div class="va-pane" role="tabpanel" id="vision-pane-chat" aria-labelledby="vision-tab-chat" data-va-pane="chat">
             <div class="va-conversation" data-conversation role="log" aria-live="polite"></div>
-            <h3 class="clk-ui-card-title">O co dopytać</h3><ul data-tips></ul>
-            <details data-older-questions hidden><summary>Starsze pytania</summary><ul data-older-tips></ul></details>
+
             <section class="clk-ui-stack" data-insights-box aria-label="Objaśnienia pojęć" hidden>
               <h3 class="clk-ui-card-title">Wzmianki</h3><p class="clk-ui-help" data-knowledge-notice>Tylko wzmianka, nie rozpoznanie. Może dotyczyć negacji, pytania lub innej osoby. Warianty STT: do potwierdzenia. Leczenie i przygotowanie do badań omów z lekarzem i laboratorium.</p><div class="va-insights" data-insights></div><details data-older-insights hidden><summary>Starsze wzmianki</summary><div class="va-insights" data-older-insights-list></div></details>
             </section>
+            <h3 class="clk-ui-card-title">O co dopytać</h3><ul data-tips></ul>
+            <details data-older-questions hidden><summary>Starsze pytania</summary><ul data-older-tips></ul></details>
           </div>
-          <div class="va-pane" role="tabpanel" id="vision-pane-review" aria-labelledby="vision-tab-review" data-va-pane="review" hidden><p class="clk-ui-help">Sprawdź wartości i źródła. Akceptacja zapisuje tylko wybrane pola.</p><div data-sidebar-proposals></div><div data-medication-candidates></div></div>
+          <div class="va-pane" role="tabpanel" id="vision-pane-review" aria-labelledby="vision-tab-review" data-va-pane="review" hidden><p class="clk-ui-help">Sprawdź wartości i źródła. Akceptacja zapisuje tylko wybrane pola.</p><div data-sidebar-proposals></div><div data-medication-candidates></div><div data-session-medications aria-label="Wzmianki leków z katalogu RPL" hidden></div></div>
           <div class="va-pane" role="tabpanel" id="vision-pane-transcript" aria-labelledby="vision-tab-transcript" data-va-pane="transcript" hidden><p class="clk-ui-help" data-transcript-empty>Brak transkrypcji.</p><ol class="va-transcript" data-transcript></ol></div>
         </div>
         <footer class="va-composer" data-plugin-nonform>
           <div class="va-quick-actions"><button type="button" class="clk-ui-button" data-chat-quick="Zaproponuj trzy pytania do pacjenta.">Pytania</button><button type="button" class="clk-ui-button" data-chat-quick="Podsumuj potwierdzone informacje z karty i dostępnej rozmowy.">Podsumowanie</button><button type="button" class="clk-ui-button" data-chat-quick="Jakich najważniejszych danych brakuje w wywiadzie?">Braki</button></div>
-          <div class="va-composer-row"><textarea data-chat-input data-plugin-nonform maxlength="4000" rows="2" aria-label="Wiadomość do asystenta" placeholder="Napisz do asystenta…" disabled></textarea><button type="button" class="clk-ui-button" data-chat-send disabled aria-label="Wyślij wiadomość">↑</button></div><p class="clk-ui-help" data-chat-wait role="status" aria-live="polite"></p>
+          <div class="va-composer-row"><textarea data-chat-input data-plugin-nonform maxlength="4000" rows="2" aria-label="Wiadomość do asystenta" placeholder="Napisz do asystenta…" disabled></textarea><button type="button" class="clk-ui-button" data-chat-send disabled aria-label="Wyślij wiadomość">↑</button></div><p class="clk-ui-help" data-chat-wait role="status" aria-live="polite"></p><button type="button" class="clk-ui-button va-reconcile" data-chat-reconcile hidden>Sprawdź stan bez ponownego wysyłania</button>
         </footer>
       </div>
     </details>

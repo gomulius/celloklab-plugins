@@ -339,9 +339,7 @@
                 const item = compiled.find(entry => entry.term === KNOWLEDGE_CODES[code]);
                 if (item) terms.set(item.term, item);
             }
-            const texts = ['chronic_diseases_other', 'other_conditions', 'current_medications', 'medication_changes', 'medication_list',
-                'supplements_list', 'trichology_treatments', 'previous_treatments', 'hormonal_status', 'contraception', 'trt_status']
-                .map(field => values[field] ?? record?.[field]).filter(value => typeof value === 'string');
+            const texts = Object.values({...record, ...values}).filter(value => typeof value === 'string');
             for (const [term, item] of termsIn(texts.join('\n'))) terms.set(term, item);
             if (terms.has('niedoczynnosc_tarczycy') || terms.has('nadczynnosc_tarczycy') || terms.has('hashimoto') || terms.has('lewotyroksyna')) terms.delete('choroba_tarczycy');
             this.cardTerms = terms;
@@ -364,17 +362,36 @@
                 card.appendChild(element('small', where + ' · ' + (CATEGORY[item.category] || 'pojęcie')));
                 card.appendChild(element('strong', item.title));
                 card.appendChild(element('p', item.summary));
-                if (item.ask) card.appendChild(element('p', 'Warto dopytać: ' + item.ask, 'va-ask'));
+                const ask = this.patientQuestion(item.ask);
+                if (ask) card.appendChild(element('p', 'Warto dopytać: ' + ask, 'va-ask'));
+                if (Array.isArray(item.evidence)) for (const ref of item.evidence) card.appendChild(element('blockquote', typeof ref === 'string' ? ref : ref.quote, 'va-source'));
                 const hide = this.iconButton('Ukryj objaśnienie: ' + item.title, 'fa-xmark', 'va-insight-hide');
                 hide.addEventListener('click', () => {
                     if (!this.access || !this.accessChecked) return;
                     this.dismissedInsights.add(term); this.renderInsights();
                 });
                 card.appendChild(hide);
-                (visible > 3 && older ? older : box).appendChild(card);
+                (visible > 4 && older ? older : box).appendChild(card);
             }
-            const disclosure = this.root.querySelector('[data-older-insights]'); if (disclosure) disclosure.hidden = visible <= 3;
+            const disclosure = this.root.querySelector('[data-older-insights]'); if (disclosure) disclosure.hidden = visible <= 4;
             this.root.querySelector('[data-insights-box]').hidden = visible === 0;
+        }
+        patientQuestion(text) {
+            if (typeof text !== 'string') return '';
+            const sex = this.record?.patient_sex ?? this.record?.interview_values?.patient_sex;
+            const male = ['male', 'm', 'M', 'man'].includes(sex), female = ['female', 'f', 'F', 'woman'].includes(sex);
+            if (male && /ciąż|ciaz|poród|porod|karmi.*piers|cykl|miesiącz|menopauz|antykoncepc/iu.test(text)) return '';
+            return text.replace(/Pan\/Pani/g, male ? 'Pan' : female ? 'Pani' : 'osoba badana')
+                .replace(/schudł\(a\)/g, male ? 'schudł' : female ? 'schudła' : 'straciła na wadze');
+        }
+        sessionInsights(session, mentions) {
+            const rawQuotes = (session.segments || []).map(s => s.raw_text ?? s.text).filter(t => typeof t === 'string');
+            for (const item of Array.isArray(session.insights) ? session.insights.slice(0, 4).reverse() : []) {
+                if (!item || !['term', 'title', 'summary'].every(k => typeof item[k] === 'string' && item[k].trim()) || !Array.isArray(item.evidence) || !item.evidence.length) continue;
+                if (!item.evidence.every(ref => rawQuotes.includes(typeof ref === 'string' ? ref : ref?.quote))) continue;
+                mentions.delete(item.term); mentions.set(item.term, item);
+            }
+            return mentions;
         }
         questionsOnly() {
             return this.client.questionsOnly === true || this.client.session?.recording_consent === false;
@@ -461,6 +478,7 @@
             this.chatHistory = [];
             this.root.querySelector('[data-conversation]')?.replaceChildren();
             this.root.querySelector('[data-medication-candidates]')?.replaceChildren();
+            this.root.querySelector('[data-session-medications]')?.replaceChildren();
             this.root.querySelector('[data-sidebar-proposals]')?.replaceChildren();
             const name = this.root.querySelector('[data-patient-name]'); if (name) name.textContent = '';
             const input = this.root.querySelector('[data-chat-input]'); if (input) input.value = '';
@@ -523,13 +541,31 @@
             const list = this.root.querySelector('[data-transcript]');
             const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
             list.replaceChildren();
-            const all = (Array.isArray(session.segments) ? session.segments : []).filter(s => typeof s?.text === 'string' && s.text.trim());
+            const all = (Array.isArray(session.segments) ? session.segments : []).filter(s => typeof (s?.raw_text ?? s?.text) === 'string' && (s.raw_text ?? s.text).trim());
             const segments = all.slice(-300);
+            let previous, previousKey;
             for (const segment of segments) {
+                const raw = segment.raw_text ?? segment.text;
+                const role = ['patient', 'specialist'].includes(segment.role) ? segment.role : 'unknown';
+                const key = role !== 'unknown' && typeof segment.speaker === 'string' && segment.speaker ? segment.speaker + ':' + role : null;
+                const label = role === 'patient' ? 'Pacjent' : role === 'specialist' ? 'Specjalista' : 'Rola nieustalona';
+                const text = (typeof segment.display_text === 'string' ? segment.display_text : raw).slice(0, 2000);
+                if (key && previousKey === key) {
+                    previous.text.textContent += '\n' + text;
+                    previous.sources.appendChild(element('p', raw));
+                    previous.sources.appendChild(element('small', String(segment.start) + '–' + String(segment.end) + ' s · ' + (segment.segment_id || '')));
+                    if (segment.needs_confirmation) previous.text.textContent += ' (do potwierdzenia)';
+                    continue;
+                }
                 const row = element('li', undefined, 'va-transcript-segment');
                 const timing = Number.isFinite(segment.start) && Number.isFinite(segment.end) ? segment.start.toFixed(1) + '–' + segment.end.toFixed(1) + ' s' : 'Fragment';
-                row.appendChild(element('span', timing + (typeof segment.speaker === 'string' ? ' · ' + segment.speaker.slice(0, 80) : ''), 'va-label'));
-                row.appendChild(element('p', segment.text.slice(0, 2000)));
+                row.appendChild(element('span', label + ' · ' + timing + (typeof segment.speaker === 'string' ? ' · ' + segment.speaker.slice(0, 80) : '') + (segment.needs_confirmation ? ' · do potwierdzenia' : ''), 'va-label'));
+                const shown = element('p', text); row.appendChild(shown);
+                const sources = element('details', undefined, 'va-raw-segments');
+                sources.appendChild(element('summary', 'Oryginalne fragmenty — źródła'));
+                sources.appendChild(element('p', raw));
+                sources.appendChild(element('small', timing + ' · ' + (segment.segment_id || ''))); row.appendChild(sources);
+                previous = {text: shown, sources}; previousKey = key;
                 list.appendChild(row);
             }
             if (atBottom) list.scrollTop = list.scrollHeight;
@@ -537,14 +573,30 @@
             badge.textContent = String(all.length); badge.hidden = !all.length;
             if (this.accessChecked) {
                 const mentions = new Map();
-                for (const segment of all) for (const [term, item] of termsIn(segment.text)) { mentions.delete(term); mentions.set(term, item); }
-                this.renderInsights(mentions);
+                for (const segment of all) for (const [term, item] of termsIn(segment.raw_text ?? segment.text)) { mentions.delete(term); mentions.set(term, item); }
+                this.renderInsights(this.sessionInsights(session, mentions));
+                this.sessionMedications(session, all);
             }
             const empty = this.root.querySelector('[data-transcript-empty]');
             empty.hidden = segments.length > 0;
             empty.textContent = session.next_sequence > 0 ? 'Serwer potwierdził audio, ale nie zwrócił jeszcze transkrypcji. To nie jest potwierdzenie rozpoznania mowy.' : 'Brak transkrypcji — oczekiwanie na wynik dostawcy AI.';
             const count = Number.isSafeInteger(session.next_sequence) && session.next_sequence >= 0 ? session.next_sequence : 0;
             this.root.querySelector('[data-audio-accepted]').textContent = 'Fragmenty audio potwierdzone przez serwer: ' + count + '.';
+        }
+        sessionMedications(session, segments) {
+            const box = this.root.querySelector('[data-session-medications]'); if (!box) return;
+            box.replaceChildren();
+            const quotes = segments.map(s => s.raw_text ?? s.text);
+            for (const item of Array.isArray(session.medications) ? session.medications.slice(0, 8) : []) {
+                if (!item || typeof item.name !== 'string' || typeof item.rpl_id !== 'string' || !Array.isArray(item.evidence) || !item.evidence.length || !item.evidence.every(q => typeof q === 'string' && quotes.includes(q))) continue;
+                const card = element('article', undefined, 'va-medication-candidate');
+                card.appendChild(element('strong', 'Wzmianka RPL · ' + item.name));
+                card.appendChild(element('p', ['Substancja: ' + (item.substance || 'brak danych'), 'Moc: ' + (item.strength || 'brak danych'), 'Postać: ' + (item.form || 'brak danych'), 'RPL: ' + item.rpl_id, 'ATC: ' + (item.atc || 'brak danych')].join(' · ')));
+                card.appendChild(element('small', 'Dopasowanie katalogowe, nie potwierdzenie stosowania ani dawki. Niczego nie zapisano.'));
+                for (const quote of item.evidence) card.appendChild(element('blockquote', quote, 'va-source'));
+                box.appendChild(card);
+            }
+            box.hidden = !box.children.length;
         }
         proposalState() {
             if (this.proposalRoot) this.proposalRoot.querySelector('[data-proposals-empty]').hidden = Array.from(this.proposals.values()).some(item => ['pending', 'saving'].includes(item.status));
@@ -586,7 +638,7 @@
             this.latest = session;
             this.transcript(session);
             const tips = this.root.querySelector('[data-tips]');
-            const incomingTips = (Array.isArray(session.tips) ? session.tips : []).filter(tip => typeof tip === 'string' && tip.trim()).slice(0, 4);
+            const incomingTips = (Array.isArray(session.tips) ? session.tips : []).map(tip => this.patientQuestion(tip)).filter(tip => tip.trim()).slice(0, 4);
             // Lifecycle/audio responses with no tips must not erase questions.
             if (incomingTips.length) {
                 this.tipVersion = (this.tipVersion || 0) + 1;
@@ -842,6 +894,7 @@
             finally { this.closing = false; this.refreshChatControls(); this.headerState(); }
         }
         setupChat() {
+            this.root.querySelector('[data-chat-reconcile]')?.addEventListener('click', () => this.reconcileChat());
             const input = this.root.querySelector('[data-chat-input]');
             this.root.querySelector('[data-chat-send]')?.addEventListener('click', () => this.sendChat(input?.value));
             input?.addEventListener('keydown', event => {
@@ -851,11 +904,31 @@
             this.refreshChatControls();
         }
         refreshChatControls() {
+            const reconcile = this.root.querySelector('[data-chat-reconcile]');
+            if (reconcile) { reconcile.hidden = !this.chatUncertain; reconcile.disabled = Boolean(this.chatPending || !this.access); }
             const disabled = !this.accessChecked || !this.access || this.chatPending || this.chatUncertain || this.closing || this.operationPending;
             for (const selector of ['[data-chat-input]', '[data-chat-send]']) {
                 const node = this.root.querySelector(selector); if (node) node.disabled = Boolean(disabled);
             }
             for (const node of this.root.querySelectorAll('[data-chat-quick]')) node.disabled = Boolean(disabled);
+        }
+        async reconcileChat() {
+            if (!this.accessChecked || !this.access || !this.chatUncertain || this.chatPending) return;
+            this.chatPending = true; this.refreshChatControls();
+            const wait = this.root.querySelector('[data-chat-wait]');
+            try {
+                // Only host read-only reconciliation can release the paid-call lock.
+                const result = await this.client.reconcileChat?.();
+                if (['not_dispatched', 'failed_before_dispatch'].includes(result?.status)) {
+                    this.chatUncertain = false;
+                    if (wait) wait.textContent = 'Potwierdzono, że wiadomość nie została wysłana do AI. Możesz wysłać ją ręcznie.';
+                } else if (result?.status === 'completed' && !result.replayed) {
+                    this.chatUncertain = false;
+                    if (result.reply) this.chatBubble('assistant', result.reply);
+                    if (wait) wait.textContent = 'Odpowiedź potwierdzona. Niczego nie wysłano ponownie.';
+                } else if (wait) wait.textContent = 'Nie potwierdzono wyniku czatu. Nie wysłano wiadomości ponownie. Sprawdź stan operacji z administratorem; nie rozpoczynaj nowej płatnej sesji.';
+            } catch (_) { if (wait) wait.textContent = 'Sprawdzenie stanu nie powiodło się. Niczego nie wysłano ponownie.'; }
+            finally { this.chatPending = false; this.refreshChatControls(); }
         }
         chatBubble(role, text) {
             const list = this.root.querySelector('[data-conversation]'); if (!list) return;
@@ -867,6 +940,7 @@
             if (!this.accessChecked || !this.access || this.closing || this.operationPending || this.chatPending || this.chatUncertain || typeof message !== 'string' || !message.trim() || message.length > 4000) return;
             const scope = this.scope;
             this.chatPending = true; this.refreshControls();
+            let dispatched = false;
             const wait = this.root.querySelector('[data-chat-wait]'); if (wait) wait.textContent = 'Analizuję wiadomość…';
             try {
                 const read = await this.bridge.readRecord(pluginId);
@@ -881,6 +955,7 @@
                     size += entry.content.length; history.unshift(entry);
                 }
                 this.chatBubble('user', message);
+                dispatched = true;
                 const result = await this.client.sendChat(message, history);
                 if (scope !== this.scope || !this.access) return;
                 if (result.status !== 'completed' || result.replayed) {
@@ -893,7 +968,7 @@
                 this.chatHistory = this.chatHistory.slice(-20);
                 const input = this.root.querySelector('[data-chat-input]'); if (input) input.value = '';
                 const session = this.client.session || this.latest;
-                if (session) for (const proposal of result.suggestions) this.addProposal(proposal, session);
+                if (session) for (const proposal of Array.isArray(result.suggestions) ? result.suggestions : []) this.addProposal(proposal, session);
                 this.proposalState();
                 if (['trichology', 'photos', 'visits'].includes(result.navigation)) {
                     const navigated = await this.bridge.navigateSection?.(result.navigation);
@@ -904,8 +979,10 @@
             } catch (error) {
                 if (scope !== this.scope || !this.access) return;
                 if (error.message === 'access_revoked') { this.rejectRead('access_revoked'); return; }
-                this.chatUncertain = true;
-                if (wait) wait.textContent = 'Nie potwierdzono odpowiedzi. Nie wysyłamy ponownie — operacja mogła zostać rozliczona.';
+                const code = error.code || error.message;
+                const definite = !dispatched || error.dispatched === false || ['csrf_required', 'context_required', 'chat_invalid', 'chat_not_dispatched', 'chat_pre_dispatch_failed'].includes(code);
+                this.chatUncertain = !definite;
+                if (wait) wait.textContent = definite ? 'Nie wysłano wiadomości do AI. Sprawdź dostęp lub odśwież stronę; treść wiadomości pozostaje w polu. Możesz wysłać ją ręcznie.' : 'Nie potwierdzono odpowiedzi. Nie wysyłamy ponownie — operacja mogła zostać rozliczona. Użyj „Sprawdź stan”.';
             } finally { this.chatPending = false; this.refreshControls(); }
         }
         compactQuestions() {

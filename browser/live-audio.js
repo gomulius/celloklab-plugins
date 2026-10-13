@@ -264,6 +264,29 @@
                 throw error;
             } finally { this.chatSending = false; }
         }
+        async reconcileChat(key = this.chatKey) {
+            // Observe a retained request key; never resend a paid message or
+            // claim recovery of a reply that exists only in browser memory.
+            if (!this._session || !this.context || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(key || '')) throw new Error('chat_key_required');
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!csrf) throw new Error('csrf_required');
+            const sessionId = this._session.session_id;
+            const response = await fetch('/api/plugins/' + encodeURIComponent(this.options.pluginId) +
+                '/sessions/' + encodeURIComponent(sessionId) + '/chat-status?tenant_slug=' + encodeURIComponent(this.context.tenantSlug) + '&key=' + encodeURIComponent(key), {
+                method: 'GET', credentials: 'same-origin', cache: 'no-store',
+                headers: {'Accept': 'application/json', 'X-CSRF-Token': csrf}
+            });
+            if (forbidden.has(response.status)) { await this.revoke(); throw new Error('access_revoked'); }
+            if (!response.ok) throw new Error('chat_status_failed');
+            const result = await response.json();
+            if (!['not_found', 'pending', 'completed', 'failed'].includes(result?.status) ||
+                result.reply_available !== false || result.replay_available !== false ||
+                this._session?.session_id !== sessionId || this._session?.status === 'revoked') throw new Error('chat_invalid_status');
+            if (['completed', 'failed'].includes(result.status)) this.chatUncertain = false;
+            // not_found is not proof that an in-flight original request cannot
+            // subsequently arrive. Keep uncertainty and leave retry to the user.
+            return result;
+        }
         async start({recordingConsent} = {}) {
             if (recordingConsent !== true) throw new Error('recording_consent_required');
             if (this._state === 'paused' && this.active) return this.resume({recordingConsent});

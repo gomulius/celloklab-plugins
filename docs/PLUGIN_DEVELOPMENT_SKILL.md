@@ -1,5 +1,7 @@
 # Celloklab partner plugin development
 
+Aktualna runda kontekstu, insights i czatu: [PLUGIN_VISION_CONTEXT_INSIGHTS.md](PLUGIN_VISION_CONTEXT_INSIGHTS.md).
+
 Aktualny przepływ STT/analizy i konfiguracja bezpośredniego OpenAI: [PLUGIN_LIVE_PERFORMANCE.md](PLUGIN_LIVE_PERFORMANCE.md).
 
 Aktualny, zwięzły dodatek: [SDK 1.2.3 — czat, RPL i UI](PLUGIN_CHAT_RPL_UI_1_2_3.md).

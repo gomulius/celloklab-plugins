@@ -1,4 +1,9 @@
 /* Vision: compact, theme-token-only geometry. No host-private mutations. */
+.vision-assistant .va-role-specialist {border-inline-start:3px solid var(--clk-ui-accent);padding-inline-start:8px}
+.vision-assistant .va-role-patient {border-inline-start:3px solid var(--clk-ui-info, var(--clk-ui-text));padding-inline-start:8px}
+.vision-assistant .va-role-specialist .va-label {color:var(--clk-ui-accent)}
+.vision-assistant .va-role-patient .va-label {color:var(--clk-ui-info, var(--clk-ui-text))}
+.vision-assistant .va-discrepancy {padding:8px;border:1px solid var(--clk-ui-warning);border-radius:8px;background:var(--clk-ui-surface-muted)}
 .vision-assistant,.vision-proposals {min-width:0;font-size:13px;line-height:1.4;color:var(--clk-ui-text)}
 .vision-assistant [hidden],.vision-proposals [hidden] {display:none!important}
 .vision-assistant .va-card {position:relative;padding:10px;background:var(--clk-ui-surface-card)}

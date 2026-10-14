@@ -1,5 +1,7 @@
 # Celloklab partner plugin development
 
+Diagnoza i aktualny kontrakt propozycji/czatu: [PLUGIN_VISION_FACTS_CHAT_REPORT.md](PLUGIN_VISION_FACTS_CHAT_REPORT.md).
+
 Aktualna runda kontekstu, insights i czatu: [PLUGIN_VISION_CONTEXT_INSIGHTS.md](PLUGIN_VISION_CONTEXT_INSIGHTS.md).
 
 Aktualny przepływ STT/analizy i konfiguracja bezpośredniego OpenAI: [PLUGIN_LIVE_PERFORMANCE.md](PLUGIN_LIVE_PERFORMANCE.md).

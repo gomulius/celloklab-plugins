@@ -29,13 +29,15 @@
             <button type="button" class="va-tab" role="tab" id="vision-tab-transcript" aria-controls="vision-pane-transcript" data-va-tab="transcript" aria-selected="false" tabindex="-1">Transkrypcja <span class="va-badge" data-segment-count hidden>0</span></button>
           </nav>
           <div class="va-pane" role="tabpanel" id="vision-pane-chat" aria-labelledby="vision-tab-chat" data-va-pane="chat">
-            <div class="va-conversation" data-conversation role="log" aria-live="polite"></div>
+            <section data-patient-context hidden><h3 class="clk-ui-card-title">Co wiem o pacjencie</h3><ul data-card-points></ul></section>
+            <section data-discrepancies hidden aria-label="Rozbieżności do wyjaśnienia" aria-live="polite"></section>
 
             <section class="clk-ui-stack" data-insights-box aria-label="Objaśnienia pojęć" hidden>
               <h3 class="clk-ui-card-title">Wzmianki</h3><p class="clk-ui-help" data-knowledge-notice>Tylko wzmianka, nie rozpoznanie. Może dotyczyć negacji, pytania lub innej osoby. Warianty STT: do potwierdzenia. Leczenie i przygotowanie do badań omów z lekarzem i laboratorium.</p><div class="va-insights" data-insights></div><details data-older-insights hidden><summary>Starsze wzmianki</summary><div class="va-insights" data-older-insights-list></div></details>
             </section>
             <h3 class="clk-ui-card-title">O co dopytać</h3><ul data-tips></ul>
             <details data-older-questions hidden><summary>Starsze pytania</summary><ul data-older-tips></ul></details>
+            <div class="va-conversation" data-conversation role="log" aria-live="polite"></div>
           </div>
           <div class="va-pane" role="tabpanel" id="vision-pane-review" aria-labelledby="vision-tab-review" data-va-pane="review" hidden><p class="clk-ui-help">Sprawdź wartości i źródła. Akceptacja zapisuje tylko wybrane pola.</p><div data-sidebar-proposals></div><div data-medication-candidates></div><div data-session-medications aria-label="Wzmianki leków z katalogu RPL" hidden></div></div>
           <div class="va-pane" role="tabpanel" id="vision-pane-transcript" aria-labelledby="vision-tab-transcript" data-va-pane="transcript" hidden><p class="clk-ui-help" data-transcript-empty>Brak transkrypcji.</p><ol class="va-transcript" data-transcript></ol></div>

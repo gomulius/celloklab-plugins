@@ -343,7 +343,40 @@
             for (const [term, item] of termsIn(texts.join('\n'))) terms.set(term, item);
             if (terms.has('niedoczynnosc_tarczycy') || terms.has('nadczynnosc_tarczycy') || terms.has('hashimoto') || terms.has('lewotyroksyna')) terms.delete('choroba_tarczycy');
             this.cardTerms = terms;
+            this.cardPoints(record, values);
             this.renderInsights();
+        }
+        cardPoints(record, values) {
+            const list = this.root.querySelector('[data-card-points]'); if (!list) return;
+            list.replaceChildren();
+            const sex = record?.patient_sex ?? values.patient_sex;
+            const age = record?.patient_age_years ?? values.patient_age_years;
+            const demographic = [['M', 'male', 'm'].includes(sex) ? 'Mężczyzna' : ['F', 'female', 'f'].includes(sex) ? 'Kobieta' : '', Number.isInteger(age) ? age + ' lat' : ''].filter(Boolean).join(', ');
+            const points = demographic ? [demographic] : [];
+            for (const [field, label] of [['chief_complaint', 'Powód wizyty'], ['medication_list', 'Leki w karcie'], ['current_medications', 'Leki — opis'], ['chronic_diseases', 'Choroby'], ['allergies_details', 'Alergie']]) {
+                let value = values[field] ?? record?.[field];
+                if (typeof value === 'string') { try { const parsed = JSON.parse(value); value = parsed?.summary ?? parsed; } catch (_) { /* Native prose. */ } }
+                if (Array.isArray(value)) value = value.map(row => typeof row === 'string' ? row : row?.name).filter(Boolean).join(', ');
+                if (typeof value === 'string' && value.trim()) points.push(label + ': ' + value.slice(0, 500));
+            }
+            if (!points.length) points.push('Brak zapisanych danych wywiadu.');
+            if (points.length < 2) points.push('Pozostałe dane wymagają uzupełnienia — brak wpisu nie oznacza braku chorób ani leków.');
+            for (const point of points.slice(0, 4)) list.appendChild(element('li', point));
+            this.root.querySelector('[data-patient-context]').hidden = false;
+        }
+        discrepancies(session) {
+            const box = this.root.querySelector('[data-discrepancies]'); if (!box) return;
+            box.replaceChildren();
+            const quotes = (session.segments || []).map(s => s.raw_text ?? s.text);
+            for (const item of Array.isArray(session.discrepancies) ? session.discrepancies.slice(0, 4) : []) {
+                if (!item || typeof item.message !== 'string' || typeof item.ask !== 'string' || !Array.isArray(item.evidence) || !item.evidence.length || !item.evidence.every(q => quotes.includes(q))) continue;
+                const card = element('article', undefined, 'va-discrepancy');
+                card.appendChild(element('strong', 'Do wyjaśnienia: ' + item.message));
+                card.appendChild(element('p', this.patientQuestion(item.ask), 'va-ask'));
+                for (const quote of item.evidence) card.appendChild(element('blockquote', quote, 'va-source'));
+                box.appendChild(card);
+            }
+            box.hidden = !box.children.length;
         }
         renderInsights(conversation = this.conversationTerms) {
             if (!this.access || !this.accessChecked) return;
@@ -360,6 +393,7 @@
                 visible++;
                 const card = element('article', undefined, visible === 1 ? 'va-insight va-insight-new' : 'va-insight');
                 card.appendChild(element('small', where + ' · ' + (CATEGORY[item.category] || 'pojęcie')));
+                if (['wysokie', 'umiarkowane', 'niskie'].includes(item.trichology_relevance)) card.appendChild(element('small', 'Znaczenie trychologiczne: ' + item.trichology_relevance));
                 card.appendChild(element('strong', item.title));
                 card.appendChild(element('p', item.summary));
                 const ask = this.patientQuestion(item.ask);
@@ -468,6 +502,10 @@
             this.accessChecked = false;
             this.setReady(false, false);
             this.cardTerms.clear(); this.conversationTerms.clear(); this.dismissedInsights.clear();
+            this.root.querySelector('[data-card-points]')?.replaceChildren();
+            const cardContext = this.root.querySelector('[data-patient-context]'); if (cardContext) cardContext.hidden = true;
+            this.root.querySelector('[data-discrepancies]')?.replaceChildren();
+            const discrepancies = this.root.querySelector('[data-discrepancies]'); if (discrepancies) discrepancies.hidden = true;
             this.root.querySelector('[data-insights]').replaceChildren();
             this.root.querySelector('[data-older-insights-list]')?.replaceChildren();
             this.root.querySelector('[data-insights-box]').hidden = true;
@@ -557,7 +595,7 @@
                     if (segment.needs_confirmation) previous.text.textContent += ' (do potwierdzenia)';
                     continue;
                 }
-                const row = element('li', undefined, 'va-transcript-segment');
+                const row = element('li', undefined, 'va-transcript-segment va-role-' + role);
                 const timing = Number.isFinite(segment.start) && Number.isFinite(segment.end) ? segment.start.toFixed(1) + '–' + segment.end.toFixed(1) + ' s' : 'Fragment';
                 row.appendChild(element('span', label + ' · ' + timing + (typeof segment.speaker === 'string' ? ' · ' + segment.speaker.slice(0, 80) : '') + (segment.needs_confirmation ? ' · do potwierdzenia' : ''), 'va-label'));
                 const shown = element('p', text); row.appendChild(shown);
@@ -572,6 +610,7 @@
             const badge = this.root.querySelector('[data-segment-count]');
             badge.textContent = String(all.length); badge.hidden = !all.length;
             if (this.accessChecked) {
+                this.discrepancies(session);
                 const mentions = new Map();
                 for (const segment of all) for (const [term, item] of termsIn(segment.raw_text ?? segment.text)) { mentions.delete(term); mentions.set(term, item); }
                 this.renderInsights(this.sessionInsights(session, mentions));
@@ -1060,7 +1099,11 @@
             if (!slot || !this.accessChecked || !this.access) return;
             const mentions = this.medicationMentions(item.value, item.refs);
             if (mentions === null) { this.diagnose('proposal_medication_details_invalid'); return; }
-            const terms = mentions ? mentions.map(mention => [mention.name.replace(/\s*\(do potwierdzenia[^)]*\)/iu, ''), {title: mention.name, mention}]) : [...termsIn(item.value)].filter(([, term]) => term.category === 'drug').slice(0, 8);
+            const stop = new Set('biorę przyjmuję stosuję oraz albo doraźnie codziennie leki leków tabletki roku miesięcy potwierdzenia'.split(' '));
+            // Legacy prose must not become a closed knowledge-regex whitelist.
+            // These are search hints only; official selection + review is required.
+            const rawTerms = [...new Set((item.value.match(/[\p{L}]{4,60}/gu) || []).filter(word => !stop.has(word.toLocaleLowerCase('pl'))))].slice(0, 8);
+            const terms = mentions ? mentions.map(mention => [mention.name.replace(/\s*\(do potwierdzenia[^)]*\)/iu, ''), {title: mention.name, mention}]) : rawTerms.map(term => [term, {title: term}]);
             if (!terms.length && typeof item.value === 'string' && item.value.trim()) terms.push([item.value.slice(0, 100), {title: 'Nazwa do wyszukania'}]);
             // Capture this original list with the source proposal, not at selection
             // time. Subsequent reads must never silently rebase the addition.

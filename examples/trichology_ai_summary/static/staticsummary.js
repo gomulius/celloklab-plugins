@@ -38,6 +38,43 @@
     return `Wygenerowano: ${day}.${month}.${year}, ${hour}:${minute}${suffix}.`;
   }
   const pending = new Set(['pending', 'queued', 'running', 'processing']);
+  // Deliberately small Markdown subset. All source characters remain text;
+  // never parse HTML, URLs, images or attributes supplied by the model.
+  function renderSummary(target, text) {
+    target.textContent = '';
+    function inline(parent, value) {
+      value.split(/(\*\*[^*\n]+\*\*)/g).forEach(part => {
+        const bold = part.startsWith('**') && part.endsWith('**') && part.length > 4;
+        const node = document.createElement(bold ? 'strong' : 'span');
+        node.textContent = bold ? part.slice(2, -2) : part;
+        parent.appendChild(node);
+      });
+    }
+    let paragraph = null, list = null;
+    text.replace(/\r\n?/g, '\n').split('\n').forEach(line => {
+      if (!line.trim()) { paragraph = null; list = null; return; }
+      const heading = /^#{1,6}\s+(.+)$/.exec(line);
+      const item = /^\s*(?:[-*+] |\d+[.)] )(.+)$/.exec(line);
+      if (heading) {
+        paragraph = null; list = null;
+        const node = document.createElement('h4');
+        inline(node, heading[1]); target.appendChild(node);
+      } else if (item) {
+        paragraph = null;
+        const type = /^\s*\d/.test(line) ? 'ol' : 'ul';
+        if (!list || list.tagName.toLowerCase() !== type) {
+          list = document.createElement(type); target.appendChild(list);
+        }
+        const node = document.createElement('li');
+        inline(node, item[1]); list.appendChild(node);
+      } else {
+        list = null;
+        if (!paragraph) { paragraph = document.createElement('p'); target.appendChild(paragraph); }
+        else paragraph.appendChild(document.createTextNode('\n'));
+        inline(paragraph, line);
+      }
+    });
+  }
   document.querySelectorAll('[data-trichology-ai-summary]').forEach(card => {
     if (card.dataset.summaryMounted === 'true') return;
     card.dataset.summaryMounted = 'true';
@@ -48,7 +85,7 @@
     const obsolete = card.querySelector('[data-summary-obsolete]');
     const revision = card.querySelector('[data-summary-revision]');
     const button = card.querySelector('[data-summary-request]');
-    const actionStatus = card.querySelector('[data-summary-action-status]');
+
     // Native host identity only, never infer IDs from URLs, clinical fields or storage.
     const nativePatient = document.getElementById('patient-data');
     const patientId = card.dataset.patientId || nativePatient?.dataset.patientId;
@@ -62,11 +99,11 @@
     const url = `/api/plugins/${encodeURIComponent(pluginId)}/patients/${encodeURIComponent(patientId)}/trichology-summary?tenant_slug=${encodeURIComponent(tenantSlug)}`;
     let requests = 0, timer = null;
     let stopped = false, reading = false, submitting = false;
-    let jobPending = false, uncertain = false, denied = false, messageFromRequest = false;
+    let jobPending = false, uncertain = false, denied = false, reusedRequest = false;
+    const reusedMessage = 'Dokumentacja bez zmian — wykorzystano istniejące zadanie; nie uruchomiono nowej generacji. ';
     const uncertainMessage = 'Nie można potwierdzić przyjęcia żądania. Mogło już rozpocząć płatne generowanie. Sprawdzamy tylko wynik — nie wysyłamy ponownie. Sprawdź kartę później lub skontaktuj się z administratorem.';
     function message(text) {
-      actionStatus.textContent = text;
-      actionStatus.hidden = !text;
+      status.textContent = text;
     }
     function updateButton() {
       button.disabled = stopped || reading || submitting || jobPending || uncertain || denied;
@@ -109,10 +146,10 @@
           throw new Error('invalid envelope');
         }
         jobPending = pending.has(summary.status);
-        status.textContent = labels[summary.status] || 'Podsumowanie jest obecnie niedostępne.';
-        if (!uncertain && messageFromRequest) message(status.textContent);
+        if (!uncertain) message((reusedRequest ? reusedMessage : '')
+          + (labels[summary.status] || 'Podsumowanie jest obecnie niedostępne.'));
         const hasText = typeof summary.text === 'string' && summary.text.length > 0;
-        output.textContent = hasText ? summary.text : '';
+        renderSummary(output, hasText ? summary.text : '');
         output.hidden = !hasText;
         result.hidden = !hasText;
         generated.textContent = hasText ? generatedLabel(summary.generated_at) : '';
@@ -126,7 +163,7 @@
         revision.hidden = !source && !current;
         if (jobPending) {
           if (requests < MAX_REQUESTS) timer = window.setTimeout(read, INTERVAL_MS);
-          else if (summary.status !== 'pending') status.textContent = 'Podsumowanie nie zostało jeszcze przygotowane. Możesz sprawdzić wynik później; nie uruchamiaj drugiej generacji.';
+          else if (summary.status !== 'pending' && !uncertain) message((reusedRequest ? reusedMessage : '') + 'Podsumowanie nie zostało jeszcze przygotowane. Możesz sprawdzić wynik później; nie uruchamiaj drugiej generacji.');
         }
         // Uncertainty stays latched even if GET returns an older artifact or no job.
       } catch (_) {
@@ -196,12 +233,13 @@
         if (![200, 202].includes(response.status) || envelope.plugin_id !== pluginId || !request
             || typeof request.job_id !== 'string' || !request.job_id
             || !Object.prototype.hasOwnProperty.call(labels, request.status)
-            || typeof request.source_revision !== 'string' || typeof request.current_revision !== 'string') {
+            || typeof request.source_revision !== 'string' || typeof request.current_revision !== 'string'
+            || typeof request.created !== 'boolean' || request.reused !== !request.created) {
           throw new Error('invalid request envelope');
         }
         jobPending = pending.has(request.status);
-        messageFromRequest = true;
-        message(labels[request.status]);
+        reusedRequest = request.reused;
+        message((reusedRequest ? reusedMessage : '') + labels[request.status]);
         shouldRead = true;
       } catch (_) {
         if (stopped) return;

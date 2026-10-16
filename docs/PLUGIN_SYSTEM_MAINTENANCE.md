@@ -1,5 +1,7 @@
 # Plugin system host maintenance
 
+Raport A1–A12, tryb tekstowy, drawer i podsumowanie: [ASSISTANT_REPORT_A1_A12_FIXES.md](ASSISTANT_REPORT_A1_A12_FIXES.md).
+
 Diagnoza i aktualny kontrakt propozycji/czatu: [PLUGIN_VISION_FACTS_CHAT_REPORT.md](PLUGIN_VISION_FACTS_CHAT_REPORT.md).
 
 Aktualna runda kontekstu, insights i czatu: [PLUGIN_VISION_CONTEXT_INSIGHTS.md](PLUGIN_VISION_CONTEXT_INSIGHTS.md).
